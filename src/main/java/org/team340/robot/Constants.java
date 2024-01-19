@@ -70,6 +70,26 @@ public final class Constants {
         public static final int BACK_RIGHT_TURN = 7;
         public static final int FRONT_RIGHT_MOVE = 8;
         public static final int FRONT_RIGHT_TURN = 9;
+
+        public static final int INTAKE_DEPLOY_MOTOR = 20;
+        public static final int INTAKE_ROLLER_MOTOR = 21;
+
+        public static final int SHOOTER_PIVOT_MOTOR = 30;
+        public static final int SHOOTER_FEED_MOTOR = 31;
+        public static final int SHOOTER_LEFT_SHOOT_MOTOR = 32;
+        public static final int SHOOTER_RIGHT_SHOOT_MOTOR = 33;
+    }
+
+    public static final class IntakeConstants {
+
+        public static final PIDConfig INTAKE_DEPLOY_STRONG_PID = new PIDConfig(0.0, 0.0, 0.0);
+        public static final PIDConfig INTAKE_DEPLOY_WEAK_PID = new PIDConfig(0.0, 0.0, 0.0);
+
+        public static final double INTAKE_DEPLOY_POSITION = 0.0;
+        public static final double INTAKE_DEPLOY_POSITION_TOLERANCE = 0.0;
+
+        public static final double INTAKE_DEPLOY_ROLLER_SPEED = 0.0;
+        public static final double INTAKE_SPIT_ROLLER_SPEED = -0.0;
     }
 
     /**
