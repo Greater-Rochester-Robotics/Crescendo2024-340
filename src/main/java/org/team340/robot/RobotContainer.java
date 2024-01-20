@@ -12,6 +12,8 @@ import org.team340.lib.util.config.rev.RevConfigUtils;
 import org.team340.robot.Constants.ControllerConstants;
 import org.team340.robot.commands.Autos;
 import org.team340.robot.commands.SystemsCheck;
+import org.team340.robot.subsystems.Intake;
+import org.team340.robot.subsystems.Shooter;
 import org.team340.robot.subsystems.Swerve;
 
 /**
@@ -27,6 +29,8 @@ public final class RobotContainer {
     private static Controller2 coDriver;
 
     public static Swerve swerve;
+    public static Intake intake;
+    public static Shooter shooter;
 
     /**
      * Entry to initializing subsystems and command execution.
@@ -42,9 +46,13 @@ public final class RobotContainer {
 
         // Initialize subsystems.
         swerve = new Swerve();
+        intake = new Intake();
+        shooter = new Shooter();
 
         // Add subsystems to the dashboard.
         swerve.addToDashboard();
+        intake.addToDashboard();
+        shooter.addToDashboard();
 
         // Set systems check command.
         GRRDashboard.setSystemsCheck(SystemsCheck.command());

@@ -111,6 +111,30 @@ public class Shooter extends GRRSubsystem {
     }
 
     /**
+     * Internal function which converts the current angle (in radians) from absolute encoder to the extension length (in inches) the dart needs to move to
+     * @param sensorAngle Angle from the pivot motor's absolute encoder
+     * @return The extension length the dart needs to move to
+     */
+    private double dartExtensionFromAngle(double sensorAngle) {
+        double totalLengthOfDart = Math.sqrt(
+            PivotConstants.SUM_OF_SQUARES_OF_LENGTHS -
+            PivotConstants.PIVOT_TWICE_THE_PRODUCT_OF_LENGTHS *
+            Math.cos(sensorAngle + PivotConstants.PIVOT_OFFSET_ANGLE)
+        );
+        return (totalLengthOfDart - PivotConstants.PIVOT_MINIMUM_LENGTH_OF_DART);
+    }
+
+    /**
+     * Internal function which returns distance (in inches) the dart needs to be moved based on current angle (from relative encoder) and a target angle
+     * @param targetAngle Pivot angle the dart needs to be at
+     * @return distance the dart needs to be moved
+     */
+    private double distanceToMoveDart(double targetAngle) {
+        double deltaExtensionLength = dartExtensionFromAngle(targetAngle) - dartExtensionFromAngle(pivotAbsoluteEncoder.getPosition());
+        return deltaExtensionLength + pivotRelativeEncoder.getPosition();
+    }
+
+    /**
      * This starts running the shooter motors to there respective speeds..
      * @param leftSpeed This is speed the left motor will be set to.
      * @param rightSpeed This is speed the right motor will be set to.
@@ -213,27 +237,6 @@ public class Shooter extends GRRSubsystem {
                 leftShootMotor.stopMotor();
                 rightShootMotor.stopMotor();
             });
-    }
-
-    /**
-     * Internal function which converts the angle from absolute encoder to the extension length the dart needs to move to
-     * @deprecated All constants are set to 0.0
-     */
-    @Deprecated
-    private double dartExtensionFromAngle(double sensorAngle) {
-        return (
-            Math.sqrt(
-                PivotConstants.SUM_OF_SQUARES_OF_LENGTHS -
-                PivotConstants.PIVOT_TWICE_THE_PRODUCT_OF_LENGTHS *
-                Math.cos(sensorAngle + PivotConstants.PIVOT_OFFSET_ANGLE)
-            ) -
-            PivotConstants.PIVOT_MINIMUM_LENGTH_OF_DART
-        );
-    }
-
-    private double distanceToMoveDart(double targetAngle) {
-        double deltaExtensionLength = dartExtensionFromAngle(targetAngle) - dartExtensionFromAngle(pivotAbsoluteEncoder.getPosition());
-        return deltaExtensionLength + pivotRelativeEncoder.getPosition();
     }
 
     public Command shootSpeaker(Pose2d robotPosition) {
