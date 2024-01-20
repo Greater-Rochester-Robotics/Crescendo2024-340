@@ -78,18 +78,59 @@ public final class Constants {
         public static final int SHOOTER_FEED_MOTOR = 31;
         public static final int SHOOTER_LEFT_SHOOT_MOTOR = 32;
         public static final int SHOOTER_RIGHT_SHOOT_MOTOR = 33;
+
+        public static final int SHOOTER_NOTE_DETECTOR = 0;
     }
 
     public static final class IntakeConstants {
 
-        public static final PIDConfig INTAKE_DEPLOY_STRONG_PID = new PIDConfig(0.0, 0.0, 0.0);
-        public static final PIDConfig INTAKE_DEPLOY_WEAK_PID = new PIDConfig(0.0, 0.0, 0.0);
+        public static final PIDConfig INTAKE_DEPLOY_STRONG_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
+        public static final PIDConfig INTAKE_DEPLOY_WEAK_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
 
         public static final double INTAKE_DEPLOY_POSITION = 0.0;
         public static final double INTAKE_DEPLOY_POSITION_TOLERANCE = 0.0;
 
         public static final double INTAKE_DEPLOY_ROLLER_SPEED = 0.0;
         public static final double INTAKE_SPIT_ROLLER_SPEED = -0.0;
+    }
+
+    public static final class ShooterConstants {
+
+        public static final double FEED_INTAKE_SPEED = 0.0;
+
+        /*All linear pivot distances in inches.*/
+        public static final double SHOOTER_PIVOT_REL_ENC_CONVERSION = 0.2;
+
+        public static final double DISTANCE_BETWEEN_SHOOTER_PIVOT_AND_DART_PIVOT_ON_THE_SHOOTER = 0.0;
+        public static final double DISTANCE_BETWEEN_SHOOTER_PIVOT_AND_DART_PIVOT_ON_THE_MOTOR = 0.0;
+        public static final double MINIMUM_LENGTH_OF_DART = 0.0;
+        public static final double SUM_OF_SQUARES_OF_LENGTHS =
+            DISTANCE_BETWEEN_SHOOTER_PIVOT_AND_DART_PIVOT_ON_THE_SHOOTER *
+            DISTANCE_BETWEEN_SHOOTER_PIVOT_AND_DART_PIVOT_ON_THE_SHOOTER +
+            DISTANCE_BETWEEN_SHOOTER_PIVOT_AND_DART_PIVOT_ON_THE_MOTOR *
+            DISTANCE_BETWEEN_SHOOTER_PIVOT_AND_DART_PIVOT_ON_THE_MOTOR;
+
+        public static final double TWICE_THE_LENGTH_OF_THE_PRODUCTS_OF_LENGTHS =
+            2 * DISTANCE_BETWEEN_SHOOTER_PIVOT_AND_DART_PIVOT_ON_THE_SHOOTER * DISTANCE_BETWEEN_SHOOTER_PIVOT_AND_DART_PIVOT_ON_THE_MOTOR;
+
+        public static final double OFFSET_ANGLE = Math.acos(
+            (SUM_OF_SQUARES_OF_LENGTHS - MINIMUM_LENGTH_OF_DART * MINIMUM_LENGTH_OF_DART) / TWICE_THE_LENGTH_OF_THE_PRODUCTS_OF_LENGTHS
+        );
+
+        public static final double MINIMUM_ANGLE = 0.0;
+        public static final double MAXIMUM_ANGLE = 0.0;
+
+        public static final PIDConfig SHOOTER_PIVOT_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
+        public static final PIDConfig SHOOTER_FEED_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
+        public static final PIDConfig SHOOTER_LEFT_SHOOT_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
+        public static final PIDConfig SHOOTER_RIGHT_SHOOT_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
+
+        public static final double SHOOTER_PIVOT_PID_MIN_OUTPUT = 0.0;
+        public static final double SHOOTER_PIVOT_PID_MAX_OUTPUT = 0.0;
+        public static final double SHOOTER_PIVOT_MIN_VEL = 0.0;
+        public static final double SHOOTER_PIVOT_MAX_VEL = 0.0;
+        public static final double SHOOTER_PIVOT_MAX_ACCEL = 0.0;
+        public static final double SHOOTER_PIVOT_CLOSED_LOOP_ERR = 0.0;
     }
 
     /**
