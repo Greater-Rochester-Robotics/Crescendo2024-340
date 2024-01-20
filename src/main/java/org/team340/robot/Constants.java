@@ -98,39 +98,41 @@ public final class Constants {
 
         public static final double FEED_INTAKE_SPEED = 0.0;
 
-        /*All linear pivot distances in inches.*/
-        public static final double SHOOTER_PIVOT_REL_ENC_CONVERSION = 0.2;
-
-        public static final double DISTANCE_BETWEEN_SHOOTER_PIVOT_AND_DART_PIVOT_ON_THE_SHOOTER = 0.0;
-        public static final double DISTANCE_BETWEEN_SHOOTER_PIVOT_AND_DART_PIVOT_ON_THE_MOTOR = 0.0;
-        public static final double MINIMUM_LENGTH_OF_DART = 0.0;
-        public static final double SUM_OF_SQUARES_OF_LENGTHS =
-            DISTANCE_BETWEEN_SHOOTER_PIVOT_AND_DART_PIVOT_ON_THE_SHOOTER *
-            DISTANCE_BETWEEN_SHOOTER_PIVOT_AND_DART_PIVOT_ON_THE_SHOOTER +
-            DISTANCE_BETWEEN_SHOOTER_PIVOT_AND_DART_PIVOT_ON_THE_MOTOR *
-            DISTANCE_BETWEEN_SHOOTER_PIVOT_AND_DART_PIVOT_ON_THE_MOTOR;
-
-        public static final double TWICE_THE_LENGTH_OF_THE_PRODUCTS_OF_LENGTHS =
-            2 * DISTANCE_BETWEEN_SHOOTER_PIVOT_AND_DART_PIVOT_ON_THE_SHOOTER * DISTANCE_BETWEEN_SHOOTER_PIVOT_AND_DART_PIVOT_ON_THE_MOTOR;
-
-        public static final double OFFSET_ANGLE = Math.acos(
-            (SUM_OF_SQUARES_OF_LENGTHS - MINIMUM_LENGTH_OF_DART * MINIMUM_LENGTH_OF_DART) / TWICE_THE_LENGTH_OF_THE_PRODUCTS_OF_LENGTHS
-        );
-
-        public static final double MINIMUM_ANGLE = 0.0;
-        public static final double MAXIMUM_ANGLE = 0.0;
-
-        public static final PIDConfig SHOOTER_PIVOT_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
         public static final PIDConfig SHOOTER_FEED_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
         public static final PIDConfig SHOOTER_LEFT_SHOOT_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
         public static final PIDConfig SHOOTER_RIGHT_SHOOT_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
 
-        public static final double SHOOTER_PIVOT_PID_MIN_OUTPUT = 0.0;
-        public static final double SHOOTER_PIVOT_PID_MAX_OUTPUT = 0.0;
-        public static final double SHOOTER_PIVOT_MIN_VEL = 0.0;
-        public static final double SHOOTER_PIVOT_MAX_VEL = 0.0;
-        public static final double SHOOTER_PIVOT_MAX_ACCEL = 0.0;
-        public static final double SHOOTER_PIVOT_CLOSED_LOOP_ERR = 0.0;
+        /**
+         * All distances in inches. All angles in radians.
+         */
+        public static final class PivotConstants {
+
+            public static final double PIVOT_REL_ENC_CONVERSION = 0.2;
+
+            public static final double PIVOT_SHOOTER_LENGTH = 0.0;
+            public static final double PIVOT_BASE_LENGTH = 0.0;
+            public static final double PIVOT_MINIMUM_LENGTH_OF_DART = 0.0;
+            public static final double SUM_OF_SQUARES_OF_LENGTHS =
+                PIVOT_SHOOTER_LENGTH * PIVOT_SHOOTER_LENGTH + PIVOT_BASE_LENGTH * PIVOT_BASE_LENGTH;
+
+            public static final double PIVOT_TWICE_THE_PRODUCT_OF_LENGTHS = 2 * PIVOT_SHOOTER_LENGTH * PIVOT_BASE_LENGTH;
+
+            public static final double PIVOT_OFFSET_ANGLE = Math.acos(
+                (SUM_OF_SQUARES_OF_LENGTHS - PIVOT_MINIMUM_LENGTH_OF_DART * PIVOT_MINIMUM_LENGTH_OF_DART) /
+                PIVOT_TWICE_THE_PRODUCT_OF_LENGTHS
+            );
+
+            public static final double PIVOT_MINIMUM_ANGLE = 0.0;
+            public static final double PIVOT_MAXIMUM_ANGLE = 0.0;
+
+            public static final PIDConfig PIVOT_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
+            public static final double PIVOT_PID_MIN_OUTPUT = 0.0;
+            public static final double PIVOT_PID_MAX_OUTPUT = 0.0;
+            public static final double PIVOT_MIN_VEL = 0.0;
+            public static final double PIVOT_MAX_VEL = 0.0;
+            public static final double PIVOT_MAX_ACCEL = 0.0;
+            public static final double PIVOT_CLOSED_LOOP_ERR = 0.0;
+        }
     }
 
     /**

@@ -19,6 +19,7 @@ import org.team340.lib.util.Mutable;
 import org.team340.lib.util.config.rev.SparkPIDControllerConfig;
 import org.team340.robot.Constants.RobotMap;
 import org.team340.robot.Constants.ShooterConstants;
+import org.team340.robot.Constants.ShooterConstants.PivotConstants;
 
 public class Shooter extends GRRSubsystem {
 
@@ -45,26 +46,25 @@ public class Shooter extends GRRSubsystem {
         pivotMotor,
         Type.kDutyCycle
     );
-    //TODO: correct this when create relative encoder exists.
     private final RelativeEncoder pivotRelativeEncoder = pivotMotor.getEncoder();
 
     private final DigitalInput noteDetector = createDigitalInput("Note Detector", RobotMap.SHOOTER_NOTE_DETECTOR);
 
     public Shooter() {
         super("Shooter");
-        pivotRelativeEncoder.setPositionConversionFactor(ShooterConstants.SHOOTER_PIVOT_REL_ENC_CONVERSION);
+        pivotRelativeEncoder.setPositionConversionFactor(PivotConstants.PIVOT_REL_ENC_CONVERSION);
         pivotAbsoluteEncoder.setPositionConversionFactor(Math2.TWO_PI);
 
         new SparkPIDControllerConfig()
-            .setPID(ShooterConstants.SHOOTER_PIVOT_PID.p(), ShooterConstants.SHOOTER_PIVOT_PID.i(), ShooterConstants.SHOOTER_PIVOT_PID.d())
-            .setIZone(ShooterConstants.SHOOTER_PIVOT_PID.iZone())
-            .setOutputRange(ShooterConstants.SHOOTER_PIVOT_PID_MIN_OUTPUT, ShooterConstants.SHOOTER_PIVOT_PID_MAX_OUTPUT)
+            .setPID(PivotConstants.PIVOT_PID.p(), PivotConstants.PIVOT_PID.i(), PivotConstants.PIVOT_PID.d())
+            .setIZone(PivotConstants.PIVOT_PID.iZone())
+            .setOutputRange(PivotConstants.PIVOT_PID_MIN_OUTPUT, PivotConstants.PIVOT_PID_MAX_OUTPUT)
             .apply(pivotMotor, pivotPID);
-        pivotPID.setSmartMotionMaxVelocity(ShooterConstants.SHOOTER_PIVOT_MAX_VEL, 0);
-        pivotPID.setSmartMotionMaxVelocity(ShooterConstants.SHOOTER_PIVOT_MAX_VEL, 0);
-        pivotPID.setSmartMotionMinOutputVelocity(ShooterConstants.SHOOTER_PIVOT_MAX_VEL, 0);
-        pivotPID.setSmartMotionMaxAccel(ShooterConstants.SHOOTER_PIVOT_MAX_ACCEL, 0);
-        pivotPID.setSmartMotionAllowedClosedLoopError(ShooterConstants.SHOOTER_PIVOT_CLOSED_LOOP_ERR, 0);
+        pivotPID.setSmartMotionMaxVelocity(PivotConstants.PIVOT_MAX_VEL, 0);
+        pivotPID.setSmartMotionMaxVelocity(PivotConstants.PIVOT_MAX_VEL, 0);
+        pivotPID.setSmartMotionMinOutputVelocity(PivotConstants.PIVOT_MAX_VEL, 0);
+        pivotPID.setSmartMotionMaxAccel(PivotConstants.PIVOT_MAX_ACCEL, 0);
+        pivotPID.setSmartMotionAllowedClosedLoopError(PivotConstants.PIVOT_CLOSED_LOOP_ERR, 0);
 
         new SparkPIDControllerConfig()
             .setPID(ShooterConstants.SHOOTER_FEED_PID.p(), ShooterConstants.SHOOTER_FEED_PID.i(), ShooterConstants.SHOOTER_FEED_PID.d())
@@ -95,14 +95,14 @@ public class Shooter extends GRRSubsystem {
      * @param angleToShootAt This is the angle that will be used.
      */
     private void setShooterToAngle(double angleToShootAt) {
-        if (angleToShootAt < ShooterConstants.MINIMUM_ANGLE || angleToShootAt > ShooterConstants.MAXIMUM_ANGLE) {
+        if (angleToShootAt < PivotConstants.PIVOT_MINIMUM_ANGLE || angleToShootAt > PivotConstants.PIVOT_MAXIMUM_ANGLE) {
             DriverStation.reportWarning(
                 "Invalid shooter pivot angle. " +
                 angleToShootAt +
                 " is not between " +
-                ShooterConstants.MINIMUM_ANGLE +
+                PivotConstants.PIVOT_MINIMUM_ANGLE +
                 " and " +
-                ShooterConstants.MAXIMUM_ANGLE,
+                PivotConstants.PIVOT_MAXIMUM_ANGLE,
                 false
             );
             return;
@@ -216,29 +216,24 @@ public class Shooter extends GRRSubsystem {
     }
 
     /**
-     * DANGER use at your own risk!
-     * @param sensorAngle
-     * @return
+     * Internal function which converts the angle from absolute encoder to the extension length the dart needs to move to
+     * @deprecated All constants are set to 0.0
      */
-    private double angleToDartExtension(double sensorAngle) {
+    @Deprecated
+    private double dartExtensionFromAngle(double sensorAngle) {
         return (
             Math.sqrt(
-                ShooterConstants.SUM_OF_SQUARES_OF_LENGTHS -
-                ShooterConstants.TWICE_THE_LENGTH_OF_THE_PRODUCTS_OF_LENGTHS *
-                Math.cos(sensorAngle + ShooterConstants.OFFSET_ANGLE)
+                PivotConstants.SUM_OF_SQUARES_OF_LENGTHS -
+                PivotConstants.PIVOT_TWICE_THE_PRODUCT_OF_LENGTHS *
+                Math.cos(sensorAngle + PivotConstants.PIVOT_OFFSET_ANGLE)
             ) -
-            ShooterConstants.MINIMUM_LENGTH_OF_DART
+            PivotConstants.PIVOT_MINIMUM_LENGTH_OF_DART
         );
     }
 
     private double distanceToMoveDart(double targetAngle) {
-        double currentAngle = pivotAbsoluteEncoder.getPosition();
-        double currentExtensionLength = angleToDartExtension(currentAngle);
-        double targetExtensionLength = angleToDartExtension(targetAngle);
-        double deltaExtensionLength = targetExtensionLength - currentExtensionLength;
-        double currentRelativeEncoderPosition = pivotRelativeEncoder.getPosition();
-
-        return deltaExtensionLength + currentRelativeEncoderPosition;
+        double deltaExtensionLength = dartExtensionFromAngle(targetAngle) - dartExtensionFromAngle(pivotAbsoluteEncoder.getPosition());
+        return deltaExtensionLength + pivotRelativeEncoder.getPosition();
     }
 
     public Command shootSpeaker(Pose2d robotPosition) {
