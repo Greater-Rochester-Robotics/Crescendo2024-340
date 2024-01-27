@@ -11,6 +11,12 @@ import com.revrobotics.SparkPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
+import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
+import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.util.Color;
+import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.Supplier;
 import org.team340.lib.GRRSubsystem;
@@ -49,6 +55,15 @@ public class Shooter extends GRRSubsystem {
     private final RelativeEncoder pivotRelativeEncoder = pivotMotor.getEncoder();
 
     private final DigitalInput noteDetector = createDigitalInput("Note Detector", RobotMap.SHOOTER_NOTE_DETECTOR);
+    
+    // Create a Mechanism2d display of an Arm with a fixed ArmTower and moving Arm.
+    int simulationAngle = 0;
+    private static final Mechanism2d m_mech2d = new Mechanism2d(60, 60);
+    private static final MechanismRoot2d m_armPivot = m_mech2d.getRoot("ArmPivot", 30, 30);
+    private final MechanismLigament2d m_armTower = m_armPivot.append(new MechanismLigament2d("ArmTower", 30, -90));
+    private static final MechanismLigament2d m_arm = m_armPivot.append(
+        new MechanismLigament2d("Arm", 30, 30, 6, new Color8Bit(Color.kYellow))
+    );
 
     public Shooter() {
         super("Shooter");
@@ -88,6 +103,9 @@ public class Shooter extends GRRSubsystem {
             )
             .setIZone(ShooterConstants.SHOOTER_RIGHT_SHOOT_PID.iZone())
             .apply(rightShootMotor, rightShootPID);
+
+        SmartDashboard.putData("Mech2d", m_mech2d);
+        m_armTower.setColor(new Color8Bit(Color.kBlue));
     }
 
     /**
@@ -256,5 +274,11 @@ public class Shooter extends GRRSubsystem {
     public Command spit() {
         //TODO: write this
         return null;
+    }
+
+    public void simulationPeriodic() {
+        // Update the Mechanism Arm angle based on the simulated arm angle
+        simulationAngle += 1;
+        m_arm.setAngle(simulationAngle);
     }
 }

@@ -150,4 +150,8 @@ public final class RobotContainer {
     private static double getDriveRotate() {
         return driver.getTriggerDifference(ControllerConstants.DRIVE_ROT_MULTIPLIER, ControllerConstants.DRIVE_ROT_EXP);
     }
+
+    public static void simulationPeriodic() {
+        shooter.simulationPeriodic();
+    }
 }
