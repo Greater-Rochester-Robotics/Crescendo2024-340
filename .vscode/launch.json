@@ -2,23 +2,16 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "java",
-      "name": "Main",
-      "request": "launch",
-      "mainClass": "org.team340.robot.Main",
-      "projectName": "Crescendo2024-340"
-    },
-    {
       "type": "wpilib",
       "name": "WPILib Desktop Debug",
       "request": "launch",
-      "desktop": true
+      "desktop": true,
     },
     {
       "type": "wpilib",
       "name": "WPILib roboRIO Debug",
       "request": "launch",
-      "desktop": false
+      "desktop": false,
     }
   ]
 }

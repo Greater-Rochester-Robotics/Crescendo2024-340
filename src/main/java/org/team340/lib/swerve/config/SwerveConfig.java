@@ -2,6 +2,7 @@ package org.team340.lib.swerve.config;
 
 import edu.wpi.first.wpilibj.ADIS16470_IMU;
 import edu.wpi.first.wpilibj.SPI;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Config;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.MissingResourceException;
@@ -12,8 +13,6 @@ import org.team340.lib.swerve.SwerveBase.SwerveIMUType;
 import org.team340.lib.swerve.SwerveBase.SwerveMotorType;
 import org.team340.lib.util.config.FeedForwardConfig;
 import org.team340.lib.util.config.PIDConfig;
-
-// TODO Documentation (startup and tuning)
 
 /**
  * Config builder for {@link SwerveBase}.
@@ -41,7 +40,9 @@ public class SwerveConfig {
     private SwerveMotorType moveMotorType;
     private SwerveMotorType turnMotorType;
     private double discretizationLookahead = -1.0;
+    private double odometryPeriod = -1.0;
     private double[] standardDeviations;
+    private Config sysIdConfig = null;
     private double fieldLength = -1.0;
     private double fieldWidth = -1.0;
     private List<SwerveModuleConfig> modules = new ArrayList<>();
@@ -376,6 +377,22 @@ public class SwerveConfig {
     }
 
     /**
+     * Sets period in seconds between odometry samples.
+     * @param odometryPeriod Period in seconds.
+     */
+    public SwerveConfig setOdometryPeriod(double odometryPeriod) {
+        this.odometryPeriod = odometryPeriod;
+        return this;
+    }
+
+    /**
+     * Gets period in seconds between odometry samples.
+     */
+    public double getOdometryPeriod() {
+        return odometryPeriod;
+    }
+
+    /**
      * Sets the standard deviations for pose estimation from module odometry.
      * A good starting configuration is all axis with a magnitude of {@code 0.1}.
      * @param x The X axis standard deviation in meters.
@@ -392,6 +409,21 @@ public class SwerveConfig {
      */
     public double[] getStandardDeviations() {
         return standardDeviations;
+    }
+
+    /**
+     * Sets config for SysId.
+     */
+    public SwerveConfig setSysIdConfig(Config sysIdConfig) {
+        this.sysIdConfig = sysIdConfig;
+        return this;
+    }
+
+    /**
+     * Gets config for SysId.
+     */
+    public Config getSysIdConfig() {
+        return sysIdConfig;
     }
 
     /**
@@ -503,7 +535,9 @@ public class SwerveConfig {
         if (moveMotorType == null) throwMissing("Move Motor Type");
         if (turnMotorType == null) throwMissing("Turn Motor Type");
         if (discretizationLookahead == -1) throwMissing("Discretization Lookahead");
+        if (odometryPeriod == -1) throwMissing("Odometry Period");
         if (standardDeviations == null) throwMissing("Standard Deviations");
+        if (sysIdConfig == null) throwMissing("SysId Config");
         if (fieldLength == -1) throwMissing("Field Length");
         if (fieldWidth == -1) throwMissing("Field Width");
         if (modules.size() == 0) throwMissing("Modules");

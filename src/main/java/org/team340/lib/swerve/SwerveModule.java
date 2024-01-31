@@ -6,6 +6,8 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.Timer;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import org.team340.lib.swerve.config.SwerveConfig;
 import org.team340.lib.swerve.config.SwerveModuleConfig;
 import org.team340.lib.swerve.hardware.encoders.SwerveEncoder;
@@ -24,6 +26,9 @@ class SwerveModule {
     private final SwerveEncoder encoder;
     private final SimpleMotorFeedforward moveFFController;
     private final Timer controlTimer = new Timer();
+
+    private final Deque<Double> distanceQueue = new ArrayDeque<>();
+    private final Deque<Double> headingQueue = new ArrayDeque<>();
 
     private double lastMoveSpeed = 0.0;
     private double simDistance = 0.0;
@@ -80,6 +85,17 @@ class SwerveModule {
             return simDistance;
         } else {
             return moveMotor.getPosition();
+        }
+    }
+
+    /**
+     * Gets current duty cycle of move motor.
+     */
+    public double getMoveDutyCycle() {
+        if (RobotBase.isSimulation()) {
+            return (simVelocity / config.getMaxV()) * 12.0;
+        } else {
+            return moveMotor.getDutyCycle();
         }
     }
 
@@ -167,5 +183,35 @@ class SwerveModule {
 
         lastMoveSpeed = RobotBase.isSimulation() ? simVelocity : getVelocity();
         controlTimer.restart();
+    }
+
+    /**
+     * Adds the module's current distance and heading to their respective queues for odometry.
+     */
+    public void recordSample() {
+        distanceQueue.add(getDistance());
+        headingQueue.add(getHeading());
+    }
+
+    /**
+     * Polls first distance value in the odometry sample queue.
+     */
+    public double pollDistanceSample() {
+        try {
+            return distanceQueue.pop();
+        } catch (Exception e) {
+            return Double.MIN_VALUE;
+        }
+    }
+
+    /**
+     * Polls first heading value in the odometry sample queue.
+     */
+    public double pollHeadingSample() {
+        try {
+            return headingQueue.pop();
+        } catch (Exception e) {
+            return Double.MIN_VALUE;
+        }
     }
 }

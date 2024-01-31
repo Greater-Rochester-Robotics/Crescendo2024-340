@@ -2,15 +2,11 @@ package org.team340.robot;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
-import edu.wpi.first.wpilibj.XboxController.Axis;
-import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import org.team340.lib.GRRDashboard;
 import org.team340.lib.controller.Controller2;
-import org.team340.lib.controller.JoystickProfiler;
 import org.team340.lib.util.Math2;
 import org.team340.lib.util.config.rev.RevConfigUtils;
 import org.team340.robot.Constants.ControllerConstants;
-import org.team340.robot.commands.Autos;
 import org.team340.robot.commands.SystemsCheck;
 import org.team340.robot.subsystems.Intake;
 import org.team340.robot.subsystems.Shooter;
@@ -28,9 +24,9 @@ public final class RobotContainer {
     private static Controller2 driver;
     private static Controller2 coDriver;
 
-    public static Swerve swerve;
     public static Intake intake;
     public static Shooter shooter;
+    public static Swerve swerve;
 
     /**
      * Entry to initializing subsystems and command execution.
@@ -45,20 +41,18 @@ public final class RobotContainer {
         coDriver.addToDashboard();
 
         // Initialize subsystems.
-        swerve = new Swerve();
         intake = new Intake();
         shooter = new Shooter();
+        swerve = new Swerve();
 
         // Add subsystems to the dashboard.
         swerve.addToDashboard();
-        intake.addToDashboard();
-        shooter.addToDashboard();
 
         // Set systems check command.
         GRRDashboard.setSystemsCheck(SystemsCheck.command());
 
-        // Print successful REV hardware initialization.
-        RevConfigUtils.printSuccess();
+        // Print errors from REV hardware initialization.
+        RevConfigUtils.printError();
 
         // Configure bindings and autos.
         configBindings();
@@ -92,39 +86,13 @@ public final class RobotContainer {
 
         // A => Do nothing
         coDriver.a().onTrue(none());
-
-        /**
-         * Joystick profiling.
-         */
-        driver
-            .start()
-            .and(driver.leftBumper())
-            .and(RobotModeTriggers.disabled())
-            .whileTrue(JoystickProfiler.run(driver.getHID(), Axis.kLeftX.value, Axis.kLeftY.value, 100));
-        driver
-            .start()
-            .and(driver.rightBumper())
-            .and(RobotModeTriggers.disabled())
-            .whileTrue(JoystickProfiler.run(driver.getHID(), Axis.kRightX.value, Axis.kRightY.value, 100));
-        coDriver
-            .start()
-            .and(coDriver.leftBumper())
-            .and(RobotModeTriggers.disabled())
-            .whileTrue(JoystickProfiler.run(coDriver.getHID(), Axis.kLeftX.value, Axis.kLeftY.value, 100));
-        coDriver
-            .start()
-            .and(coDriver.rightBumper())
-            .and(RobotModeTriggers.disabled())
-            .whileTrue(JoystickProfiler.run(coDriver.getHID(), Axis.kRightX.value, Axis.kRightY.value, 100));
     }
 
     /**
      * Autonomous commands should be declared here and
      * added to {@link GRRDashboard}.
      */
-    private static void configAutos() {
-        GRRDashboard.addAutoCommand("Example", Autos.example());
-    }
+    private static void configAutos() {}
 
     /**
      * Gets the X axis drive speed from the driver's controller.

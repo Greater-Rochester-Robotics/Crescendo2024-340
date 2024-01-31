@@ -1,9 +1,15 @@
 package org.team340.lib.swerve;
 
+import static edu.wpi.first.units.MutableMeasure.mutable;
+import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.Volts;
+
 import com.revrobotics.CANSparkFlex;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.SparkAbsoluteEncoder;
+import edu.wpi.first.math.MathSharedStore;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.controller.PIDController;
@@ -16,12 +22,25 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.units.Distance;
+import edu.wpi.first.units.Measure;
+import edu.wpi.first.units.MutableMeasure;
+import edu.wpi.first.units.Velocity;
+import edu.wpi.first.units.Voltage;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.ADIS16470_IMU;
+import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.SPI;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 import org.team340.lib.GRRDashboard;
 import org.team340.lib.GRRSubsystem;
 import org.team340.lib.blacklight.Blacklight;
@@ -111,6 +130,17 @@ public abstract class SwerveBase extends GRRSubsystem {
     protected final SwerveDrivePoseEstimator poseEstimator;
     protected final List<Blacklight> blacklights = new ArrayList<>();
 
+    protected final Notifier odometryThread;
+    protected final ReentrantLock odometryMutex = new ReentrantLock();
+    protected final Deque<Double> timestampQueue = new ArrayDeque<>();
+    protected final Deque<Rotation2d> imuYawQueue = new ArrayDeque<>();
+
+    protected final MutableMeasure<Voltage> sysIdAppliedVoltage = mutable(Volts.of(0));
+    protected final MutableMeasure<Distance> sysIdDistance = mutable(Meters.of(0));
+    protected final MutableMeasure<Velocity<Distance>> sysIdVelocity = mutable(MetersPerSecond.of(0));
+
+    protected final SysIdRoutine sysIdRoutine;
+
     /**
      * Create the GRRSwerve subsystem.
      * @param label The label for the subsystem. Shown in the dashboard.
@@ -153,6 +183,35 @@ public abstract class SwerveBase extends GRRSubsystem {
             blacklight.startListeners();
             blacklights.add(blacklight);
         }
+
+        odometryThread = new Notifier(this::sampleOdometry);
+        odometryThread.setName("Swerve Odometry");
+        odometryThread.startPeriodic(config.getOdometryPeriod());
+
+        sysIdRoutine =
+            new SysIdRoutine(
+                // Default config, rampRate is 1V/sec, stepVoltage is 7V, and timeout is 10secs
+                config.getSysIdConfig(),
+                new Mechanism(
+                    // Defines how drive command should be sent to motors
+                    (Measure<Voltage> volts) -> {
+                        driveVoltage(volts.in(Volts), Math2.ROTATION2D_0);
+                    },
+                    log -> {
+                        for (SwerveModule module : modules) {
+                            log
+                                .motor("module-" + StringUtil.toCamelCase(module.getLabel()))
+                                .voltage(
+                                    sysIdAppliedVoltage.mut_replace(module.getMoveDutyCycle() * RobotController.getBatteryVoltage(), Volts)
+                                )
+                                .linearPosition(sysIdDistance.mut_replace(module.getDistance(), Meters))
+                                .linearVelocity(sysIdVelocity.mut_replace(module.getVelocity(), MetersPerSecond));
+                        }
+                    },
+                    this,
+                    "Swerve"
+                )
+            );
 
         imu.setZero(Math2.ROTATION2D_0);
 
@@ -249,6 +308,22 @@ public abstract class SwerveBase extends GRRSubsystem {
     }
 
     /**
+     * Samples a timestamp, IMU yaw, and module positions to odometry sample queues.
+     */
+    protected void sampleOdometry() {
+        try {
+            odometryMutex.lock();
+            timestampQueue.add(MathSharedStore.getTimestamp());
+            imuYawQueue.add(imu.getYaw());
+            for (SwerveModule module : modules) {
+                module.recordSample();
+            }
+        } finally {
+            odometryMutex.unlock();
+        }
+    }
+
+    /**
      * Resets odometry.
      * @param newPose The new pose.
      */
@@ -262,10 +337,36 @@ public abstract class SwerveBase extends GRRSubsystem {
      * Should be ran periodically.
      */
     protected void updateOdometry() {
-        for (Blacklight blacklight : blacklights) blacklight.update(poseEstimator);
-        SwerveModulePosition[] modulePositions = getModulePositions();
-        Pose2d newPose = poseEstimator.update(imu.getYaw(), modulePositions);
-        field.update(newPose, modulePositions);
+        try {
+            odometryMutex.lock();
+            for (Blacklight blacklight : blacklights) blacklight.update(poseEstimator);
+            Iterator<Double> timestampIterator = timestampQueue.iterator();
+            while (timestampIterator.hasNext()) {
+                SwerveModulePosition[] modulePositions = new SwerveModulePosition[modules.length];
+                boolean missingModule = false;
+                for (int i = 0; i < modulePositions.length; i++) {
+                    double distance = modules[i].pollDistanceSample();
+                    double heading = modules[i].pollHeadingSample();
+                    if (distance == Double.MIN_VALUE || heading == Double.MIN_VALUE) {
+                        missingModule = true;
+                        continue;
+                    }
+                    modulePositions[i] = new SwerveModulePosition(distance, new Rotation2d(heading));
+                }
+                double timestamp = timestampIterator.next();
+                if (missingModule) continue;
+                try {
+                    Rotation2d yaw = imuYawQueue.pop();
+                    poseEstimator.updateWithTime(timestamp, yaw, modulePositions);
+                } catch (Exception e) {
+                    continue;
+                }
+            }
+            timestampQueue.clear();
+            field.update(getPosition(), getModulePositions());
+        } finally {
+            odometryMutex.unlock();
+        }
     }
 
     /**
