@@ -52,41 +52,33 @@ public class Shooter extends GRRSubsystem {
 
     public Shooter() {
         super("Shooter");
-        pivotRelativeEncoder.setPositionConversionFactor(PivotConstants.PIVOT_REL_ENC_CONVERSION);
+        pivotRelativeEncoder.setPositionConversionFactor(PivotConstants.REL_ENC_CONVERSION);
         pivotAbsoluteEncoder.setPositionConversionFactor(Math2.TWO_PI);
 
         new SparkPIDControllerConfig()
-            .setPID(PivotConstants.PIVOT_PID.p(), PivotConstants.PIVOT_PID.i(), PivotConstants.PIVOT_PID.d())
-            .setIZone(PivotConstants.PIVOT_PID.iZone())
-            .setOutputRange(PivotConstants.PIVOT_PID_MIN_OUTPUT, PivotConstants.PIVOT_PID_MAX_OUTPUT)
+            .setPID(PivotConstants.PID.p(), PivotConstants.PID.i(), PivotConstants.PID.d())
+            .setIZone(PivotConstants.PID.iZone())
+            .setOutputRange(PivotConstants.PID_MIN_OUTPUT, PivotConstants.PID_MAX_OUTPUT)
             .apply(pivotMotor, pivotPID);
-        pivotPID.setSmartMotionMaxVelocity(PivotConstants.PIVOT_MAX_VEL, 0);
-        pivotPID.setSmartMotionMaxVelocity(PivotConstants.PIVOT_MAX_VEL, 0);
-        pivotPID.setSmartMotionMinOutputVelocity(PivotConstants.PIVOT_MAX_VEL, 0);
-        pivotPID.setSmartMotionMaxAccel(PivotConstants.PIVOT_MAX_ACCEL, 0);
-        pivotPID.setSmartMotionAllowedClosedLoopError(PivotConstants.PIVOT_CLOSED_LOOP_ERR, 0);
+        pivotPID.setSmartMotionMaxVelocity(PivotConstants.MAX_VEL, 0);
+        pivotPID.setSmartMotionMaxVelocity(PivotConstants.MAX_VEL, 0);
+        pivotPID.setSmartMotionMinOutputVelocity(PivotConstants.MAX_VEL, 0);
+        pivotPID.setSmartMotionMaxAccel(PivotConstants.MAX_ACCEL, 0);
+        pivotPID.setSmartMotionAllowedClosedLoopError(PivotConstants.CLOSED_LOOP_ERR, 0);
 
         new SparkPIDControllerConfig()
-            .setPID(ShooterConstants.SHOOTER_FEED_PID.p(), ShooterConstants.SHOOTER_FEED_PID.i(), ShooterConstants.SHOOTER_FEED_PID.d())
-            .setIZone(ShooterConstants.SHOOTER_FEED_PID.iZone())
+            .setPID(ShooterConstants.FEED_PID.p(), ShooterConstants.FEED_PID.i(), ShooterConstants.FEED_PID.d())
+            .setIZone(ShooterConstants.FEED_PID.iZone())
             .apply(feedMotor, feedPID);
 
         new SparkPIDControllerConfig()
-            .setPID(
-                ShooterConstants.SHOOTER_LEFT_SHOOT_PID.p(),
-                ShooterConstants.SHOOTER_LEFT_SHOOT_PID.i(),
-                ShooterConstants.SHOOTER_LEFT_SHOOT_PID.d()
-            )
-            .setIZone(ShooterConstants.SHOOTER_LEFT_SHOOT_PID.iZone())
+            .setPID(ShooterConstants.LEFT_SHOOT_PID.p(), ShooterConstants.LEFT_SHOOT_PID.i(), ShooterConstants.LEFT_SHOOT_PID.d())
+            .setIZone(ShooterConstants.LEFT_SHOOT_PID.iZone())
             .apply(leftShootMotor, leftShootPID);
 
         new SparkPIDControllerConfig()
-            .setPID(
-                ShooterConstants.SHOOTER_RIGHT_SHOOT_PID.p(),
-                ShooterConstants.SHOOTER_RIGHT_SHOOT_PID.i(),
-                ShooterConstants.SHOOTER_RIGHT_SHOOT_PID.d()
-            )
-            .setIZone(ShooterConstants.SHOOTER_RIGHT_SHOOT_PID.iZone())
+            .setPID(ShooterConstants.RIGHT_SHOOT_PID.p(), ShooterConstants.RIGHT_SHOOT_PID.i(), ShooterConstants.RIGHT_SHOOT_PID.d())
+            .setIZone(ShooterConstants.RIGHT_SHOOT_PID.iZone())
             .apply(rightShootMotor, rightShootPID);
     }
 
@@ -95,14 +87,14 @@ public class Shooter extends GRRSubsystem {
      * @param angleToShootAt This is the angle that will be used.
      */
     private void setShooterToAngle(double angleToShootAt) {
-        if (angleToShootAt < PivotConstants.PIVOT_MINIMUM_ANGLE || angleToShootAt > PivotConstants.PIVOT_MAXIMUM_ANGLE) {
+        if (angleToShootAt < PivotConstants.MINIMUM_ANGLE || angleToShootAt > PivotConstants.MAXIMUM_ANGLE) {
             DriverStation.reportWarning(
                 "Invalid shooter pivot angle. " +
                 angleToShootAt +
                 " is not between " +
-                PivotConstants.PIVOT_MINIMUM_ANGLE +
+                PivotConstants.MINIMUM_ANGLE +
                 " and " +
-                PivotConstants.PIVOT_MAXIMUM_ANGLE,
+                PivotConstants.MAXIMUM_ANGLE,
                 false
             );
             return;
@@ -118,10 +110,10 @@ public class Shooter extends GRRSubsystem {
     private double dartExtensionFromAngle(double sensorAngle) {
         double totalLengthOfDart = Math.sqrt(
             PivotConstants.SUM_OF_SQUARES_OF_LENGTHS -
-            PivotConstants.PIVOT_TWICE_THE_PRODUCT_OF_LENGTHS *
-            Math.cos(sensorAngle + PivotConstants.PIVOT_OFFSET_ANGLE)
+            PivotConstants.TWICE_THE_PRODUCT_OF_LENGTHS *
+            Math.cos(sensorAngle + PivotConstants.OFFSET_ANGLE)
         );
-        return (totalLengthOfDart - PivotConstants.PIVOT_MINIMUM_LENGTH_OF_DART);
+        return (totalLengthOfDart - PivotConstants.MINIMUM_LENGTH_OF_DART);
     }
 
     /**

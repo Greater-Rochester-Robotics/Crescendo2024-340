@@ -3,6 +3,8 @@ package org.team340.robot.subsystems;
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
+import com.revrobotics.SparkAbsoluteEncoder;
+import com.revrobotics.SparkAbsoluteEncoder.Type;
 import com.revrobotics.SparkPIDController;
 import edu.wpi.first.wpilibj2.command.Command;
 import org.team340.lib.GRRSubsystem;
@@ -16,48 +18,52 @@ import org.team340.robot.Constants.RobotMap;
  */
 public class Intake extends GRRSubsystem {
 
-    private final CANSparkMax deployMotor = createSparkMax("Deploy Motor", RobotMap.INTAKE_DEPLOY_MOTOR, MotorType.kBrushless);
-    private final CANSparkMax rollerMotor = createSparkMax("Roller Motor", RobotMap.INTAKE_ROLLER_MOTOR, MotorType.kBrushless);
+    private final CANSparkMax pivotLeftMotor = createSparkMax("Deploy Motor", RobotMap.INTAKE_PIVOT_LEFT_MOTOR, MotorType.kBrushless);
+    private final CANSparkMax pivotRightMotor = createSparkMax("Deploy Motor", RobotMap.INTAKE_PIVOT_RIGHT_MOTOR, MotorType.kBrushless);
+    private final CANSparkMax rollerUpperMotor = createSparkMax("Roller Motor", RobotMap.INTAKE_ROLLER_UPPER_MOTOR, MotorType.kBrushless);
+    private final CANSparkMax rollerLowerMotor = createSparkMax("Roller Motor", RobotMap.INTAKE_ROLLER_LOWER_MOTOR, MotorType.kBrushless);
 
-    private final SparkPIDController deployPID = deployMotor.getPIDController();
+    private final SparkPIDController pivotPID = pivotLeftMotor.getPIDController();
+    private final SparkAbsoluteEncoder pivotEncoder = createSparkMaxAbsoluteEncoder("Pivot Encoder", pivotLeftMotor, Type.kDutyCycle);
 
     public Intake() {
         super("Intake");
-        deployPID.setP(IntakeConstants.INTAKE_DEPLOY_STRONG_PID.p(), 0);
-        deployPID.setI(IntakeConstants.INTAKE_DEPLOY_STRONG_PID.i(), 0);
-        deployPID.setD(IntakeConstants.INTAKE_DEPLOY_STRONG_PID.d(), 0);
+        IntakeConstants.PIVOT_LEFT_MOTOR_CONFIG.apply(pivotLeftMotor);
+        IntakeConstants.PIVOT_RIGHT_MOTOR_CONFIG.apply(pivotRightMotor);
+        IntakeConstants.ROLLER_UPPER_MOTOR_CONFIG.apply(rollerUpperMotor);
+        IntakeConstants.ROLLER_LOWER_MOTOR_CONFIG.apply(rollerLowerMotor);
 
-        deployPID.setP(IntakeConstants.INTAKE_DEPLOY_WEAK_PID.p(), 1);
-        deployPID.setI(IntakeConstants.INTAKE_DEPLOY_WEAK_PID.i(), 1);
-        deployPID.setD(IntakeConstants.INTAKE_DEPLOY_WEAK_PID.d(), 1);
+        IntakeConstants.PIVOT_MOTOR_PID_CONFIG.apply(pivotLeftMotor, pivotPID);
+
+        IntakeConstants.PIVOT_ENCODER_CONFIG.apply(pivotLeftMotor, pivotEncoder);
     }
 
     public Command deploy() {
         Mutable<Boolean> weakPID = new Mutable<>(false);
 
         return commandBuilder("intake.deploy()")
-            .onInitialize(() -> rollerMotor.set(IntakeConstants.INTAKE_DEPLOY_ROLLER_SPEED))
+            .onInitialize(() -> rollerUpperMotor.set(IntakeConstants.DEPLOY_ROLLER_SPEED))
             .onExecute(() -> {
                 if (
                     Math2.epsilonEquals(
-                        IntakeConstants.INTAKE_DEPLOY_POSITION,
-                        deployMotor.getEncoder().getPosition(),
-                        IntakeConstants.INTAKE_DEPLOY_POSITION_TOLERANCE
+                        IntakeConstants.DEPLOY_POSITION,
+                        pivotLeftMotor.getEncoder().getPosition(),
+                        IntakeConstants.DEPLOY_POSITION_TOLERANCE
                     )
                 ) weakPID.set(true);
-                deployPID.setReference(IntakeConstants.INTAKE_DEPLOY_POSITION, ControlType.kPosition, weakPID.get() ? 1 : 0);
+                pivotPID.setReference(IntakeConstants.DEPLOY_POSITION, ControlType.kPosition, weakPID.get() ? 1 : 0);
             })
             .onEnd(() -> {
-                rollerMotor.stopMotor();
-                deployMotor.stopMotor();
+                rollerUpperMotor.stopMotor();
+                pivotLeftMotor.stopMotor();
             });
     }
 
     public Command retract() {
         return commandBuilder("intake.retract()")
-            .onInitialize(() -> rollerMotor.stopMotor())
+            .onInitialize(() -> rollerUpperMotor.stopMotor())
             .onExecute(() -> {
-                deployPID.setReference(0, ControlType.kPosition, 0);
+                pivotPID.setReference(0, ControlType.kPosition, 0);
             });
     }
 
@@ -65,21 +71,21 @@ public class Intake extends GRRSubsystem {
         Mutable<Boolean> weakPID = new Mutable<>(false);
 
         return commandBuilder("intake.spit()")
-            .onInitialize(() -> rollerMotor.set(IntakeConstants.INTAKE_SPIT_ROLLER_SPEED))
+            .onInitialize(() -> rollerUpperMotor.set(IntakeConstants.SPIT_ROLLER_SPEED))
             .onExecute(() -> {
                 if (
                     Math2.epsilonEquals(
-                        IntakeConstants.INTAKE_DEPLOY_POSITION,
-                        deployMotor.getEncoder().getPosition(),
-                        IntakeConstants.INTAKE_DEPLOY_POSITION_TOLERANCE
+                        IntakeConstants.DEPLOY_POSITION,
+                        pivotLeftMotor.getEncoder().getPosition(),
+                        IntakeConstants.DEPLOY_POSITION_TOLERANCE
                     )
                 ) weakPID.set(true);
 
-                deployPID.setReference(IntakeConstants.INTAKE_DEPLOY_POSITION, ControlType.kPosition, weakPID.get() ? 1 : 0);
+                pivotPID.setReference(IntakeConstants.DEPLOY_POSITION, ControlType.kPosition, weakPID.get() ? 1 : 0);
             })
             .onEnd(() -> {
-                rollerMotor.stopMotor();
-                deployMotor.stopMotor();
+                rollerUpperMotor.stopMotor();
+                pivotLeftMotor.stopMotor();
             });
     }
 }

@@ -1,5 +1,7 @@
 package org.team340.robot;
 
+import com.revrobotics.CANSparkBase.ExternalFollower;
+import com.revrobotics.CANSparkBase.IdleMode;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.CalibrationTime;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
@@ -9,7 +11,11 @@ import org.team340.lib.controller.Controller2Config;
 import org.team340.lib.swerve.SwerveBase.SwerveMotorType;
 import org.team340.lib.swerve.config.SwerveConfig;
 import org.team340.lib.swerve.config.SwerveModuleConfig;
+import org.team340.lib.util.Math2;
 import org.team340.lib.util.config.PIDConfig;
+import org.team340.lib.util.config.rev.AbsoluteEncoderConfig;
+import org.team340.lib.util.config.rev.SparkMaxConfig;
+import org.team340.lib.util.config.rev.SparkPIDControllerConfig;
 
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide numerical or boolean
@@ -72,8 +78,10 @@ public final class Constants {
         public static final int FRONT_RIGHT_MOVE = 8;
         public static final int FRONT_RIGHT_TURN = 9;
 
-        public static final int INTAKE_DEPLOY_MOTOR = 20;
-        public static final int INTAKE_ROLLER_MOTOR = 21;
+        public static final int INTAKE_PIVOT_LEFT_MOTOR = 20;
+        public static final int INTAKE_PIVOT_RIGHT_MOTOR = 21;
+        public static final int INTAKE_ROLLER_UPPER_MOTOR = 22;
+        public static final int INTAKE_ROLLER_LOWER_MOTOR = 23;
 
         public static final int SHOOTER_PIVOT_MOTOR = 30;
         public static final int SHOOTER_FEED_MOTOR = 31;
@@ -85,54 +93,88 @@ public final class Constants {
 
     public static final class IntakeConstants {
 
-        public static final PIDConfig INTAKE_DEPLOY_STRONG_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
-        public static final PIDConfig INTAKE_DEPLOY_WEAK_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
+        private static final SparkMaxConfig PIVOT_MOTOR_BASE_CONFIG = new SparkMaxConfig()
+            .clearFaults()
+            .restoreFactoryDefaults()
+            .enableVoltageCompensation(VOLTAGE)
+            .setSmartCurrentLimit(30)
+            .setIdleMode(IdleMode.kBrake)
+            .setClosedLoopRampRate(1.5)
+            .setOpenLoopRampRate(1.5);
+        private static final SparkMaxConfig ROLLER_MOTOR_BASE_CONFIG = new SparkMaxConfig()
+            .clearFaults()
+            .restoreFactoryDefaults()
+            .enableVoltageCompensation(VOLTAGE)
+            .setSmartCurrentLimit(30)
+            .setIdleMode(IdleMode.kCoast)
+            .setClosedLoopRampRate(1.5)
+            .setOpenLoopRampRate(1.5);
 
-        public static final double INTAKE_DEPLOY_POSITION = 0.0;
-        public static final double INTAKE_DEPLOY_POSITION_TOLERANCE = 0.0;
+        public static final SparkMaxConfig PIVOT_LEFT_MOTOR_CONFIG = PIVOT_MOTOR_BASE_CONFIG.clone().setInverted(false);
+        public static final SparkMaxConfig PIVOT_RIGHT_MOTOR_CONFIG = PIVOT_MOTOR_BASE_CONFIG
+            .clone()
+            .follow(ExternalFollower.kFollowerSpark, RobotMap.INTAKE_PIVOT_LEFT_MOTOR, false);
+        public static final SparkMaxConfig ROLLER_UPPER_MOTOR_CONFIG = ROLLER_MOTOR_BASE_CONFIG.clone().setInverted(false);
+        public static final SparkMaxConfig ROLLER_LOWER_MOTOR_CONFIG = ROLLER_MOTOR_BASE_CONFIG
+            .clone()
+            .follow(ExternalFollower.kFollowerSpark, RobotMap.INTAKE_ROLLER_UPPER_MOTOR, true);
 
-        public static final double INTAKE_DEPLOY_ROLLER_SPEED = 0.0;
-        public static final double INTAKE_SPIT_ROLLER_SPEED = -0.0;
+        public static final int PIVOT_WEAK_PID_SLOT = 0;
+        public static final int PIVOT_STRONG_PID_SLOT = 1;
+
+        public static final SparkPIDControllerConfig PIVOT_MOTOR_PID_CONFIG = new SparkPIDControllerConfig()
+            .setPID(0.0, 0.0, 0.0, PIVOT_WEAK_PID_SLOT)
+            .setPID(0.0, 0.0, 0.0, PIVOT_STRONG_PID_SLOT);
+
+        public static final AbsoluteEncoderConfig PIVOT_ENCODER_CONFIG = new AbsoluteEncoderConfig()
+            .setZeroOffset(0.0)
+            .setInverted(false)
+            .setPositionConversionFactor(Math2.TWO_PI)
+            .setVelocityConversionFactor(Math2.TWO_PI / 60.0);
+
+        public static final double DEPLOY_POSITION = 0.0;
+        public static final double DEPLOY_POSITION_TOLERANCE = 0.0;
+
+        public static final double DEPLOY_ROLLER_SPEED = 0.0;
+        public static final double SPIT_ROLLER_SPEED = -0.0;
     }
 
     public static final class ShooterConstants {
 
         public static final double FEED_INTAKE_SPEED = 0.0;
 
-        public static final PIDConfig SHOOTER_FEED_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
-        public static final PIDConfig SHOOTER_LEFT_SHOOT_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
-        public static final PIDConfig SHOOTER_RIGHT_SHOOT_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
+        public static final PIDConfig FEED_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
+        public static final PIDConfig LEFT_SHOOT_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
+        public static final PIDConfig RIGHT_SHOOT_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
 
         /**
          * All distances in inches. All angles in radians.
          */
         public static final class PivotConstants {
 
-            public static final double PIVOT_REL_ENC_CONVERSION = 0.2;
+            public static final double REL_ENC_CONVERSION = 0.2;
 
-            public static final double PIVOT_SHOOTER_LENGTH = 0.0;
-            public static final double PIVOT_BASE_LENGTH = 0.0;
-            public static final double PIVOT_MINIMUM_LENGTH_OF_DART = 0.0;
-            public static final double SUM_OF_SQUARES_OF_LENGTHS =
-                PIVOT_SHOOTER_LENGTH * PIVOT_SHOOTER_LENGTH + PIVOT_BASE_LENGTH * PIVOT_BASE_LENGTH;
+            public static final double SHOOTER_LENGTH = 0.0;
+            public static final double BASE_LENGTH = 0.0;
+            public static final double MINIMUM_LENGTH_OF_DART = 0.0;
+            public static final double SUM_OF_SQUARES_OF_LENGTHS = SHOOTER_LENGTH * SHOOTER_LENGTH + BASE_LENGTH * BASE_LENGTH;
 
-            public static final double PIVOT_TWICE_THE_PRODUCT_OF_LENGTHS = 2 * PIVOT_SHOOTER_LENGTH * PIVOT_BASE_LENGTH;
+            public static final double TWICE_THE_PRODUCT_OF_LENGTHS = 2 * SHOOTER_LENGTH * BASE_LENGTH;
 
-            public static final double PIVOT_OFFSET_ANGLE = Math.acos(
-                (SUM_OF_SQUARES_OF_LENGTHS - PIVOT_MINIMUM_LENGTH_OF_DART * PIVOT_MINIMUM_LENGTH_OF_DART) /
-                PIVOT_TWICE_THE_PRODUCT_OF_LENGTHS
+            public static final double OFFSET_ANGLE = Math.acos(
+                (SUM_OF_SQUARES_OF_LENGTHS - MINIMUM_LENGTH_OF_DART * MINIMUM_LENGTH_OF_DART) / TWICE_THE_PRODUCT_OF_LENGTHS
             );
 
-            public static final double PIVOT_MINIMUM_ANGLE = 0.0;
-            public static final double PIVOT_MAXIMUM_ANGLE = 0.0;
+            public static final double MINIMUM_ANGLE = 0.0;
+            public static final double MAXIMUM_ANGLE = 0.0;
 
-            public static final PIDConfig PIVOT_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
-            public static final double PIVOT_PID_MIN_OUTPUT = 0.0;
-            public static final double PIVOT_PID_MAX_OUTPUT = 0.0;
-            public static final double PIVOT_MIN_VEL = 0.0;
-            public static final double PIVOT_MAX_VEL = 0.0;
-            public static final double PIVOT_MAX_ACCEL = 0.0;
-            public static final double PIVOT_CLOSED_LOOP_ERR = 0.0;
+            public static final PIDConfig PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
+            public static final double PID_MIN_OUTPUT = 0.0;
+            public static final double PID_MAX_OUTPUT = 0.0;
+            public static final double MIN_VEL = 0.0;
+            public static final double MAX_VEL = 0.0;
+            public static final double MAX_ACCEL = 0.0;
+            public static final double CLOSED_LOOP_ERR = 0.0;
         }
     }
 
