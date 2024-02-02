@@ -18,24 +18,24 @@ import org.team340.robot.Constants.RobotMap;
  */
 public class Intake extends GRRSubsystem {
 
-    private final CANSparkMax pivotLeftMotor = createSparkMax("Deploy Motor", RobotMap.INTAKE_PIVOT_LEFT_MOTOR, MotorType.kBrushless);
-    private final CANSparkMax pivotRightMotor = createSparkMax("Deploy Motor", RobotMap.INTAKE_PIVOT_RIGHT_MOTOR, MotorType.kBrushless);
+    private final CANSparkMax armLeftMotor = createSparkMax("Deploy Motor", RobotMap.INTAKE_ARM_LEFT_MOTOR, MotorType.kBrushless);
+    private final CANSparkMax armRightMotor = createSparkMax("Deploy Motor", RobotMap.INTAKE_ARM_RIGHT_MOTOR, MotorType.kBrushless);
     private final CANSparkMax rollerUpperMotor = createSparkMax("Roller Motor", RobotMap.INTAKE_ROLLER_UPPER_MOTOR, MotorType.kBrushless);
     private final CANSparkMax rollerLowerMotor = createSparkMax("Roller Motor", RobotMap.INTAKE_ROLLER_LOWER_MOTOR, MotorType.kBrushless);
 
-    private final SparkPIDController pivotPID = pivotLeftMotor.getPIDController();
-    private final SparkAbsoluteEncoder pivotEncoder = createSparkMaxAbsoluteEncoder("Pivot Encoder", pivotLeftMotor, Type.kDutyCycle);
+    private final SparkPIDController armPID = armLeftMotor.getPIDController();
+    private final SparkAbsoluteEncoder armEncoder = createSparkMaxAbsoluteEncoder("Arm Encoder", armLeftMotor, Type.kDutyCycle);
 
     public Intake() {
         super("Intake");
-        IntakeConstants.PIVOT_LEFT_MOTOR_CONFIG.apply(pivotLeftMotor);
-        IntakeConstants.PIVOT_RIGHT_MOTOR_CONFIG.apply(pivotRightMotor);
+        IntakeConstants.ARM_LEFT_MOTOR_CONFIG.apply(armLeftMotor);
+        IntakeConstants.ARM_RIGHT_MOTOR_CONFIG.apply(armRightMotor);
         IntakeConstants.ROLLER_UPPER_MOTOR_CONFIG.apply(rollerUpperMotor);
         IntakeConstants.ROLLER_LOWER_MOTOR_CONFIG.apply(rollerLowerMotor);
 
-        IntakeConstants.PIVOT_MOTOR_PID_CONFIG.apply(pivotLeftMotor, pivotPID);
+        IntakeConstants.ARM_MOTOR_PID_CONFIG.apply(armLeftMotor, armPID);
 
-        IntakeConstants.PIVOT_ENCODER_CONFIG.apply(pivotLeftMotor, pivotEncoder);
+        IntakeConstants.ARM_ENCODER_CONFIG.apply(armLeftMotor, armEncoder);
     }
 
     public Command deploy() {
@@ -47,15 +47,15 @@ public class Intake extends GRRSubsystem {
                 if (
                     Math2.epsilonEquals(
                         IntakeConstants.DEPLOY_POSITION,
-                        pivotLeftMotor.getEncoder().getPosition(),
+                        armLeftMotor.getEncoder().getPosition(),
                         IntakeConstants.DEPLOY_POSITION_TOLERANCE
                     )
                 ) weakPID.set(true);
-                pivotPID.setReference(IntakeConstants.DEPLOY_POSITION, ControlType.kPosition, weakPID.get() ? 1 : 0);
+                armPID.setReference(IntakeConstants.DEPLOY_POSITION, ControlType.kPosition, weakPID.get() ? 1 : 0);
             })
             .onEnd(() -> {
                 rollerUpperMotor.stopMotor();
-                pivotLeftMotor.stopMotor();
+                armLeftMotor.stopMotor();
             });
     }
 
@@ -63,7 +63,7 @@ public class Intake extends GRRSubsystem {
         return commandBuilder("intake.retract()")
             .onInitialize(() -> rollerUpperMotor.stopMotor())
             .onExecute(() -> {
-                pivotPID.setReference(0, ControlType.kPosition, 0);
+                armPID.setReference(0, ControlType.kPosition, 0);
             });
     }
 
@@ -76,16 +76,16 @@ public class Intake extends GRRSubsystem {
                 if (
                     Math2.epsilonEquals(
                         IntakeConstants.DEPLOY_POSITION,
-                        pivotLeftMotor.getEncoder().getPosition(),
+                        armLeftMotor.getEncoder().getPosition(),
                         IntakeConstants.DEPLOY_POSITION_TOLERANCE
                     )
                 ) weakPID.set(true);
 
-                pivotPID.setReference(IntakeConstants.DEPLOY_POSITION, ControlType.kPosition, weakPID.get() ? 1 : 0);
+                armPID.setReference(IntakeConstants.DEPLOY_POSITION, ControlType.kPosition, weakPID.get() ? 1 : 0);
             })
             .onEnd(() -> {
                 rollerUpperMotor.stopMotor();
-                pivotLeftMotor.stopMotor();
+                armLeftMotor.stopMotor();
             });
     }
 }

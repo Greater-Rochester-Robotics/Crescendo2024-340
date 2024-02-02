@@ -14,6 +14,7 @@ import org.team340.lib.swerve.config.SwerveModuleConfig;
 import org.team340.lib.util.Math2;
 import org.team340.lib.util.config.PIDConfig;
 import org.team340.lib.util.config.rev.AbsoluteEncoderConfig;
+import org.team340.lib.util.config.rev.SparkFlexConfig;
 import org.team340.lib.util.config.rev.SparkMaxConfig;
 import org.team340.lib.util.config.rev.SparkPIDControllerConfig;
 
@@ -78,22 +79,23 @@ public final class Constants {
         public static final int FRONT_RIGHT_MOVE = 8;
         public static final int FRONT_RIGHT_TURN = 9;
 
-        public static final int INTAKE_PIVOT_LEFT_MOTOR = 20;
-        public static final int INTAKE_PIVOT_RIGHT_MOTOR = 21;
+        public static final int INTAKE_ARM_LEFT_MOTOR = 20;
+        public static final int INTAKE_ARM_RIGHT_MOTOR = 21;
         public static final int INTAKE_ROLLER_UPPER_MOTOR = 22;
         public static final int INTAKE_ROLLER_LOWER_MOTOR = 23;
 
         public static final int SHOOTER_PIVOT_MOTOR = 30;
         public static final int SHOOTER_FEED_MOTOR = 31;
-        public static final int SHOOTER_LEFT_SHOOT_MOTOR = 32;
-        public static final int SHOOTER_RIGHT_SHOOT_MOTOR = 33;
+        public static final int SHOOTER_SHOOT_LEFT_MOTOR = 32;
+        public static final int SHOOTER_SHOOT_RIGHT_MOTOR = 33;
 
         public static final int SHOOTER_NOTE_DETECTOR = 0;
+        public static final int PIVOT_LOWER_LIMIT = 1;
     }
 
     public static final class IntakeConstants {
 
-        private static final SparkMaxConfig PIVOT_MOTOR_BASE_CONFIG = new SparkMaxConfig()
+        private static final SparkMaxConfig ARM_MOTOR_BASE_CONFIG = new SparkMaxConfig()
             .clearFaults()
             .restoreFactoryDefaults()
             .enableVoltageCompensation(VOLTAGE)
@@ -110,23 +112,23 @@ public final class Constants {
             .setClosedLoopRampRate(1.5)
             .setOpenLoopRampRate(1.5);
 
-        public static final SparkMaxConfig PIVOT_LEFT_MOTOR_CONFIG = PIVOT_MOTOR_BASE_CONFIG.clone().setInverted(false);
-        public static final SparkMaxConfig PIVOT_RIGHT_MOTOR_CONFIG = PIVOT_MOTOR_BASE_CONFIG
+        public static final SparkMaxConfig ARM_LEFT_MOTOR_CONFIG = ARM_MOTOR_BASE_CONFIG.clone().setInverted(false);
+        public static final SparkMaxConfig ARM_RIGHT_MOTOR_CONFIG = ARM_MOTOR_BASE_CONFIG
             .clone()
-            .follow(ExternalFollower.kFollowerSpark, RobotMap.INTAKE_PIVOT_LEFT_MOTOR, false);
+            .follow(ExternalFollower.kFollowerSpark, RobotMap.INTAKE_ARM_LEFT_MOTOR, false);
         public static final SparkMaxConfig ROLLER_UPPER_MOTOR_CONFIG = ROLLER_MOTOR_BASE_CONFIG.clone().setInverted(false);
         public static final SparkMaxConfig ROLLER_LOWER_MOTOR_CONFIG = ROLLER_MOTOR_BASE_CONFIG
             .clone()
             .follow(ExternalFollower.kFollowerSpark, RobotMap.INTAKE_ROLLER_UPPER_MOTOR, true);
 
-        public static final int PIVOT_WEAK_PID_SLOT = 0;
-        public static final int PIVOT_STRONG_PID_SLOT = 1;
+        public static final int ARM_WEAK_PID_SLOT = 0;
+        public static final int ARM_STRONG_PID_SLOT = 1;
 
-        public static final SparkPIDControllerConfig PIVOT_MOTOR_PID_CONFIG = new SparkPIDControllerConfig()
-            .setPID(0.0, 0.0, 0.0, PIVOT_WEAK_PID_SLOT)
-            .setPID(0.0, 0.0, 0.0, PIVOT_STRONG_PID_SLOT);
+        public static final SparkPIDControllerConfig ARM_MOTOR_PID_CONFIG = new SparkPIDControllerConfig()
+            .setPID(0.0, 0.0, 0.0, ARM_WEAK_PID_SLOT)
+            .setPID(0.0, 0.0, 0.0, ARM_STRONG_PID_SLOT);
 
-        public static final AbsoluteEncoderConfig PIVOT_ENCODER_CONFIG = new AbsoluteEncoderConfig()
+        public static final AbsoluteEncoderConfig ARM_ENCODER_CONFIG = new AbsoluteEncoderConfig()
             .setZeroOffset(0.0)
             .setInverted(false)
             .setPositionConversionFactor(Math2.TWO_PI)
@@ -140,42 +142,72 @@ public final class Constants {
     }
 
     public static final class ShooterConstants {
+        private static final SparkFlexConfig SHOOT_MOTOR_BASE_CONFIG = new SparkFlexConfig()
+            .clearFaults()
+            .restoreFactoryDefaults()
+            .enableVoltageCompensation(VOLTAGE)
+            .setSmartCurrentLimit(60, 30)
+            .setIdleMode(IdleMode.kCoast)
+            .setClosedLoopRampRate(1.5)
+            .setOpenLoopRampRate(1.5);
 
-        public static final double FEED_INTAKE_SPEED = 0.0;
+        public static final SparkFlexConfig SHOOT_LEFT_MOTOR_CONFIG = SHOOT_MOTOR_BASE_CONFIG.clone().setInverted(false);
+        public static final SparkFlexConfig SHOOT_RIGHT_MOTOR_CONFIG = SHOOT_MOTOR_BASE_CONFIG.clone().setInverted(true);
 
-        public static final PIDConfig FEED_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
-        public static final PIDConfig LEFT_SHOOT_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
-        public static final PIDConfig RIGHT_SHOOT_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
+        public static final SparkMaxConfig FEED_MOTOR_CONFIG = new SparkMaxConfig()
+            .clearFaults()
+            .restoreFactoryDefaults()
+            .enableVoltageCompensation(VOLTAGE)
+            .setSmartCurrentLimit(30)
+            .setIdleMode(IdleMode.kCoast)
+            .setClosedLoopRampRate(1.5)
+            .setOpenLoopRampRate(1.5);
 
-        /**
-         * All distances in inches. All angles in radians.
-         */
-        public static final class PivotConstants {
+            public static final SparkPIDControllerConfig FEED_PID_CONFIG = new SparkPIDControllerConfig().setPID(0.0, 0.0, 0.0, 0);
+            public static final SparkPIDControllerConfig SHOOT_PID_CONFIG = new SparkPIDControllerConfig().setPID(0.0, 0.0, 0.0, 0);
 
-            public static final double REL_ENC_CONVERSION = 0.2;
-
-            public static final double SHOOTER_LENGTH = 0.0;
-            public static final double BASE_LENGTH = 0.0;
-            public static final double MINIMUM_LENGTH_OF_DART = 0.0;
-            public static final double SUM_OF_SQUARES_OF_LENGTHS = SHOOTER_LENGTH * SHOOTER_LENGTH + BASE_LENGTH * BASE_LENGTH;
-
-            public static final double TWICE_THE_PRODUCT_OF_LENGTHS = 2 * SHOOTER_LENGTH * BASE_LENGTH;
-
-            public static final double OFFSET_ANGLE = Math.acos(
-                (SUM_OF_SQUARES_OF_LENGTHS - MINIMUM_LENGTH_OF_DART * MINIMUM_LENGTH_OF_DART) / TWICE_THE_PRODUCT_OF_LENGTHS
-            );
-
-            public static final double MINIMUM_ANGLE = 0.0;
-            public static final double MAXIMUM_ANGLE = 0.0;
-
-            public static final PIDConfig PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
-            public static final double PID_MIN_OUTPUT = 0.0;
-            public static final double PID_MAX_OUTPUT = 0.0;
-            public static final double MIN_VEL = 0.0;
-            public static final double MAX_VEL = 0.0;
-            public static final double MAX_ACCEL = 0.0;
-            public static final double CLOSED_LOOP_ERR = 0.0;
+            public static final double FEED_INTAKE_SPEED = 0.0;
         }
+
+    /**
+     * All distances in inches. All angles in radians.
+     */
+    public static final class PivotConstants {
+        public static final SparkMaxConfig PIVOT_MOTOR_CONFIG = new SparkMaxConfig()
+            .clearFaults()
+            .restoreFactoryDefaults()
+            .enableVoltageCompensation(VOLTAGE)
+            .setSmartCurrentLimit(30)
+            .setIdleMode(IdleMode.kCoast)
+            .setClosedLoopRampRate(1.5)
+            .setOpenLoopRampRate(1.5);
+            
+        public static final SparkPIDControllerConfig PIVOT_PID_CONFIG = new SparkPIDControllerConfig().setPID(0.0, 0.0, 0.0, 0);
+
+        public static final double PID_MIN_OUTPUT = 0.0;
+        public static final double PID_MAX_OUTPUT = 0.0;
+        public static final double MIN_VEL = 0.0;
+        public static final double MAX_VEL = 0.0;
+        public static final double MAX_ACCEL = 0.0;
+        public static final double CLOSED_LOOP_ERR = 0.0;
+        public static final double REL_ENC_CONVERSION = 0.2;
+
+        public static final double SHOOTER_LENGTH = 0.0;
+        public static final double BASE_LENGTH = 0.0;
+        public static final double MINIMUM_LENGTH_OF_DART = 0.0;
+        public static final double SUM_OF_SQUARES_OF_LENGTHS = SHOOTER_LENGTH * SHOOTER_LENGTH + BASE_LENGTH * BASE_LENGTH;
+
+        public static final double TWICE_THE_PRODUCT_OF_LENGTHS = 2 * SHOOTER_LENGTH * BASE_LENGTH;
+
+        public static final double OFFSET_ANGLE = Math.acos(
+            (SUM_OF_SQUARES_OF_LENGTHS - MINIMUM_LENGTH_OF_DART * MINIMUM_LENGTH_OF_DART) / TWICE_THE_PRODUCT_OF_LENGTHS
+        );
+
+        public static final double MINIMUM_ANGLE = 0.0;
+        public static final double MAXIMUM_ANGLE = 0.0;
+
+        public static final double HOMING_SPEED = 0.0;
+
     }
 
     /**

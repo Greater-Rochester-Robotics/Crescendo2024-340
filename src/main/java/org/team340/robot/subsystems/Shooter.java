@@ -19,52 +19,28 @@ import org.team340.lib.util.Mutable;
 import org.team340.lib.util.config.rev.SparkPIDControllerConfig;
 import org.team340.robot.Constants.RobotMap;
 import org.team340.robot.Constants.ShooterConstants;
-import org.team340.robot.Constants.ShooterConstants.PivotConstants;
 
 public class Shooter extends GRRSubsystem {
-
-    private final CANSparkMax pivotMotor = createSparkMax("Pivot Motor", RobotMap.SHOOTER_PIVOT_MOTOR, MotorType.kBrushless);
     private final CANSparkMax feedMotor = createSparkMax("Feeder Motor", RobotMap.SHOOTER_FEED_MOTOR, MotorType.kBrushless);
     private final CANSparkFlex leftShootMotor = createSparkFlex(
         "Shooter Motor Left",
-        RobotMap.SHOOTER_LEFT_SHOOT_MOTOR,
+        RobotMap.SHOOTER_SHOOT_LEFT_MOTOR,
         MotorType.kBrushless
     );
     private final CANSparkFlex rightShootMotor = createSparkFlex(
         "Shooter Motor Right",
-        RobotMap.SHOOTER_RIGHT_SHOOT_MOTOR,
+        RobotMap.SHOOTER_SHOOT_RIGHT_MOTOR,
         MotorType.kBrushless
     );
 
-    private final SparkPIDController pivotPID = pivotMotor.getPIDController();
     private final SparkPIDController feedPID = feedMotor.getPIDController();
     private final SparkPIDController leftShootPID = leftShootMotor.getPIDController();
     private final SparkPIDController rightShootPID = rightShootMotor.getPIDController();
-
-    private final AbsoluteEncoder pivotAbsoluteEncoder = createSparkMaxAbsoluteEncoder(
-        "Pivot Absolute Encoder",
-        pivotMotor,
-        Type.kDutyCycle
-    );
-    private final RelativeEncoder pivotRelativeEncoder = pivotMotor.getEncoder();
 
     private final DigitalInput noteDetector = createDigitalInput("Note Detector", RobotMap.SHOOTER_NOTE_DETECTOR);
 
     public Shooter() {
         super("Shooter");
-        pivotRelativeEncoder.setPositionConversionFactor(PivotConstants.REL_ENC_CONVERSION);
-        pivotAbsoluteEncoder.setPositionConversionFactor(Math2.TWO_PI);
-
-        new SparkPIDControllerConfig()
-            .setPID(PivotConstants.PID.p(), PivotConstants.PID.i(), PivotConstants.PID.d())
-            .setIZone(PivotConstants.PID.iZone())
-            .setOutputRange(PivotConstants.PID_MIN_OUTPUT, PivotConstants.PID_MAX_OUTPUT)
-            .apply(pivotMotor, pivotPID);
-        pivotPID.setSmartMotionMaxVelocity(PivotConstants.MAX_VEL, 0);
-        pivotPID.setSmartMotionMaxVelocity(PivotConstants.MAX_VEL, 0);
-        pivotPID.setSmartMotionMinOutputVelocity(PivotConstants.MAX_VEL, 0);
-        pivotPID.setSmartMotionMaxAccel(PivotConstants.MAX_ACCEL, 0);
-        pivotPID.setSmartMotionAllowedClosedLoopError(PivotConstants.CLOSED_LOOP_ERR, 0);
 
         new SparkPIDControllerConfig()
             .setPID(ShooterConstants.FEED_PID.p(), ShooterConstants.FEED_PID.i(), ShooterConstants.FEED_PID.d())
