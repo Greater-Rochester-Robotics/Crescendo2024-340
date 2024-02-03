@@ -80,6 +80,7 @@
     "RoboRIO",
     "Sendables",
     "Setpoint",
+    "setpoints",
     "Subuid",
     "TalonFX",
     "TalonSRX",

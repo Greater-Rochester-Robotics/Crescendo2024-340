@@ -170,9 +170,25 @@ public final class Constants {
         public static final SparkPIDControllerConfig FEED_PID_CONFIG = new SparkPIDControllerConfig().setPID(0.0, 0.0, 0.0, 0);
         public static final SparkPIDControllerConfig SHOOT_PID_CONFIG = new SparkPIDControllerConfig().setPID(0.0, 0.0, 0.0, 0);
 
+        public static final double REL_ENC_CONVERSION = 1.0;
+
+        public static final RelativeEncoderConfig SHOOTER_ENC_CONFIG = new RelativeEncoderConfig()
+            .setPositionConversionFactor(REL_ENC_CONVERSION)
+            .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
+
+        public static final double SPEED_TOLERANCE = 0.0;
+
         public static final double FEED_INTAKE_SPEED = 0.0;
 
         public static final String FEED_PID = null;
+
+        public static final double FEED_SHOOT_SPEED = 0;
+
+        public static final double FEEDER_SPIT_SPEED = 0;
+
+        public static final double LEFT_SPIT_SPEED = 0;
+
+        public static final double RIGHT_SPIT_SPEED = 0;
     }
 
     /**
