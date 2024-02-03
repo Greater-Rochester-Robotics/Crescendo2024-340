@@ -191,7 +191,7 @@ public final class Constants {
             .restoreFactoryDefaults()
             .enableVoltageCompensation(VOLTAGE)
             .setSmartCurrentLimit(30)
-            .setIdleMode(IdleMode.kCoast)
+            .setIdleMode(IdleMode.kBrake)
             .setClosedLoopRampRate(1.5)
             .setOpenLoopRampRate(1.5);
 
@@ -210,7 +210,7 @@ public final class Constants {
             .restoreFactoryDefaults()
             .enableVoltageCompensation(VOLTAGE)
             .setSmartCurrentLimit(30)
-            .setIdleMode(IdleMode.kCoast)
+            .setIdleMode(IdleMode.kBrake)
             .setClosedLoopRampRate(1.5)
             .setOpenLoopRampRate(1.5);
 
@@ -229,16 +229,6 @@ public final class Constants {
         public static final RelativeEncoderConfig PIVOT_ENC_CONFIG = new RelativeEncoderConfig()
             .setPositionConversionFactor(REL_ENC_CONVERSION)
             .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
-
-        public static final double SHOOTER_LENGTH = 0.0;
-        public static final double BASE_LENGTH = 0.0;
-        public static final double MINIMUM_LENGTH_OF_DART = 0.0;
-        public static final double SUM_OF_SQUARES_OF_LENGTHS = SHOOTER_LENGTH * SHOOTER_LENGTH + BASE_LENGTH * BASE_LENGTH;
-        public static final double TWICE_THE_PRODUCT_OF_LENGTHS = 2 * SHOOTER_LENGTH * BASE_LENGTH;
-
-        public static final double OFFSET_ANGLE = Math.acos(
-            (SUM_OF_SQUARES_OF_LENGTHS - MINIMUM_LENGTH_OF_DART * MINIMUM_LENGTH_OF_DART) / TWICE_THE_PRODUCT_OF_LENGTHS
-        );
 
         public static final double MINIMUM_ANGLE = 0.0;
         public static final double MAXIMUM_ANGLE = 0.0;
