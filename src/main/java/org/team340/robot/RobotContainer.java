@@ -8,6 +8,7 @@ import org.team340.lib.util.Math2;
 import org.team340.lib.util.config.rev.RevConfigUtils;
 import org.team340.robot.Constants.ControllerConstants;
 import org.team340.robot.commands.SystemsCheck;
+import org.team340.robot.subsystems.Feeder;
 import org.team340.robot.subsystems.Intake;
 import org.team340.robot.subsystems.Pivot;
 import org.team340.robot.subsystems.Shooter;
@@ -27,6 +28,7 @@ public final class RobotContainer {
 
     public static Intake intake;
     public static Pivot pivot;
+    public static Feeder feeder;
     public static Shooter shooter;
     public static Swerve swerve;
 
@@ -45,6 +47,7 @@ public final class RobotContainer {
         // Initialize subsystems.
         intake = new Intake();
         pivot = new Pivot();
+        feeder = new Feeder();
         shooter = new Shooter();
         swerve = new Swerve();
 

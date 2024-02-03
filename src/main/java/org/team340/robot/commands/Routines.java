@@ -30,16 +30,18 @@ public class Routines {
      * @return This command.
      */
     public Command shootSpeaker(Supplier<Pose2d> robotPosition) {
-        //TODO: this needs actual not zeros.
-        return prepShootSpeaker(robotPosition)
-            .until(() -> shooter.hasShooterReachedSpeed() && pivot.isOnTarget())
-            .andThen(shooter.shootNote(null));
+        return parallel(
+            prepShootSpeaker(robotPosition),
+            sequence(waitUntil(() -> shooter.hasShooterReachedSpeed() && pivot.isOnTarget()), feeder.shootNote())
+        );
     }
 
-    public Command prepShootSpeaker(Supplier<Pose2d> robotPosition){
-        return parallel(
-            shooter.setShootSpeed(0.0),
-            pivot.goToAngle(0.0)
-        );
+    public Command prepShootSpeaker(Supplier<Pose2d> robotPosition) {
+        //TODO: this needs actual not zeros.
+        return parallel(shooter.setShootSpeed(0.0), pivot.goToAngle(0.0));
+    }
+
+    public Command shooterSpit() {
+        return parallel(shooter.spit(), feeder.spit());
     }
 }

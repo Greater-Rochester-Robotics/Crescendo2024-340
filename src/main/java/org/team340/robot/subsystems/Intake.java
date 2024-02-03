@@ -38,6 +38,10 @@ public class Intake extends GRRSubsystem {
         IntakeConstants.ARM_ENCODER_CONFIG.apply(armLeftMotor, armEncoder);
     }
 
+    /**
+     * This command deploys the intake, and runs the motors to intake the note.
+     * @return This command
+     */
     public Command deploy() {
         Mutable<Boolean> weakPID = new Mutable<>(false);
 
@@ -59,6 +63,10 @@ public class Intake extends GRRSubsystem {
             });
     }
 
+    /**
+     * This command stops the motors, and retracts the the intake.
+     * @return This command
+     */
     public Command retract() {
         return commandBuilder("intake.retract()")
             .onInitialize(() -> rollerUpperMotor.stopMotor())
@@ -67,6 +75,10 @@ public class Intake extends GRRSubsystem {
             });
     }
 
+    /**
+     * This command deploys the intake (unless it already is), and spits the note.
+     * @return
+     */
     public Command spit() {
         Mutable<Boolean> weakPID = new Mutable<>(false);
 

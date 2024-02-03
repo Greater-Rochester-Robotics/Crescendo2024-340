@@ -158,16 +158,6 @@ public final class Constants {
         public static final SparkFlexConfig SHOOT_LEFT_MOTOR_CONFIG = SHOOT_MOTOR_BASE_CONFIG.clone().setInverted(false);
         public static final SparkFlexConfig SHOOT_RIGHT_MOTOR_CONFIG = SHOOT_MOTOR_BASE_CONFIG.clone().setInverted(true);
 
-        public static final SparkMaxConfig FEED_MOTOR_CONFIG = new SparkMaxConfig()
-            .clearFaults()
-            .restoreFactoryDefaults()
-            .enableVoltageCompensation(VOLTAGE)
-            .setSmartCurrentLimit(30)
-            .setIdleMode(IdleMode.kCoast)
-            .setClosedLoopRampRate(1.5)
-            .setOpenLoopRampRate(1.5);
-
-        public static final SparkPIDControllerConfig FEED_PID_CONFIG = new SparkPIDControllerConfig().setPID(0.0, 0.0, 0.0, 0);
         public static final SparkPIDControllerConfig SHOOT_PID_CONFIG = new SparkPIDControllerConfig().setPID(0.0, 0.0, 0.0, 0);
 
         public static final double REL_ENC_CONVERSION = 1.0;
@@ -178,17 +168,31 @@ public final class Constants {
 
         public static final double SPEED_TOLERANCE = 0.0;
 
-        public static final double FEED_INTAKE_SPEED = 0.0;
-
-        public static final String FEED_PID = null;
-
-        public static final double FEED_SHOOT_SPEED = 0;
-
-        public static final double FEEDER_SPIT_SPEED = 0;
-
         public static final double LEFT_SPIT_SPEED = 0;
 
         public static final double RIGHT_SPIT_SPEED = 0;
+
+        public static final double LEFT_TO_RIGHT_RATIO = 0;
+    }
+
+    public static final class FeederConstants {
+
+        public static final double SHOOT_DELAY = 2.0;
+
+        public static final SparkPIDControllerConfig FEED_PID_CONFIG = new SparkPIDControllerConfig().setPID(0.0, 0.0, 0.0, 0);
+
+        public static final SparkMaxConfig FEED_MOTOR_CONFIG = new SparkMaxConfig()
+            .clearFaults()
+            .restoreFactoryDefaults()
+            .enableVoltageCompensation(VOLTAGE)
+            .setSmartCurrentLimit(30)
+            .setIdleMode(IdleMode.kCoast)
+            .setClosedLoopRampRate(1.5)
+            .setOpenLoopRampRate(1.5);
+
+        public static final double FEED_INTAKE_SPEED = 0;
+        public static final double FEED_SHOOT_SPEED = 0;
+        public static final double FEEDER_SPIT_SPEED = 0;
     }
 
     /**
