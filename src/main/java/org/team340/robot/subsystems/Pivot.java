@@ -51,6 +51,28 @@ public class Pivot extends GRRSubsystem {
     }
 
     /**
+     * Checks to see if the angle is valid based on robot constraints.
+     * @param angle The angle
+     * @return Returns false if the angle is invalid, true if valid.
+     */
+    private boolean isAngleValid(double angle) {
+        if (angle < PivotConstants.MINIMUM_ANGLE || angle > PivotConstants.MAXIMUM_ANGLE) {
+            DriverStation.reportWarning(
+                "Invalid shooter pivot angle. " +
+                angle +
+                " is not between " +
+                PivotConstants.MINIMUM_ANGLE +
+                " and " +
+                PivotConstants.MAXIMUM_ANGLE,
+                false
+            );
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    /**
      * Homes the pivot by driving slowly down until reaching limit.
      * @param withOverride If true will ignore {@code hasBeenHomed}.
      */
@@ -65,12 +87,22 @@ public class Pivot extends GRRSubsystem {
             })
             .isFinished(() -> getLowerLimit() || (hasBeenHomed && !withOverride))
             .onEnd(interrupted -> {
-                pivotMotor.stopMotor();
+                if (hasBeenHomed && !withOverride) {
+                    pivotMotor.stopMotor();
+                }
                 if (getLowerLimit()) {
                     pivotEnc.setPosition(PivotConstants.MINIMUM_ANGLE);
                     hasBeenHomed = true;
                 }
             });
+    }
+
+    public Command goToAngle(double angle) {
+        return goToAngle(() -> angle, true);
+    }
+
+    public Command goToAngle(Supplier<Double> angle) {
+        return goToAngle(angle, false);
     }
 
     /**
@@ -79,38 +111,37 @@ public class Pivot extends GRRSubsystem {
      * @param willFinish Whether or not the command will stop on it's own when it reaches the target angle.
      * @return Returns it's own commandBuilder
      */
-    public Command gotoAngle(Supplier<Double> angle, boolean willFinish) {
+    public Command goToAngle(Supplier<Double> angle, boolean willFinish) {
         return home(false)
             .andThen(
-                commandBuilder("pivot.gotoAngle()")
+                commandBuilder("pivot.goToAngleSM()")
                     .onExecute(() -> {
                         double angleValue = angle.get();
-                        if (angleValue < PivotConstants.MINIMUM_ANGLE || angleValue > PivotConstants.MAXIMUM_ANGLE) {
-                            DriverStation.reportWarning(
-                                "Invalid shooter pivot angle. " +
-                                angleValue +
-                                " is not between " +
-                                PivotConstants.MINIMUM_ANGLE +
-                                " and " +
-                                PivotConstants.MAXIMUM_ANGLE,
-                                false
-                            );
-                        } else {
+                        if (isAngleValid(angleValue)) {
                             currentTarget = angle.get();
                             pivotPID.setReference(angleValue, ControlType.kSmartMotion);
                         }
                     })
-                    .isFinished(() ->
-                        getAtLimit() || (willFinish && Math.abs(pivotEnc.getPosition() - angle.get()) < PivotConstants.CLOSED_LOOP_ERR)
-                    )
+                    .isFinished(() -> getAtLimit() || Math.abs(pivotEnc.getPosition() - angle.get()) < PivotConstants.CLOSED_LOOP_ERR)
                     .onEnd(interrupted -> {
-                        pivotMotor.stopMotor();
                         if (!interrupted) {
                             currentTarget = angle.get();
                         } else {
                             currentTarget = pivotEnc.getPosition();
                         }
                     })
+            )
+            .andThen(
+                willFinish
+                    ? runOnce(() -> pivotMotor.stopMotor())
+                    : commandBuilder("pivot.goToAnglePID()")
+                        .onExecute(() -> {
+                            double angleValue = angle.get();
+                            if (isAngleValid(angleValue)) {
+                                currentTarget = angle.get();
+                                pivotPID.setReference(angleValue, ControlType.kPosition);
+                            }
+                        })
             );
     }
 
