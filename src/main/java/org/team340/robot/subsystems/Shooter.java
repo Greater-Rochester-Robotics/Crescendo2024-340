@@ -44,7 +44,7 @@ public class Shooter extends GRRSubsystem {
         ShooterConstants.SHOOT_LEFT_MOTOR_CONFIG.apply(leftShootMotor);
         ShooterConstants.SHOOT_PID_CONFIG.apply(leftShootMotor, leftShootPID);
 
-        ShooterConstants.SHOOT_RIGHT_MOTOR_CONFIG.apply(leftShootMotor);
+        ShooterConstants.SHOOT_RIGHT_MOTOR_CONFIG.apply(rightShootMotor);
         ShooterConstants.SHOOT_PID_CONFIG.apply(rightShootMotor, rightShootPID);
     }
 
