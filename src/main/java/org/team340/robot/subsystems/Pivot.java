@@ -1,19 +1,16 @@
 package org.team340.robot.subsystems;
 
+import com.revrobotics.CANSparkLowLevel.MotorType;
+import com.revrobotics.CANSparkMax;
+import com.revrobotics.SparkPIDController;
+import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj2.command.Command;
 import org.team340.lib.GRRSubsystem;
 import org.team340.robot.Constants.PivotConstants;
 import org.team340.robot.Constants.RobotMap;
 
-import com.revrobotics.CANSparkLowLevel.MotorType;
-
-import edu.wpi.first.wpilibj.DigitalInput;
-import edu.wpi.first.wpilibj2.command.Command;
-
-import com.revrobotics.CANSparkMax;
-import com.revrobotics.SparkPIDController;
-import com.revrobotics.CANSparkBase.ControlType;
-
 public class Pivot extends GRRSubsystem {
+
     private final CANSparkMax pivotMotor = createSparkMax("Pivot Motor", RobotMap.SHOOTER_PIVOT_MOTOR, MotorType.kBrushless);
     private final SparkPIDController pivotPID = pivotMotor.getPIDController();
     private final DigitalInput lowerLimit = new DigitalInput(RobotMap.PIVOT_LOWER_LIMIT);
@@ -22,7 +19,6 @@ public class Pivot extends GRRSubsystem {
 
     public Pivot() {
         super("Pivot");
-
         PivotConstants.PIVOT_MOTOR_CONFIG.apply(pivotMotor);
 
         PivotConstants.PIVOT_PID_CONFIG.apply(pivotMotor, pivotPID);
@@ -42,14 +38,14 @@ public class Pivot extends GRRSubsystem {
     public Command home(boolean withOverride) {
         return commandBuilder("pivot.home()")
             .onExecute(() -> {
-                if(!hasBeenHomed || withOverride) {
+                if (!hasBeenHomed || withOverride) {
                     pivotMotor.set(PivotConstants.HOMING_SPEED);
                 } else {
                     pivotMotor.stopMotor();
                 }
             })
             .isFinished(() -> lowerLimit.get() || (hasBeenHomed && !withOverride))
-            .onEnd((interrupted) -> {
+            .onEnd(interrupted -> {
                 pivotMotor.stopMotor();
                 hasBeenHomed = !interrupted;
             });

@@ -1,12 +1,9 @@
 package org.team340.robot.subsystems;
 
-import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkFlex;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
-import com.revrobotics.RelativeEncoder;
-import com.revrobotics.SparkAbsoluteEncoder.Type;
 import com.revrobotics.SparkPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.DigitalInput;
@@ -14,13 +11,13 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.Supplier;
 import org.team340.lib.GRRSubsystem;
-import org.team340.lib.util.Math2;
 import org.team340.lib.util.Mutable;
 import org.team340.lib.util.config.rev.SparkPIDControllerConfig;
 import org.team340.robot.Constants.RobotMap;
 import org.team340.robot.Constants.ShooterConstants;
 
 public class Shooter extends GRRSubsystem {
+
     private final CANSparkMax feedMotor = createSparkMax("Feeder Motor", RobotMap.SHOOTER_FEED_MOTOR, MotorType.kBrushless);
     private final CANSparkFlex leftShootMotor = createSparkFlex(
         "Shooter Motor Left",
@@ -41,7 +38,6 @@ public class Shooter extends GRRSubsystem {
 
     public Shooter() {
         super("Shooter");
-
         new SparkPIDControllerConfig()
             .setPID(ShooterConstants.FEED_PID.p(), ShooterConstants.FEED_PID.i(), ShooterConstants.FEED_PID.d())
             .setIZone(ShooterConstants.FEED_PID.iZone())
