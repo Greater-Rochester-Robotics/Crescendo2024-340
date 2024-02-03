@@ -2,6 +2,7 @@ package org.team340.robot;
 
 import com.revrobotics.CANSparkBase.ExternalFollower;
 import com.revrobotics.CANSparkBase.IdleMode;
+import com.revrobotics.SparkPIDController.AccelStrategy;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.CalibrationTime;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
@@ -14,6 +15,7 @@ import org.team340.lib.swerve.hardware.motors.SwerveMotor;
 import org.team340.lib.util.Math2;
 import org.team340.lib.util.config.PIDConfig;
 import org.team340.lib.util.config.rev.AbsoluteEncoderConfig;
+import org.team340.lib.util.config.rev.RelativeEncoderConfig;
 import org.team340.lib.util.config.rev.SparkFlexConfig;
 import org.team340.lib.util.config.rev.SparkMaxConfig;
 import org.team340.lib.util.config.rev.SparkPIDControllerConfig;
@@ -91,6 +93,7 @@ public final class Constants {
 
         public static final int SHOOTER_NOTE_DETECTOR = 0;
         public static final int PIVOT_LOWER_LIMIT = 1;
+        public static final int PIVOT_UPPER_LIMIT = 2;
     }
 
     public static final class IntakeConstants {
@@ -186,21 +189,26 @@ public final class Constants {
             .setClosedLoopRampRate(1.5)
             .setOpenLoopRampRate(1.5);
 
-        public static final SparkPIDControllerConfig PIVOT_PID_CONFIG = new SparkPIDControllerConfig().setPID(0.0, 0.0, 0.0, 0);
-
-        public static final double PID_MIN_OUTPUT = 0.0;
-        public static final double PID_MAX_OUTPUT = 0.0;
-        public static final double MIN_VEL = 0.0;
-        public static final double MAX_VEL = 0.0;
-        public static final double MAX_ACCEL = 0.0;
+        //TODO: Determine all pivot constants after this point.
         public static final double CLOSED_LOOP_ERR = 0.0;
+
+        public static final SparkPIDControllerConfig PIVOT_PID_CONFIG = new SparkPIDControllerConfig()
+            .setPID(0.0, 0.0, 0.0, 0)
+            .setOutputRange(-.5, .5)
+            .setSmartMotionAccelStrategy(AccelStrategy.kTrapezoidal, 0)
+            .setSmartMotionMaxVelocity(0, 0)
+            .setSmartMotionMinOutputVelocity(0, 0)
+            .setSmartMotionMaxAccel(0, 0)
+            .setSmartMotionAllowedClosedLoopError(CLOSED_LOOP_ERR, 0);
         public static final double REL_ENC_CONVERSION = 0.2;
+        public static final RelativeEncoderConfig PIVOT_ENC_CONFIG = new RelativeEncoderConfig()
+            .setPositionConversionFactor(REL_ENC_CONVERSION)
+            .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
 
         public static final double SHOOTER_LENGTH = 0.0;
         public static final double BASE_LENGTH = 0.0;
         public static final double MINIMUM_LENGTH_OF_DART = 0.0;
         public static final double SUM_OF_SQUARES_OF_LENGTHS = SHOOTER_LENGTH * SHOOTER_LENGTH + BASE_LENGTH * BASE_LENGTH;
-
         public static final double TWICE_THE_PRODUCT_OF_LENGTHS = 2 * SHOOTER_LENGTH * BASE_LENGTH;
 
         public static final double OFFSET_ANGLE = Math.acos(
