@@ -5,6 +5,7 @@ import static edu.wpi.first.wpilibj2.command.Commands.waitSeconds;
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
+import com.revrobotics.SparkAbsoluteEncoder.Type;
 import com.revrobotics.SparkPIDController;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -14,14 +15,22 @@ import org.team340.robot.Constants.RobotMap;
 
 public class Feeder extends GRRSubsystem {
 
-    private final CANSparkMax feedMotor = createSparkMax("Feeder Motor", RobotMap.SHOOTER_FEED_MOTOR, MotorType.kBrushless);
+    private final CANSparkMax feedMotor;
 
-    private final SparkPIDController feedPID = feedMotor.getPIDController();
+    private final SparkPIDController feedPID;
 
-    private final DigitalInput noteDetector = createDigitalInput("Note Detector", RobotMap.SHOOTER_NOTE_DETECTOR);
+    private final DigitalInput noteDetector;
 
     public Feeder() {
         super("Feeder");
+
+        feedMotor = createSparkMax("Feeder Motor", RobotMap.SHOOTER_FEED_MOTOR, MotorType.kBrushless);
+
+        feedPID = feedMotor.getPIDController();
+
+        noteDetector = createDigitalInput("Note Detector", RobotMap.SHOOTER_NOTE_DETECTOR);
+
+
         FeederConstants.FEED_MOTOR_CONFIG.apply(feedMotor);
         FeederConstants.FEED_PID_CONFIG.apply(feedMotor, feedPID);
     }

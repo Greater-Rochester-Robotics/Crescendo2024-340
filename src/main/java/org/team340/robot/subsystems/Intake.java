@@ -18,16 +18,27 @@ import org.team340.robot.Constants.RobotMap;
  */
 public class Intake extends GRRSubsystem {
 
-    private final CANSparkMax armLeftMotor = createSparkMax("Deploy Motor", RobotMap.INTAKE_ARM_LEFT_MOTOR, MotorType.kBrushless);
-    private final CANSparkMax armRightMotor = createSparkMax("Deploy Motor", RobotMap.INTAKE_ARM_RIGHT_MOTOR, MotorType.kBrushless);
-    private final CANSparkMax rollerUpperMotor = createSparkMax("Roller Motor", RobotMap.INTAKE_ROLLER_UPPER_MOTOR, MotorType.kBrushless);
-    private final CANSparkMax rollerLowerMotor = createSparkMax("Roller Motor", RobotMap.INTAKE_ROLLER_LOWER_MOTOR, MotorType.kBrushless);
+    private final CANSparkMax armLeftMotor;
+    private final CANSparkMax armRightMotor;
+    private final CANSparkMax rollerUpperMotor ;
+    private final CANSparkMax rollerLowerMotor;
 
-    private final SparkPIDController armPID = armLeftMotor.getPIDController();
-    private final SparkAbsoluteEncoder armEncoder = createSparkMaxAbsoluteEncoder("Arm Encoder", armLeftMotor, Type.kDutyCycle);
+    private final SparkPIDController armPID;
+    private final SparkAbsoluteEncoder armEncoder;
 
     public Intake() {
         super("Intake");
+
+        armLeftMotor = createSparkMax("Deploy Motor", RobotMap.INTAKE_ARM_LEFT_MOTOR, MotorType.kBrushless);
+        armRightMotor = createSparkMax("Deploy Motor", RobotMap.INTAKE_ARM_RIGHT_MOTOR, MotorType.kBrushless);
+        rollerUpperMotor = createSparkMax("Roller Motor", RobotMap.INTAKE_ROLLER_UPPER_MOTOR, MotorType.kBrushless);
+        rollerLowerMotor = createSparkMax("Roller Motor", RobotMap.INTAKE_ROLLER_LOWER_MOTOR, MotorType.kBrushless);
+
+        armPID = armLeftMotor.getPIDController();
+        armEncoder = createSparkMaxAbsoluteEncoder("Arm Encoder", armLeftMotor, Type.kDutyCycle);
+
+
+
         IntakeConstants.ARM_LEFT_MOTOR_CONFIG.apply(armLeftMotor);
         IntakeConstants.ARM_RIGHT_MOTOR_CONFIG.apply(armRightMotor);
         IntakeConstants.ROLLER_UPPER_MOTOR_CONFIG.apply(rollerUpperMotor);

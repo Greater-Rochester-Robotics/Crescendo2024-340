@@ -15,18 +15,27 @@ import org.team340.robot.Constants.RobotMap;
 
 public class Pivot extends GRRSubsystem {
 
-    private final CANSparkMax pivotMotor = createSparkMax("Pivot Motor", RobotMap.SHOOTER_PIVOT_MOTOR, MotorType.kBrushless);
-    private final RelativeEncoder pivotEnc = pivotMotor.getEncoder();
-    private final SparkPIDController pivotPID = pivotMotor.getPIDController();
+    private final CANSparkMax pivotMotor;
+    private final RelativeEncoder pivotEnc;
+    private final SparkPIDController pivotPID;
 
-    private final DigitalInput lowerLimit = createDigitalInput("Pivot Lower Limit", RobotMap.PIVOT_LOWER_LIMIT);
-    private final DigitalInput upperLimit = createDigitalInput("Pivot Upper Limit", RobotMap.PIVOT_UPPER_LIMIT);
+    private final DigitalInput lowerLimit;
+    private final DigitalInput upperLimit;
 
     private boolean hasBeenHomed;
     private double currentTarget;
 
     public Pivot() {
         super("Pivot");
+
+        pivotMotor = createSparkMax("Pivot Motor", RobotMap.SHOOTER_PIVOT_MOTOR, MotorType.kBrushless);
+
+        pivotEnc = pivotMotor.getEncoder();
+        pivotPID = pivotMotor.getPIDController();
+
+        lowerLimit = createDigitalInput("Pivot Lower Limit", RobotMap.PIVOT_LOWER_LIMIT);
+        upperLimit = createDigitalInput("Pivot Upper Limit", RobotMap.PIVOT_UPPER_LIMIT);
+
         PivotConstants.PIVOT_MOTOR_CONFIG.apply(pivotMotor);
 
         PivotConstants.PIVOT_PID_CONFIG.apply(pivotMotor, pivotPID);

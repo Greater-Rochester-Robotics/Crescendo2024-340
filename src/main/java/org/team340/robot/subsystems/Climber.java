@@ -11,20 +11,34 @@ import org.team340.robot.Constants.RobotMap;
 
 public class Climber extends GRRSubsystem {
 
-    private CANSparkMax leftMotor = createSparkMax("Left Climber Motor", RobotMap.CLIMBER_LEFT_MOTOR, MotorType.kBrushless);
-    private CANSparkMax rightMotor = createSparkMax("Right Climber Motor", RobotMap.CLIMBER_RIGHT_MOTOR, MotorType.kBrushless);
+    private final CANSparkMax leftMotor;
+    private final CANSparkMax rightMotor;
 
-    private SparkPIDController leftPID = leftMotor.getPIDController();
-    private SparkPIDController rightPID = rightMotor.getPIDController();
+    private final SparkPIDController leftPID;
+    private final SparkPIDController rightPID;
 
-    private RelativeEncoder leftEncoder = leftMotor.getEncoder();
-    private RelativeEncoder rightEncoder = rightMotor.getEncoder();
+    private final RelativeEncoder leftEncoder;
+    private final RelativeEncoder rightEncoder;
 
-    private DigitalInput leftLimit = createDigitalInput("Left Limit", RobotMap.CLIMBER_LEFT_LIMIT);
-    private DigitalInput rightLimit = createDigitalInput("Right Limit", RobotMap.CLIMBER_RIGHT_LIMIT);
+    private final DigitalInput leftLimit;
+    private final DigitalInput rightLimit;
 
     public Climber() {
         super("Climber");
+
+        leftMotor = createSparkMax("Left Climber Motor", RobotMap.CLIMBER_LEFT_MOTOR, MotorType.kBrushless);
+        rightMotor = createSparkMax("Right Climber Motor", RobotMap.CLIMBER_RIGHT_MOTOR, MotorType.kBrushless);
+
+        leftPID = leftMotor.getPIDController();
+        rightPID = rightMotor.getPIDController();
+
+        leftEncoder = leftMotor.getEncoder();
+        rightEncoder = rightMotor.getEncoder();
+
+        leftLimit = createDigitalInput("Left Limit", RobotMap.CLIMBER_LEFT_LIMIT);
+        rightLimit = createDigitalInput("Right Limit", RobotMap.CLIMBER_RIGHT_LIMIT);
+
+
         ClimberConstants.CLIMBER_MOTORS_CONFIG.apply(leftMotor);
         ClimberConstants.CLIMBER_MOTORS_CONFIG.apply(rightMotor);
 

@@ -8,6 +8,7 @@ import org.team340.lib.util.Math2;
 import org.team340.lib.util.config.rev.RevConfigUtils;
 import org.team340.robot.Constants.ControllerConstants;
 import org.team340.robot.commands.SystemsCheck;
+import org.team340.robot.subsystems.Climber;
 import org.team340.robot.subsystems.Feeder;
 import org.team340.robot.subsystems.Intake;
 import org.team340.robot.subsystems.Pivot;
@@ -30,6 +31,7 @@ public final class RobotContainer {
     public static Pivot pivot;
     public static Feeder feeder;
     public static Shooter shooter;
+    public static Climber climber;
     public static Swerve swerve;
 
     /**
@@ -49,6 +51,7 @@ public final class RobotContainer {
         pivot = new Pivot();
         feeder = new Feeder();
         shooter = new Shooter();
+        climber = new Climber();
         swerve = new Swerve();
 
         // Add subsystems to the dashboard.
@@ -71,6 +74,7 @@ public final class RobotContainer {
      */
     private static void configBindings() {
         // Set default commands.
+        pivot.setDefaultCommand(pivot.maintainPosition());
         swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
 
         /**

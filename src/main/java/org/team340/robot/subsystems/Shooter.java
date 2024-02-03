@@ -15,29 +15,41 @@ import org.team340.robot.Constants.ShooterConstants;
 
 public class Shooter extends GRRSubsystem {
 
-    private final CANSparkFlex leftShootMotor = createSparkFlex(
-        "Shooter Motor Left",
-        RobotMap.SHOOTER_SHOOT_LEFT_MOTOR,
-        MotorType.kBrushless
-    );
-    private final RelativeEncoder leftEncoder = leftShootMotor.getEncoder();
-    private final CANSparkFlex rightShootMotor = createSparkFlex(
-        "Shooter Motor Right",
-        RobotMap.SHOOTER_SHOOT_RIGHT_MOTOR,
-        MotorType.kBrushless
-    );
-    private final RelativeEncoder rightEncoder = rightShootMotor.getEncoder();
+    private final CANSparkFlex leftShootMotor;
 
-    private final SparkPIDController leftShootPID = leftShootMotor.getPIDController();
-    private final SparkPIDController rightShootPID = rightShootMotor.getPIDController();
+    private final RelativeEncoder leftEncoder;
+    private final CANSparkFlex rightShootMotor;
+    private final RelativeEncoder rightEncoder;
 
-    private final DigitalInput noteDetector = createDigitalInput("Note Detector", RobotMap.SHOOTER_NOTE_DETECTOR);
+    private final SparkPIDController leftShootPID;
+    private final SparkPIDController rightShootPID;
 
     private double leftTargetSpeed = 0.0;
     private double rightTargetSpeed = 0.0;
 
     public Shooter() {
         super("Shooter");
+
+        leftShootMotor = createSparkFlex(
+            "Shooter Motor Left",
+            RobotMap.SHOOTER_SHOOT_LEFT_MOTOR,
+            MotorType.kBrushless
+        );
+
+        leftEncoder = leftShootMotor.getEncoder();
+
+        rightShootMotor = createSparkFlex(
+            "Shooter Motor Right",
+            RobotMap.SHOOTER_SHOOT_RIGHT_MOTOR,
+            MotorType.kBrushless
+        );
+
+        rightEncoder = rightShootMotor.getEncoder();
+
+        leftShootPID = leftShootMotor.getPIDController();
+        rightShootPID = rightShootMotor.getPIDController();
+
+        
         ShooterConstants.SHOOT_LEFT_MOTOR_CONFIG.apply(leftShootMotor);
         ShooterConstants.SHOOT_PID_CONFIG.apply(leftShootMotor, leftShootPID);
         ShooterConstants.SHOOTER_ENC_CONFIG.apply(leftShootMotor, leftEncoder);
