@@ -12,7 +12,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.Supplier;
 import org.team340.lib.GRRSubsystem;
 import org.team340.lib.util.Mutable;
-import org.team340.lib.util.config.rev.SparkPIDControllerConfig;
+import org.team340.robot.Constants.PivotConstants;
 import org.team340.robot.Constants.RobotMap;
 import org.team340.robot.Constants.ShooterConstants;
 
@@ -38,26 +38,21 @@ public class Shooter extends GRRSubsystem {
 
     public Shooter() {
         super("Shooter");
-        new SparkPIDControllerConfig()
-            .setPID(ShooterConstants.FEED_PID.p(), ShooterConstants.FEED_PID.i(), ShooterConstants.FEED_PID.d())
-            .setIZone(ShooterConstants.FEED_PID.iZone())
-            .apply(feedMotor, feedPID);
+        ShooterConstants.FEED_MOTOR_CONFIG.apply(feedMotor);
+        ShooterConstants.FEED_PID_CONFIG.apply(feedMotor, feedPID);
 
-        new SparkPIDControllerConfig()
-            .setPID(ShooterConstants.LEFT_SHOOT_PID.p(), ShooterConstants.LEFT_SHOOT_PID.i(), ShooterConstants.LEFT_SHOOT_PID.d())
-            .setIZone(ShooterConstants.LEFT_SHOOT_PID.iZone())
-            .apply(leftShootMotor, leftShootPID);
+        ShooterConstants.SHOOT_LEFT_MOTOR_CONFIG.apply(leftShootMotor);
+        ShooterConstants.SHOOT_PID_CONFIG.apply(leftShootMotor, leftShootPID);
 
-        new SparkPIDControllerConfig()
-            .setPID(ShooterConstants.RIGHT_SHOOT_PID.p(), ShooterConstants.RIGHT_SHOOT_PID.i(), ShooterConstants.RIGHT_SHOOT_PID.d())
-            .setIZone(ShooterConstants.RIGHT_SHOOT_PID.iZone())
-            .apply(rightShootMotor, rightShootPID);
+        ShooterConstants.SHOOT_RIGHT_MOTOR_CONFIG.apply(leftShootMotor);
+        ShooterConstants.SHOOT_PID_CONFIG.apply(rightShootMotor, rightShootPID);
     }
 
     /**
      * This starts running the pivot motor to an angle. This must run regularly until the shooter reaches the angle.
      * @param angleToShootAt This is the angle that will be used.
      */
+    @Deprecated
     private void setShooterToAngle(double angleToShootAt) {
         if (angleToShootAt < PivotConstants.MINIMUM_ANGLE || angleToShootAt > PivotConstants.MAXIMUM_ANGLE) {
             DriverStation.reportWarning(
@@ -71,7 +66,7 @@ public class Shooter extends GRRSubsystem {
             );
             return;
         }
-        pivotPID.setReference(distanceToMoveDart(angleToShootAt), ControlType.kSmartMotion);
+        // pivotPID.setReference(distanceToMoveDart(angleToShootAt), ControlType.kSmartMotion);
     }
 
     /**
@@ -93,9 +88,10 @@ public class Shooter extends GRRSubsystem {
      * @param targetAngle Pivot angle the dart needs to be at
      * @return distance the dart needs to be moved
      */
+    @Deprecated
     private double distanceToMoveDart(double targetAngle) {
-        double deltaExtensionLength = dartExtensionFromAngle(targetAngle) - dartExtensionFromAngle(pivotAbsoluteEncoder.getPosition());
-        return deltaExtensionLength + pivotRelativeEncoder.getPosition();
+        // double deltaExtensionLength = dartExtensionFromAngle(targetAngle) - dartExtensionFromAngle(pivotAbsoluteEncoder.getPosition());
+        return 0.0; // deltaExtensionLength + pivotRelativeEncoder.getPosition();
     }
 
     /**
@@ -150,8 +146,9 @@ public class Shooter extends GRRSubsystem {
      * @param angleToShootAt This is the angle the shooter will go to, check {@link #hasShooterReachedAngle()} to see if it has finished.
      * @return
      */
+    @Deprecated
     public Command shooterToAngle(Supplier<Double> angleToShootAt) {
-        return commandBuilder().onExecute(() -> setShooterToAngle(angleToShootAt.get())).onEnd(() -> pivotMotor.stopMotor());
+        return commandBuilder().onExecute(() -> setShooterToAngle(angleToShootAt.get())).onEnd(() -> {}/*pivotMotor.stopMotor()*/);
     }
 
     /**
@@ -176,6 +173,7 @@ public class Shooter extends GRRSubsystem {
      * @param robotPosition This is the position used for the math, note that it must be a supplier.
      * @return This command.
      */
+    @Deprecated
     public Command shootSpeaker(Supplier<Pose2d> robotPosition) {
         Mutable<Integer> counter = new Mutable<>(0);
 
@@ -196,13 +194,14 @@ public class Shooter extends GRRSubsystem {
             })
             .isFinished(() -> counter.get() == 0)
             .onEnd(() -> {
-                pivotMotor.stopMotor();
+                // pivotMotor.stopMotor();
                 feedMotor.stopMotor();
                 leftShootMotor.stopMotor();
                 rightShootMotor.stopMotor();
             });
     }
 
+    @Deprecated
     public Command shootSpeaker(Pose2d robotPosition) {
         return shootSpeaker(() -> robotPosition);
     }

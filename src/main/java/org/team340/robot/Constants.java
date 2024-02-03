@@ -168,6 +168,8 @@ public final class Constants {
         public static final SparkPIDControllerConfig SHOOT_PID_CONFIG = new SparkPIDControllerConfig().setPID(0.0, 0.0, 0.0, 0);
 
         public static final double FEED_INTAKE_SPEED = 0.0;
+
+        public static final String FEED_PID = null;
     }
 
     /**
