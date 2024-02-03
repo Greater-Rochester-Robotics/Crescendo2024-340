@@ -91,9 +91,14 @@ public final class Constants {
         public static final int SHOOTER_SHOOT_LEFT_MOTOR = 32;
         public static final int SHOOTER_SHOOT_RIGHT_MOTOR = 33;
 
+        public static final int CLIMBER_LEFT_MOTOR = 40;
+        public static final int CLIMBER_RIGHT_MOTOR = 41;
+
         public static final int SHOOTER_NOTE_DETECTOR = 0;
         public static final int PIVOT_LOWER_LIMIT = 1;
         public static final int PIVOT_UPPER_LIMIT = 2;
+        public static final int CLIMBER_LEFT_LIMIT = 3;
+        public static final int CLIMBER_RIGHT_LIMIT = 4;
     }
 
     public static final class IntakeConstants {
@@ -239,6 +244,33 @@ public final class Constants {
         public static final double MAXIMUM_ANGLE = 0.0;
 
         public static final double HOMING_SPEED = 0.0;
+    }
+
+    public static final class ClimberConstants {
+
+        public static final SparkMaxConfig CLIMBER_MOTORS_CONFIG = new SparkMaxConfig()
+            .clearFaults()
+            .restoreFactoryDefaults()
+            .enableVoltageCompensation(VOLTAGE)
+            .setSmartCurrentLimit(30)
+            .setIdleMode(IdleMode.kBrake)
+            .setClosedLoopRampRate(1.5)
+            .setOpenLoopRampRate(1.5);
+
+        public static final SparkPIDControllerConfig CLIMBER_PID_CONFIG = new SparkPIDControllerConfig()
+            .setPID(0.0, 0.0, 0.0, 0)
+            .setOutputRange(-.5, .5)
+            .setSmartMotionAccelStrategy(AccelStrategy.kTrapezoidal, 0)
+            .setSmartMotionMaxVelocity(0, 0)
+            .setSmartMotionMinOutputVelocity(0, 0)
+            .setSmartMotionMaxAccel(0, 0)
+            .setSmartMotionAllowedClosedLoopError(0.0, 0);
+
+        public static final double REL_ENC_CONVERSION = 0.2;
+
+        public static final RelativeEncoderConfig CLIMBER_ENCODER_CONFIG = new RelativeEncoderConfig()
+            .setPositionConversionFactor(REL_ENC_CONVERSION)
+            .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
     }
 
     /**
