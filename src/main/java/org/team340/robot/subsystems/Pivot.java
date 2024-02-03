@@ -8,6 +8,7 @@ import com.revrobotics.SparkPIDController;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
+import java.util.function.Supplier;
 import org.team340.lib.GRRSubsystem;
 import org.team340.robot.Constants.PivotConstants;
 import org.team340.robot.Constants.RobotMap;
@@ -45,6 +46,10 @@ public class Pivot extends GRRSubsystem {
         return getLowerLimit() || getUpperLimit();
     }
 
+    public boolean isOnTarget() {
+        return Math.abs(pivotEnc.getPosition() - currentTarget) < PivotConstants.CLOSED_LOOP_ERR;
+    }
+
     /**
      * Homes the pivot by driving slowly down until reaching limit.
      * @param withOverride If true will ignore {@code hasBeenHomed}.
@@ -68,15 +73,22 @@ public class Pivot extends GRRSubsystem {
             });
     }
 
-    public Command gotoAngle(double angle) {
+    /**
+     * Moves position to target angle
+     * @param angle The angle that the arm pivots to.
+     * @param willFinish Whether or not the command will stop on it's own when it reaches the target angle.
+     * @return Returns it's own commandBuilder
+     */
+    public Command gotoAngle(Supplier<Double> angle, boolean willFinish) {
         return home(false)
             .andThen(
                 commandBuilder("pivot.gotoAngle()")
-                    .onInitialize(() -> {
-                        if (angle < PivotConstants.MINIMUM_ANGLE || angle > PivotConstants.MAXIMUM_ANGLE) {
+                    .onExecute(() -> {
+                        double angleValue = angle.get();
+                        if (angleValue < PivotConstants.MINIMUM_ANGLE || angleValue > PivotConstants.MAXIMUM_ANGLE) {
                             DriverStation.reportWarning(
                                 "Invalid shooter pivot angle. " +
-                                angle +
+                                angleValue +
                                 " is not between " +
                                 PivotConstants.MINIMUM_ANGLE +
                                 " and " +
@@ -84,14 +96,17 @@ public class Pivot extends GRRSubsystem {
                                 false
                             );
                         } else {
-                            pivotPID.setReference(angle, ControlType.kSmartMotion);
+                            currentTarget = angle.get();
+                            pivotPID.setReference(angleValue, ControlType.kSmartMotion);
                         }
                     })
-                    .isFinished(() -> getAtLimit() || Math.abs(pivotEnc.getPosition() - angle) < PivotConstants.CLOSED_LOOP_ERR)
+                    .isFinished(() ->
+                        getAtLimit() || (willFinish && Math.abs(pivotEnc.getPosition() - angle.get()) < PivotConstants.CLOSED_LOOP_ERR)
+                    )
                     .onEnd(interrupted -> {
                         pivotMotor.stopMotor();
                         if (!interrupted) {
-                            currentTarget = angle;
+                            currentTarget = angle.get();
                         } else {
                             currentTarget = pivotEnc.getPosition();
                         }
@@ -99,6 +114,10 @@ public class Pivot extends GRRSubsystem {
             );
     }
 
+    /**
+     * Maintains current angle
+     * @return Returns it's own commandBuilder
+     */
     public Command maintainPosition() {
         return commandBuilder("pivot.maintainPosition()")
             .onInitialize(() -> {
