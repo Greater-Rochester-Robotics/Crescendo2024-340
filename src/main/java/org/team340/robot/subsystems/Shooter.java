@@ -5,7 +5,6 @@ import com.revrobotics.CANSparkFlex;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkPIDController;
-import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.Supplier;
 import org.team340.lib.GRRSubsystem;
@@ -13,14 +12,13 @@ import org.team340.lib.util.Math2;
 import org.team340.robot.Constants.RobotMap;
 import org.team340.robot.Constants.ShooterConstants;
 
+// TODO Docs
 public class Shooter extends GRRSubsystem {
 
     private final CANSparkFlex leftShootMotor;
-
-    private final RelativeEncoder leftEncoder;
     private final CANSparkFlex rightShootMotor;
+    private final RelativeEncoder leftEncoder;
     private final RelativeEncoder rightEncoder;
-
     private final SparkPIDController leftShootPID;
     private final SparkPIDController rightShootPID;
 
@@ -29,36 +27,23 @@ public class Shooter extends GRRSubsystem {
 
     public Shooter() {
         super("Shooter");
-
-        leftShootMotor = createSparkFlex(
-            "Shooter Motor Left",
-            RobotMap.SHOOTER_SHOOT_LEFT_MOTOR,
-            MotorType.kBrushless
-        );
-
+        leftShootMotor = createSparkFlex("Left Motor", RobotMap.SHOOTER_SHOOT_LEFT_MOTOR, MotorType.kBrushless);
+        rightShootMotor = createSparkFlex("Right Motor", RobotMap.SHOOTER_SHOOT_RIGHT_MOTOR, MotorType.kBrushless);
         leftEncoder = leftShootMotor.getEncoder();
-
-        rightShootMotor = createSparkFlex(
-            "Shooter Motor Right",
-            RobotMap.SHOOTER_SHOOT_RIGHT_MOTOR,
-            MotorType.kBrushless
-        );
-
         rightEncoder = rightShootMotor.getEncoder();
-
         leftShootPID = leftShootMotor.getPIDController();
         rightShootPID = rightShootMotor.getPIDController();
 
-        
         ShooterConstants.SHOOT_LEFT_MOTOR_CONFIG.apply(leftShootMotor);
-        ShooterConstants.SHOOT_PID_CONFIG.apply(leftShootMotor, leftShootPID);
-        ShooterConstants.SHOOTER_ENC_CONFIG.apply(leftShootMotor, leftEncoder);
-
         ShooterConstants.SHOOT_RIGHT_MOTOR_CONFIG.apply(rightShootMotor);
-        ShooterConstants.SHOOT_PID_CONFIG.apply(rightShootMotor, rightShootPID);
+        ShooterConstants.SHOOTER_ENC_CONFIG.apply(leftShootMotor, leftEncoder);
         ShooterConstants.SHOOTER_ENC_CONFIG.apply(rightShootMotor, rightEncoder);
+        ShooterConstants.SHOOT_PID_CONFIG.apply(leftShootMotor, leftShootPID);
+        ShooterConstants.SHOOT_PID_CONFIG.apply(rightShootMotor, rightShootPID);
     }
 
+    // TODO Should this be private?
+    // TODO Revisit naming
     /**
      * This starts running the shooter motors to there respective speeds..
      * @param leftSpeed This is speed the left motor will be set to.
@@ -73,6 +58,7 @@ public class Shooter extends GRRSubsystem {
         rightShootPID.setReference(rightSpeed, ControlType.kVelocity);
     }
 
+    // TODO Shorten name?
     /**
      * This method checks if the speed of the shooter motors is within a tolerance of the setpoint.
      * @return whether the shooter motors have reached their setpoints.
@@ -84,23 +70,21 @@ public class Shooter extends GRRSubsystem {
         );
     }
 
+    // TODO Docs
     public Command setShootSpeed(double shooterSpeed) {
         return setShootSpeed(() -> shooterSpeed);
     }
 
+    // TODO This should stop the motors when it ends
     /**
-     * Runs the shooter up to a specified speed. This speed can change while this command is running.
+     * Sets the speed of the shooter.
      * @param shooterSpeed This is the speed to drive the shooter at.
-     * @param willFinish If this is false, the command will never finish on it's own.
-     * @return Returns this command.
      */
     public Command setShootSpeed(Supplier<Double> shooterSpeed) {
-        return commandBuilder("shooter.setShootSpeed()")
-            .onExecute(() -> {
-                setShooterToSpeed(shooterSpeed.get());
-            });
+        return commandBuilder("shooter.setShootSpeed()").onExecute(() -> setShooterToSpeed(shooterSpeed.get()));
     }
 
+    // TODO Shouldn't be needed anymore, setShootSpeed(0.0) can be used
     /**
      * A command that stops all motors, and keeps running until it is interrupted.
      * This should be set as the default command.
@@ -115,8 +99,7 @@ public class Shooter extends GRRSubsystem {
     }
 
     /**
-     * A command for spitting the note out if it gets stuck.
-     * @return This command.
+     * Spits the note out of the shooter in case it is stuck.
      */
     public Command spit() {
         return commandBuilder("shooter.spit()")

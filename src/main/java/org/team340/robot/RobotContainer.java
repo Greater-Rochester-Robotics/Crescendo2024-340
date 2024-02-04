@@ -27,11 +27,11 @@ public final class RobotContainer {
     private static Controller2 driver;
     private static Controller2 coDriver;
 
+    public static Climber climber;
+    public static Feeder feeder;
     public static Intake intake;
     public static Pivot pivot;
-    public static Feeder feeder;
     public static Shooter shooter;
-    public static Climber climber;
     public static Swerve swerve;
 
     /**
@@ -47,14 +47,19 @@ public final class RobotContainer {
         coDriver.addToDashboard();
 
         // Initialize subsystems.
+        climber = new Climber();
+        feeder = new Feeder();
         intake = new Intake();
         pivot = new Pivot();
-        feeder = new Feeder();
         shooter = new Shooter();
-        climber = new Climber();
         swerve = new Swerve();
 
         // Add subsystems to the dashboard.
+        climber.addToDashboard();
+        feeder.addToDashboard();
+        intake.addToDashboard();
+        pivot.addToDashboard();
+        shooter.addToDashboard();
         swerve.addToDashboard();
 
         // Set systems check command.
@@ -83,12 +88,6 @@ public final class RobotContainer {
 
         // POV Left => Zero swerve
         driver.povLeft().onTrue(swerve.zeroIMU(Math2.ROTATION2D_0));
-
-        // Left Bumper => Snap 180
-        driver.leftBumper().whileTrue(swerve.driveSnap180(RobotContainer::getDriveX, RobotContainer::getDriveY));
-
-        // Right Bumper => Lock wheels
-        driver.rightBumper().whileTrue(swerve.lock());
 
         /**
          * Co-driver bindings.

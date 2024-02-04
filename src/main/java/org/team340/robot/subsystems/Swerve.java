@@ -1,8 +1,5 @@
 package org.team340.robot.subsystems;
 
-import static edu.wpi.first.wpilibj2.command.Commands.*;
-
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -66,28 +63,6 @@ public class Swerve extends SwerveBase {
         return commandBuilder("swerve.driveAngle(" + Math2.toFixed(angle) + ")")
             .onInitialize(() -> rotController.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
             .onExecute(() -> driveAngle(x.get(), y.get(), angle, rotController));
-    }
-
-    /**
-     * Drives the robot while snapping to facing up or down the field, whichever is closer.
-     * Ends when the robot is at the determined angle.
-     * @param x X speed.
-     * @param y Y speed.
-     */
-    public Command driveSnap180(Supplier<Double> x, Supplier<Double> y) {
-        return either(
-            driveAngle(x, y, 0.0),
-            driveAngle(x, y, Math.PI),
-            () -> Math.abs(MathUtil.angleModulus(imu.getYaw().getRadians())) < Math2.HALF_PI
-        )
-            .withName("swerve.driveSnap180()");
-    }
-
-    /**
-     * Drives the modules into an X formation to prevent the robot from moving.
-     */
-    public Command lock() {
-        return commandBuilder("swerve.lock()").onExecute(this::lockWheels);
     }
 
     /**

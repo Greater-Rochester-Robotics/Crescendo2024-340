@@ -13,56 +13,56 @@ import org.team340.lib.GRRSubsystem;
 import org.team340.robot.Constants.PivotConstants;
 import org.team340.robot.Constants.RobotMap;
 
+// TODO Coast mode on disable
+
+// TODO Docs
 public class Pivot extends GRRSubsystem {
 
     private final CANSparkMax pivotMotor;
-    private final RelativeEncoder pivotEnc;
+    private final RelativeEncoder pivotEncoder;
     private final SparkPIDController pivotPID;
-
-    private final DigitalInput lowerLimit;
     private final DigitalInput upperLimit;
+    private final DigitalInput lowerLimit;
 
-    private boolean hasBeenHomed;
-    private double currentTarget;
+    private boolean hasBeenHomed = false;
+    private double currentTarget = 0.0;
 
     public Pivot() {
         super("Pivot");
-
         pivotMotor = createSparkMax("Pivot Motor", RobotMap.SHOOTER_PIVOT_MOTOR, MotorType.kBrushless);
-
-        pivotEnc = pivotMotor.getEncoder();
+        pivotEncoder = pivotMotor.getEncoder();
         pivotPID = pivotMotor.getPIDController();
-
-        lowerLimit = createDigitalInput("Pivot Lower Limit", RobotMap.PIVOT_LOWER_LIMIT);
         upperLimit = createDigitalInput("Pivot Upper Limit", RobotMap.PIVOT_UPPER_LIMIT);
+        lowerLimit = createDigitalInput("Pivot Lower Limit", RobotMap.PIVOT_LOWER_LIMIT);
 
         PivotConstants.PIVOT_MOTOR_CONFIG.apply(pivotMotor);
-
         PivotConstants.PIVOT_PID_CONFIG.apply(pivotMotor, pivotPID);
-
-        hasBeenHomed = false;
     }
 
+    // TODO Docs
     private boolean getLowerLimit() {
         return !lowerLimit.get();
     }
 
+    // TODO Docs
     private boolean getUpperLimit() {
         return !upperLimit.get();
     }
 
+    // TODO Docs
     private boolean getAtLimit() {
         return getLowerLimit() || getUpperLimit();
     }
 
+    // TODO Docs
     public boolean isOnTarget() {
-        return Math.abs(pivotEnc.getPosition() - currentTarget) < PivotConstants.CLOSED_LOOP_ERR;
+        return Math.abs(pivotEncoder.getPosition() - currentTarget) < PivotConstants.CLOSED_LOOP_ERR;
     }
 
     /**
-     * Checks to see if the angle is valid based on robot constraints.
-     * @param angle The angle
-     * @return Returns false if the angle is invalid, true if valid.
+     * Checks if an angle is valid based on robot constraints.
+     * @param angle The angle.
+     * @return Returns {@code false} if the angle is invalid, {@code true} if valid.
      */
     private boolean isAngleValid(double angle) {
         if (angle < PivotConstants.MINIMUM_ANGLE || angle > PivotConstants.MAXIMUM_ANGLE) {
@@ -86,6 +86,8 @@ public class Pivot extends GRRSubsystem {
      * @param withOverride If true will ignore {@code hasBeenHomed}.
      */
     public Command home(boolean withOverride) {
+        // TODO Use a conditional command (Commands.either()) to check for !hasBeenHomed || withOverride to simplify fall-through
+        // TODO add withOverride to command name
         return commandBuilder("pivot.home()")
             .onExecute(() -> {
                 if (!hasBeenHomed || withOverride) {
@@ -100,27 +102,29 @@ public class Pivot extends GRRSubsystem {
                     pivotMotor.stopMotor();
                 }
                 if (getLowerLimit()) {
-                    pivotEnc.setPosition(PivotConstants.MINIMUM_ANGLE);
+                    pivotEncoder.setPosition(PivotConstants.MINIMUM_ANGLE);
                     hasBeenHomed = true;
                 }
             });
     }
 
+    // TODO Docs
     public Command goToAngle(double angle) {
         return goToAngle(() -> angle, true);
     }
 
+    // TODO Docs
     public Command goToAngle(Supplier<Double> angle) {
         return goToAngle(angle, false);
     }
 
     /**
-     * Moves position to target angle
+     * Moves to an angle.
      * @param angle The angle that the arm pivots to.
-     * @param willFinish Whether or not the command will stop on it's own when it reaches the target angle.
-     * @return Returns it's own commandBuilder
+     * @param willFinish If {@code true}, the command will end after the target angle is reached.
      */
     public Command goToAngle(Supplier<Double> angle, boolean willFinish) {
+        // TODO Revisit command names
         return home(false)
             .andThen(
                 commandBuilder("pivot.goToAngleSM()")
@@ -131,13 +135,9 @@ public class Pivot extends GRRSubsystem {
                             pivotPID.setReference(angleValue, ControlType.kSmartMotion);
                         }
                     })
-                    .isFinished(() -> getAtLimit() || Math.abs(pivotEnc.getPosition() - angle.get()) < PivotConstants.CLOSED_LOOP_ERR)
+                    .isFinished(() -> getAtLimit() || Math.abs(pivotEncoder.getPosition() - angle.get()) < PivotConstants.CLOSED_LOOP_ERR)
                     .onEnd(interrupted -> {
-                        if (!interrupted) {
-                            currentTarget = angle.get();
-                        } else {
-                            currentTarget = pivotEnc.getPosition();
-                        }
+                        if (!interrupted) currentTarget = angle.get(); else currentTarget = pivotEncoder.getPosition();
                     })
             )
             .andThen(
@@ -155,17 +155,12 @@ public class Pivot extends GRRSubsystem {
     }
 
     /**
-     * Maintains current angle
-     * @return Returns it's own commandBuilder
+     * Maintains the current angle. Does nothing if the pivot is not homed.
      */
     public Command maintainPosition() {
         return commandBuilder("pivot.maintainPosition()")
             .onInitialize(() -> {
-                if (hasBeenHomed) {
-                    pivotPID.setReference(currentTarget, ControlType.kPosition);
-                } else {
-                    pivotMotor.stopMotor();
-                }
+                if (hasBeenHomed) pivotPID.setReference(currentTarget, ControlType.kPosition); else pivotMotor.stopMotor();
             });
     }
 }

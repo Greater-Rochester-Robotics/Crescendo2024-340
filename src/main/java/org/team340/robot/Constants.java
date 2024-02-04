@@ -20,6 +20,8 @@ import org.team340.lib.util.config.rev.SparkFlexConfig;
 import org.team340.lib.util.config.rev.SparkMaxConfig;
 import org.team340.lib.util.config.rev.SparkPIDControllerConfig;
 
+// TODO Discuss moving constants into subsystems
+
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide numerical or boolean
  * constants. This class should not be used for any other purpose. All constants should be declared
@@ -87,7 +89,7 @@ public final class Constants {
         public static final int INTAKE_ROLLER_LOWER_MOTOR = 23;
 
         public static final int SHOOTER_PIVOT_MOTOR = 30;
-        public static final int SHOOTER_FEED_MOTOR = 31;
+        public static final int SHOOTER_FEEDER_MOTOR = 31;
         public static final int SHOOTER_SHOOT_LEFT_MOTOR = 32;
         public static final int SHOOTER_SHOOT_RIGHT_MOTOR = 33;
 
@@ -95,13 +97,18 @@ public final class Constants {
         public static final int CLIMBER_RIGHT_MOTOR = 41;
 
         public static final int SHOOTER_NOTE_DETECTOR = 0;
-        public static final int PIVOT_LOWER_LIMIT = 1;
-        public static final int PIVOT_UPPER_LIMIT = 2;
+        public static final int PIVOT_UPPER_LIMIT = 1;
+        public static final int PIVOT_LOWER_LIMIT = 2;
         public static final int CLIMBER_LEFT_LIMIT = 3;
         public static final int CLIMBER_RIGHT_LIMIT = 4;
     }
 
     public static final class IntakeConstants {
+
+        public static final double DEPLOY_POSITION = 0.0;
+
+        public static final double INTAKE_ROLLER_SPEED = 0.0;
+        public static final double SPIT_ROLLER_SPEED = -0.0;
 
         private static final SparkMaxConfig ARM_MOTOR_BASE_CONFIG = new SparkMaxConfig()
             .clearFaults()
@@ -111,6 +118,7 @@ public final class Constants {
             .setIdleMode(IdleMode.kBrake)
             .setClosedLoopRampRate(1.5)
             .setOpenLoopRampRate(1.5);
+
         private static final SparkMaxConfig ROLLER_MOTOR_BASE_CONFIG = new SparkMaxConfig()
             .clearFaults()
             .restoreFactoryDefaults()
@@ -124,17 +132,11 @@ public final class Constants {
         public static final SparkMaxConfig ARM_RIGHT_MOTOR_CONFIG = ARM_MOTOR_BASE_CONFIG
             .clone()
             .follow(ExternalFollower.kFollowerSpark, RobotMap.INTAKE_ARM_LEFT_MOTOR, false);
+
         public static final SparkMaxConfig ROLLER_UPPER_MOTOR_CONFIG = ROLLER_MOTOR_BASE_CONFIG.clone().setInverted(false);
         public static final SparkMaxConfig ROLLER_LOWER_MOTOR_CONFIG = ROLLER_MOTOR_BASE_CONFIG
             .clone()
             .follow(ExternalFollower.kFollowerSpark, RobotMap.INTAKE_ROLLER_UPPER_MOTOR, true);
-
-        public static final int ARM_WEAK_PID_SLOT = 0;
-        public static final int ARM_STRONG_PID_SLOT = 1;
-
-        public static final SparkPIDControllerConfig ARM_MOTOR_PID_CONFIG = new SparkPIDControllerConfig()
-            .setPID(0.0, 0.0, 0.0, ARM_WEAK_PID_SLOT)
-            .setPID(0.0, 0.0, 0.0, ARM_STRONG_PID_SLOT);
 
         public static final AbsoluteEncoderConfig ARM_ENCODER_CONFIG = new AbsoluteEncoderConfig()
             .setZeroOffset(0.0)
@@ -142,11 +144,7 @@ public final class Constants {
             .setPositionConversionFactor(Math2.TWO_PI)
             .setVelocityConversionFactor(Math2.TWO_PI / 60.0);
 
-        public static final double DEPLOY_POSITION = 0.0;
-        public static final double DEPLOY_POSITION_TOLERANCE = 0.0;
-
-        public static final double DEPLOY_ROLLER_SPEED = 0.0;
-        public static final double SPIT_ROLLER_SPEED = -0.0;
+        public static final SparkPIDControllerConfig ARM_MOTOR_PID_CONFIG = new SparkPIDControllerConfig().setPID(0.0, 0.0, 0.0);
     }
 
     public static final class ShooterConstants {
@@ -184,7 +182,7 @@ public final class Constants {
 
         public static final double SHOOT_DELAY = 2.0;
 
-        public static final SparkPIDControllerConfig FEED_PID_CONFIG = new SparkPIDControllerConfig().setPID(0.0, 0.0, 0.0, 0);
+        public static final SparkPIDControllerConfig FEED_PID_CONFIG = new SparkPIDControllerConfig().setPID(0.0, 0.0, 0.0);
 
         public static final SparkMaxConfig FEED_MOTOR_CONFIG = new SparkMaxConfig()
             .clearFaults()
@@ -200,9 +198,6 @@ public final class Constants {
         public static final double FEEDER_SPIT_SPEED = 0;
     }
 
-    /**
-     * All distances in inches. All angles in radians.
-     */
     public static final class PivotConstants {
 
         public static final SparkMaxConfig PIVOT_MOTOR_CONFIG = new SparkMaxConfig()
@@ -238,6 +233,8 @@ public final class Constants {
 
     public static final class ClimberConstants {
 
+        public static final double REL_ENC_CONVERSION = 0.2;
+
         public static final SparkMaxConfig CLIMBER_MOTORS_CONFIG = new SparkMaxConfig()
             .clearFaults()
             .restoreFactoryDefaults()
@@ -256,16 +253,11 @@ public final class Constants {
             .setSmartMotionMaxAccel(0, 0)
             .setSmartMotionAllowedClosedLoopError(0.0, 0);
 
-        public static final double REL_ENC_CONVERSION = 0.2;
-
         public static final RelativeEncoderConfig CLIMBER_ENCODER_CONFIG = new RelativeEncoderConfig()
             .setPositionConversionFactor(REL_ENC_CONVERSION)
             .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
     }
 
-    /**
-     * Constants for the swerve subsystem.
-     */
     public static final class SwerveConstants {
 
         private static final SwerveModuleConfig FRONT_LEFT = new SwerveModuleConfig()

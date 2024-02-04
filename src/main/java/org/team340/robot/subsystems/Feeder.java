@@ -1,11 +1,10 @@
 package org.team340.robot.subsystems;
 
-import static edu.wpi.first.wpilibj2.command.Commands.waitSeconds;
+import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
-import com.revrobotics.SparkAbsoluteEncoder.Type;
 import com.revrobotics.SparkPIDController;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -13,56 +12,51 @@ import org.team340.lib.GRRSubsystem;
 import org.team340.robot.Constants.FeederConstants;
 import org.team340.robot.Constants.RobotMap;
 
+// TODO Handoff back to intake
+
+// TODO Docs
 public class Feeder extends GRRSubsystem {
 
     private final CANSparkMax feedMotor;
-
-    private final SparkPIDController feedPID;
-
     private final DigitalInput noteDetector;
+    private final SparkPIDController feedPID;
 
     public Feeder() {
         super("Feeder");
-
-        feedMotor = createSparkMax("Feeder Motor", RobotMap.SHOOTER_FEED_MOTOR, MotorType.kBrushless);
-
-        feedPID = feedMotor.getPIDController();
-
+        feedMotor = createSparkMax("Motor", RobotMap.SHOOTER_FEEDER_MOTOR, MotorType.kBrushless);
         noteDetector = createDigitalInput("Note Detector", RobotMap.SHOOTER_NOTE_DETECTOR);
-
+        feedPID = feedMotor.getPIDController();
 
         FeederConstants.FEED_MOTOR_CONFIG.apply(feedMotor);
         FeederConstants.FEED_PID_CONFIG.apply(feedMotor, feedPID);
     }
 
+    // TODO Shorten name?
     /**
-     * this return whether the note detector is detecting a note.
-     * @return
+     * Returns {@code true} when the note detector is detecting a note.
      */
     public boolean getNoteDetector() {
         return !noteDetector.get();
     }
 
     /**
-     * This command receives a note from the intake.
-     * @return A Command for receiving a note.
+     * Receives a note from the intake. Ends when the note is detected.
      */
     public Command receiveNote() {
+        // TODO
+        // The note may not end in a consistent position, as there is likely to be a short
+        // delay between the sensor detecting the note and the motor stopping. After the note
+        // is detected, the motors should back the note up until it is not detected anymore,
+        // then slowly fed it until it is detected to ensure the note is consistently staged.
+        // END TODO
         return commandBuilder("feeder.receiveNote()")
-            .onInitialize(() -> {
-                feedPID.setReference(FeederConstants.FEED_INTAKE_SPEED, ControlType.kDutyCycle);
-            })
-            .isFinished(() -> {
-                return getNoteDetector();
-            })
-            .onEnd(() -> {
-                feedMotor.stopMotor();
-            });
+            .onInitialize(() -> feedPID.setReference(FeederConstants.FEED_INTAKE_SPEED, ControlType.kDutyCycle))
+            .isFinished(this::getNoteDetector)
+            .onEnd(() -> feedMotor.stopMotor());
     }
 
     /**
-     * This command feeds the note into the shooters, and waits until the note exits.
-     * @return This command.
+     * Feeds the note into the shooters. Ends after the note is no longer detected.
      */
     public Command shootNote() {
         return commandBuilder("feeder.shootNote()")
@@ -73,16 +67,11 @@ public class Feeder extends GRRSubsystem {
     }
 
     /**
-     * A command for spitting the note out if it gets stuck.
-     * @return This command.
+     * Spits the note out of the feeder in case it is stuck.
      */
     public Command spit() {
         return commandBuilder("feeder.spit()")
-            .onInitialize(() -> {
-                feedPID.setReference(FeederConstants.FEEDER_SPIT_SPEED, ControlType.kDutyCycle);
-            })
-            .onEnd(() -> {
-                feedMotor.stopMotor();
-            });
+            .onInitialize(() -> feedPID.setReference(FeederConstants.FEEDER_SPIT_SPEED, ControlType.kDutyCycle))
+            .onEnd(() -> feedMotor.stopMotor());
     }
 }
