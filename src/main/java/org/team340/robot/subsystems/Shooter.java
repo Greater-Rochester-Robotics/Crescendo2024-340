@@ -12,7 +12,9 @@ import org.team340.lib.util.Math2;
 import org.team340.robot.Constants.RobotMap;
 import org.team340.robot.Constants.ShooterConstants;
 
-// TODO Docs
+/**
+ * The shooter subsystem.
+ */
 public class Shooter extends GRRSubsystem {
 
     private final CANSparkFlex leftShootMotor;
@@ -42,14 +44,11 @@ public class Shooter extends GRRSubsystem {
         ShooterConstants.SHOOT_PID_CONFIG.apply(rightShootMotor, rightShootPID);
     }
 
-    // TODO Should this be private?
-    // TODO Revisit naming
     /**
-     * This starts running the shooter motors to there respective speeds..
-     * @param leftSpeed This is speed the left motor will be set to.
-     * @param rightSpeed This is speed the right motor will be set to.
+     * This starts running the shooter motors to their respective speeds.
+     * @param speed This is speed the right motor will be set to with the left motor set to {@link ShooterConstants#LEFT_TO_RIGHT_RATIO} times this.
      */
-    public void setShooterToSpeed(double speed) {
+    private void setToSpeed(double speed) {
         double leftSpeed = speed * ShooterConstants.LEFT_TO_RIGHT_RATIO;
         double rightSpeed = speed;
         leftTargetSpeed = leftSpeed;
@@ -58,44 +57,31 @@ public class Shooter extends GRRSubsystem {
         rightShootPID.setReference(rightSpeed, ControlType.kVelocity);
     }
 
-    // TODO Shorten name?
     /**
      * This method checks if the speed of the shooter motors is within a tolerance of the setpoint.
      * @return whether the shooter motors have reached their setpoints.
      */
-    public boolean hasShooterReachedSpeed() {
+    public boolean hasReachedSpeed() {
         return (
             Math2.epsilonEquals(leftTargetSpeed, leftEncoder.getVelocity(), ShooterConstants.SPEED_TOLERANCE) &&
             Math2.epsilonEquals(rightTargetSpeed, rightEncoder.getVelocity(), ShooterConstants.SPEED_TOLERANCE)
         );
     }
 
-    // TODO Docs
-    public Command setShootSpeed(double shooterSpeed) {
-        return setShootSpeed(() -> shooterSpeed);
-    }
-
-    // TODO This should stop the motors when it ends
     /**
      * Sets the speed of the shooter.
      * @param shooterSpeed This is the speed to drive the shooter at.
      */
-    public Command setShootSpeed(Supplier<Double> shooterSpeed) {
-        return commandBuilder("shooter.setShootSpeed()").onExecute(() -> setShooterToSpeed(shooterSpeed.get()));
+    public Command setSpeed(double shooterSpeed) {
+        return setSpeed(() -> shooterSpeed);
     }
 
-    // TODO Shouldn't be needed anymore, setShootSpeed(0.0) can be used
     /**
-     * A command that stops all motors, and keeps running until it is interrupted.
-     * This should be set as the default command.
-     * @return This command.
+     * Sets the speed of the shooter.
+     * @param shooterSpeed This is the speed to drive the shooter at.
      */
-    public Command stopShooter() {
-        return commandBuilder("shooter.stopShooter()")
-            .onInitialize(() -> {
-                leftShootMotor.stopMotor();
-                rightShootMotor.stopMotor();
-            });
+    public Command setSpeed(Supplier<Double> shooterSpeed) {
+        return commandBuilder("shooter.setShootSpeed()").onExecute(() -> setToSpeed(shooterSpeed.get())).onEnd(() -> setSpeed(0.0));
     }
 
     /**

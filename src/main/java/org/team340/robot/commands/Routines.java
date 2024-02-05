@@ -34,13 +34,13 @@ public class Routines {
     public Command shootSpeaker(Supplier<Pose2d> robotPosition) {
         return parallel(
             prepShootSpeaker(robotPosition),
-            sequence(waitUntil(() -> shooter.hasShooterReachedSpeed() && pivot.isOnTarget()), feeder.shootNote())
+            sequence(waitUntil(() -> shooter.hasReachedSpeed() && pivot.isOnTarget()), feeder.shootNote())
         );
     }
 
     public Command prepShootSpeaker(Supplier<Pose2d> robotPosition) {
         //TODO: this needs actual not zeros.
-        return parallel(shooter.setShootSpeed(0.0), pivot.goToAngle(0.0));
+        return parallel(shooter.setSpeed(0.0), pivot.goToAngle(0.0));
     }
 
     public Command shooterSpit() {
