@@ -52,15 +52,13 @@ public class Feeder extends GRRSubsystem {
         return sequence(
             commandBuilder("feeder.receiveNote()")
                 .onInitialize(() -> feedPID.setReference(FeederConstants.FEED_INTAKE_SPEED, ControlType.kDutyCycle))
-                .isFinished(()->getNoteDetector()),
-
+                .isFinished(() -> getNoteDetector()),
             commandBuilder("feeder.receiveNote()")
                 .onInitialize(() -> feedPID.setReference(FeederConstants.FEED_BACK_SPEED, ControlType.kDutyCycle))
-                .isFinished(()->!getNoteDetector()),
-                
+                .isFinished(() -> !getNoteDetector()),
             commandBuilder("feeder.receiveNote()")
                 .onInitialize(() -> feedPID.setReference(FeederConstants.FEED_SLOW_INTAKE_SPEED, ControlType.kDutyCycle))
-                .isFinished(()->getNoteDetector())
+                .isFinished(() -> getNoteDetector())
         );
     }
 

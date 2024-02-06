@@ -134,7 +134,7 @@ public class Pivot extends GRRSubsystem {
 
     /**
      * Continuously moves to a supplied angle. The command will not end after the target angle is reached and will continue to update from supplier source.
-     * @param angle The angle supplier source that the arm pivots to. 
+     * @param angle The angle supplier source that the arm pivots to.
      */
     public Command goToAngle(Supplier<Double> angle) {
         return goToAngle(angle, false);
@@ -158,7 +158,7 @@ public class Pivot extends GRRSubsystem {
                     })
                     .isFinished(() -> getAtLimit() || isOnTarget())
                     .onEnd(interrupted -> {
-                        if (interrupted || getAtLimit()){
+                        if (interrupted || getAtLimit()) {
                             currentTarget = pivotEncoder.getPosition();
                         } else {
                             currentTarget = angle.get();

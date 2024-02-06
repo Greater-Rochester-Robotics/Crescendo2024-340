@@ -46,7 +46,7 @@ public final class Robot extends TimedRobot {
 
     @Override
     public void disabledPeriodic() {
-        if(disabledBrakeTimer.hasElapsed(6.0) && !disabledBrakeTimer.hasElapsed(6.2)) {
+        if (disabledBrakeTimer.hasElapsed(6.0) && !disabledBrakeTimer.hasElapsed(6.2)) {
             RobotContainer.setBrakeModes(false);
         }
     }

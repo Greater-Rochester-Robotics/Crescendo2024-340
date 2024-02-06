@@ -43,7 +43,21 @@ public class Routines {
         return parallel(shooter.setSpeed(0.0), pivot.goToAngle(0.0));
     }
 
-    public Command shooterSpit() {
+    public Command noteBackToIntake() {
+        return deadline(
+            sequence(
+                // waitUntil(() -> intake.getNoteDetector() && !feeder.getNoteDetector()),
+                waitSeconds(0.0001)
+            ),
+            shooterFeederSpit()
+        );
+    }
+
+    /**
+     * Designed to fully barf and designed for handoff back to intake.
+     * @return This command.
+     */
+    public Command shooterFeederSpit() {
         return parallel(shooter.spit(), feeder.spit());
     }
 }

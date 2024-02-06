@@ -147,7 +147,7 @@ public final class Constants {
         // TODO: set these values.
         public static final SparkPIDControllerConfig ARM_MOTOR_PID_CONFIG = new SparkPIDControllerConfig()
             .setPID(0.0, 0.0, 0.0)
-            .setSmartMotionMaxAccel(0,0)
+            .setSmartMotionMaxAccel(0, 0)
             .setSmartMotionMaxVelocity(0, 0)
             .setSmartMotionMinOutputVelocity(0, 0)
             .setSmartMotionAccelStrategy(AccelStrategy.kTrapezoidal, 0)
