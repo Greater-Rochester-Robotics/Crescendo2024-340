@@ -144,7 +144,14 @@ public final class Constants {
             .setPositionConversionFactor(Math2.TWO_PI)
             .setVelocityConversionFactor(Math2.TWO_PI / 60.0);
 
-        public static final SparkPIDControllerConfig ARM_MOTOR_PID_CONFIG = new SparkPIDControllerConfig().setPID(0.0, 0.0, 0.0);
+        // TODO: set these values.
+        public static final SparkPIDControllerConfig ARM_MOTOR_PID_CONFIG = new SparkPIDControllerConfig()
+            .setPID(0.0, 0.0, 0.0)
+            .setSmartMotionMaxAccel(0,0)
+            .setSmartMotionMaxVelocity(0, 0)
+            .setSmartMotionMinOutputVelocity(0, 0)
+            .setSmartMotionAccelStrategy(AccelStrategy.kTrapezoidal, 0)
+            .setSmartMotionAllowedClosedLoopError(0, 0);
     }
 
     public static final class ShooterConstants {
@@ -194,6 +201,8 @@ public final class Constants {
             .setOpenLoopRampRate(1.5);
 
         public static final double FEED_INTAKE_SPEED = 0;
+        public static final double FEED_BACK_SPEED = 0;
+        public static final double FEED_SLOW_INTAKE_SPEED = 0;
         public static final double FEED_SHOOT_SPEED = 0;
         public static final double FEEDER_SPIT_SPEED = 0;
     }

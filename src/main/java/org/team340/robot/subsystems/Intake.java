@@ -19,7 +19,7 @@ import org.team340.robot.Constants.RobotMap;
 
 // TODO Docs
 /**
- * The Intake subsystem.
+ * This subsystem intakes notes from the floor and can score them in the amp, or pass them to the shooter.
  */
 public class Intake extends GRRSubsystem {
 
