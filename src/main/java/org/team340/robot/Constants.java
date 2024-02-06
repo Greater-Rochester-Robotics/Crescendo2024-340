@@ -194,6 +194,8 @@ public final class Constants {
             .setOpenLoopRampRate(1.5);
 
         public static final double FEED_INTAKE_SPEED = 0;
+        public static final double FEED_BACK_SPEED = 0;
+        public static final double FEED_SLOW_INTAKE_SPEED = 0;
         public static final double FEED_SHOOT_SPEED = 0;
         public static final double FEEDER_SPIT_SPEED = 0;
     }

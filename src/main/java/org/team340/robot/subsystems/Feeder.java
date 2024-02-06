@@ -14,13 +14,18 @@ import org.team340.robot.Constants.RobotMap;
 
 // TODO Handoff back to intake
 
-// TODO Docs
+/**
+ * This subsystem controls the feeder wheels, which accept the notes from the intake, and then push them into the shooter wheels to be shot.
+ */
 public class Feeder extends GRRSubsystem {
 
     private final CANSparkMax feedMotor;
     private final DigitalInput noteDetector;
     private final SparkPIDController feedPID;
 
+    /**
+     * Creates a new feeder subsystem.
+     */
     public Feeder() {
         super("Feeder");
         feedMotor = createSparkMax("Motor", RobotMap.SHOOTER_FEEDER_MOTOR, MotorType.kBrushless);
@@ -31,7 +36,6 @@ public class Feeder extends GRRSubsystem {
         FeederConstants.FEED_PID_CONFIG.apply(feedMotor, feedPID);
     }
 
-    // TODO Shorten name?
     /**
      * Returns {@code true} when the note detector is detecting a note.
      */
@@ -40,19 +44,24 @@ public class Feeder extends GRRSubsystem {
     }
 
     /**
-     * Receives a note from the intake. Ends when the note is detected.
+     * Receives a note from the intake.
+     * This command moves it forward until it's detected, then backwards till it's not, then forward again,
+     * to try to get it as consistent as possible.
      */
     public Command receiveNote() {
-        // TODO
-        // The note may not end in a consistent position, as there is likely to be a short
-        // delay between the sensor detecting the note and the motor stopping. After the note
-        // is detected, the motors should back the note up until it is not detected anymore,
-        // then slowly fed it until it is detected to ensure the note is consistently staged.
-        // END TODO
-        return commandBuilder("feeder.receiveNote()")
-            .onInitialize(() -> feedPID.setReference(FeederConstants.FEED_INTAKE_SPEED, ControlType.kDutyCycle))
-            .isFinished(this::getNoteDetector)
-            .onEnd(() -> feedMotor.stopMotor());
+        return sequence(
+            commandBuilder("feeder.receiveNote()")
+                .onInitialize(() -> feedPID.setReference(FeederConstants.FEED_INTAKE_SPEED, ControlType.kDutyCycle))
+                .isFinished(()->getNoteDetector()),
+
+            commandBuilder("feeder.receiveNote()")
+                .onInitialize(() -> feedPID.setReference(FeederConstants.FEED_BACK_SPEED, ControlType.kDutyCycle))
+                .isFinished(()->!getNoteDetector()),
+                
+            commandBuilder("feeder.receiveNote()")
+                .onInitialize(() -> feedPID.setReference(FeederConstants.FEED_SLOW_INTAKE_SPEED, ControlType.kDutyCycle))
+                .isFinished(()->getNoteDetector())
+        );
     }
 
     /**
