@@ -11,6 +11,10 @@ import org.team340.robot.Constants.RobotMap;
 
 // TODO Subject to change. Climber is not finalized mechanically
 
+/**
+ * This subsystem is to pull the robot up onto the chain. 
+ * <br></br><em><b>The disign is not finalized.</b></em>
+ */
 public class Climber extends GRRSubsystem {
 
     private final CANSparkMax leftMotor;
