@@ -104,6 +104,14 @@ public final class RobotContainer {
     private static void configAutos() {}
 
     /**
+     * Set idle mode of pivot motor to brake or coast.
+     * @param brakeOn If idle mode should be set to brake.
+     */
+    public static void setBrakeModes(boolean brakeOn) {
+        pivot.setBrakeMode(brakeOn);
+    }
+
+    /**
      * Gets the X axis drive speed from the driver's controller.
      */
     private static double getDriveX() {

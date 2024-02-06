@@ -3,6 +3,7 @@ package org.team340.robot;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.livewindow.LiveWindow;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import org.team340.lib.GRRDashboard;
@@ -14,6 +15,8 @@ import org.team340.lib.GRRDashboard;
  * project.
  */
 public final class Robot extends TimedRobot {
+
+    Timer disabledBrakeTimer = new Timer();
 
     public Robot() {
         super(Constants.PERIOD);
@@ -37,13 +40,20 @@ public final class Robot extends TimedRobot {
     }
 
     @Override
-    public void disabledInit() {}
+    public void disabledInit() {
+        disabledBrakeTimer.restart();
+    }
 
     @Override
-    public void disabledPeriodic() {}
+    public void disabledPeriodic() {
+        if(disabledBrakeTimer.hasElapsed(6.0) && !disabledBrakeTimer.hasElapsed(6.2)) {
+            RobotContainer.setBrakeModes(false);
+        }
+    }
 
     @Override
     public void autonomousInit() {
+        RobotContainer.setBrakeModes(true);
         GRRDashboard.getAutoCommand().schedule();
     }
 
@@ -51,7 +61,9 @@ public final class Robot extends TimedRobot {
     public void autonomousPeriodic() {}
 
     @Override
-    public void teleopInit() {}
+    public void teleopInit() {
+        RobotContainer.setBrakeModes(true);
+    }
 
     @Override
     public void teleopPeriodic() {}
