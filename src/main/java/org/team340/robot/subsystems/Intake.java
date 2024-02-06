@@ -1,13 +1,17 @@
 package org.team340.robot.subsystems;
 
+import static edu.wpi.first.wpilibj2.command.Commands.waitSeconds;
+
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.SparkAbsoluteEncoder;
 import com.revrobotics.SparkAbsoluteEncoder.Type;
 import com.revrobotics.SparkPIDController;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import org.team340.lib.GRRSubsystem;
+import org.team340.lib.util.Math2;
 import org.team340.robot.Constants.IntakeConstants;
 import org.team340.robot.Constants.RobotMap;
 
@@ -48,6 +52,29 @@ public class Intake extends GRRSubsystem {
     }
 
     /**
+     * Sets the {@link #armPID} to go to the specified angle if it is valid
+     * (within the intake {@link IntakeConstants#MINIMUM_ANGLE minimum} and
+     * {@link IntakeConstants#MAXIMUM_ANGLE maximum} angles).
+     * @param position The angle to set.
+     */
+    private void setValidPosition(double position) {
+        if (position > IntakeConstants.MINIMUM_ANGLE && position < IntakeConstants.MAXIMUM_ANGLE) {
+            DriverStation.reportWarning(
+                "The angle " +
+                position +
+                " is not valid. is must be within " +
+                IntakeConstants.MAXIMUM_ANGLE +
+                " and " +
+                IntakeConstants.MINIMUM_ANGLE +
+                ".",
+                null
+            );
+        } else {
+            armPID.setReference(position, ControlType.kPosition);
+        }
+    }
+
+    /**
      * Deploys the intake and runs the roller motors to intake a note.
      */
     public Command deploy() {
@@ -78,5 +105,17 @@ public class Intake extends GRRSubsystem {
         return commandBuilder("intake.spit()")
             .onInitialize(() -> rollerUpperMotor.set(IntakeConstants.SPIT_ROLLER_SPEED))
             .onEnd(() -> rollerUpperMotor.stopMotor());
+    }
+
+    /**
+     * This command moves the intake up, and then scores it with a delay. This doesn't bring it back down.
+     * @return This command.
+     */
+    public Command scoreAmp() {
+        return commandBuilder()
+            .onExecute(() -> setValidPosition(IntakeConstants.INTAKE_AMP_SCORE_POSITION))
+            .isFinished(() -> Math2.epsilonEquals(armEncoder.getPosition(), IntakeConstants.INTAKE_AMP_SCORE_POSITION))
+            .onEnd(() -> rollerUpperMotor.set(IntakeConstants.ROLLER_SCORE_AMP_SPEED))
+            .andThen(waitSeconds(2), runOnce(() -> rollerUpperMotor.stopMotor()));
     }
 }

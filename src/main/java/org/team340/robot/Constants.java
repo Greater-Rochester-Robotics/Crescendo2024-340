@@ -105,6 +105,13 @@ public final class Constants {
 
     public static final class IntakeConstants {
 
+        public static final double MAXIMUM_ANGLE = 0.0;
+        public static final double MINIMUM_ANGLE = 0.0;
+
+        public static final double INTAKE_AMP_SCORE_POSITION = 0.0;
+
+        public static final double ROLLER_SCORE_AMP_SPEED = 0.0;
+
         public static final double DEPLOY_POSITION = 0.0;
 
         public static final double INTAKE_ROLLER_SPEED = 0.0;
