@@ -117,11 +117,11 @@ public final class Constants {
         public static final double INTAKE_ROLLER_SPEED = 0.0;
         public static final double SPIT_ROLLER_SPEED = -0.0;
 
-        private static final SparkMaxConfig ARM_MOTOR_BASE_CONFIG = new SparkMaxConfig()
+        private static final SparkFlexConfig ARM_MOTOR_BASE_CONFIG = new SparkFlexConfig()
             .clearFaults()
             .restoreFactoryDefaults()
             .enableVoltageCompensation(VOLTAGE)
-            .setSmartCurrentLimit(30)
+            .setSmartCurrentLimit(60, 30)
             .setIdleMode(IdleMode.kBrake)
             .setClosedLoopRampRate(1.5)
             .setOpenLoopRampRate(1.5);
@@ -135,8 +135,8 @@ public final class Constants {
             .setClosedLoopRampRate(1.5)
             .setOpenLoopRampRate(1.5);
 
-        public static final SparkMaxConfig ARM_LEFT_MOTOR_CONFIG = ARM_MOTOR_BASE_CONFIG.clone().setInverted(false);
-        public static final SparkMaxConfig ARM_RIGHT_MOTOR_CONFIG = ARM_MOTOR_BASE_CONFIG
+        public static final SparkFlexConfig ARM_LEFT_MOTOR_CONFIG = ARM_MOTOR_BASE_CONFIG.clone().setInverted(false);
+        public static final SparkFlexConfig ARM_RIGHT_MOTOR_CONFIG = ARM_MOTOR_BASE_CONFIG
             .clone()
             .follow(ExternalFollower.kFollowerSpark, RobotMap.INTAKE_ARM_LEFT_MOTOR, false);
 

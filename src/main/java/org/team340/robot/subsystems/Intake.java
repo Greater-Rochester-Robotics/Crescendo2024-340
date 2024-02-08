@@ -3,6 +3,7 @@ package org.team340.robot.subsystems;
 import static edu.wpi.first.wpilibj2.command.Commands.waitSeconds;
 
 import com.revrobotics.CANSparkBase.ControlType;
+import com.revrobotics.CANSparkFlex;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.SparkAbsoluteEncoder;
@@ -27,8 +28,8 @@ import org.team340.robot.Constants.RobotMap;
  */
 public class Intake extends GRRSubsystem {
 
-    private final CANSparkMax armLeftMotor;
-    private final CANSparkMax armRightMotor;
+    private final CANSparkFlex armLeftMotor;
+    private final CANSparkFlex armRightMotor;
     private final CANSparkMax rollerUpperMotor;
     private final CANSparkMax rollerLowerMotor;
     private final SparkAbsoluteEncoder armEncoder;
@@ -36,11 +37,11 @@ public class Intake extends GRRSubsystem {
 
     public Intake() {
         super("Intake");
-        armLeftMotor = createSparkMax("Arm Left Motor", RobotMap.INTAKE_ARM_LEFT_MOTOR, MotorType.kBrushless);
-        armRightMotor = createSparkMax("Arm Right Motor", RobotMap.INTAKE_ARM_RIGHT_MOTOR, MotorType.kBrushless);
+        armLeftMotor = createSparkFlex("Arm Left Motor", RobotMap.INTAKE_ARM_LEFT_MOTOR, MotorType.kBrushless);
+        armRightMotor = createSparkFlex("Arm Right Motor", RobotMap.INTAKE_ARM_RIGHT_MOTOR, MotorType.kBrushless);
         rollerUpperMotor = createSparkMax("Roller Upper Motor", RobotMap.INTAKE_ROLLER_UPPER_MOTOR, MotorType.kBrushless);
         rollerLowerMotor = createSparkMax("Roller Lower Motor", RobotMap.INTAKE_ROLLER_LOWER_MOTOR, MotorType.kBrushless);
-        armEncoder = createSparkMaxAbsoluteEncoder("Arm Encoder", armLeftMotor, Type.kDutyCycle);
+        armEncoder = createSparkFlexAbsoluteEncoder("Arm Encoder", armLeftMotor, Type.kDutyCycle);
         armPID = armLeftMotor.getPIDController();
 
         IntakeConstants.ARM_LEFT_MOTOR_CONFIG.apply(armLeftMotor);
