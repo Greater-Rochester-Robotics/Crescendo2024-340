@@ -63,7 +63,9 @@ public class Feeder extends GRRSubsystem {
                 .onEnd(() -> feedEncoder.setPosition(0.0)),
             commandBuilder("feeder.receiveNote()")
                 .onInitialize(() -> feedPID.setReference(FeederConstants.POSITION_OFFSET, ControlType.kPosition))
-                .isFinished(() -> Math2.epsilonEquals(feedEncoder.getPosition(), FeederConstants.POSITION_OFFSET, FeederConstants.CLOSED_LOOP_ERR))
+                .isFinished(() ->
+                    Math2.epsilonEquals(feedEncoder.getPosition(), FeederConstants.POSITION_OFFSET, FeederConstants.CLOSED_LOOP_ERR)
+                )
         );
     }
 

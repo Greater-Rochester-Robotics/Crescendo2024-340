@@ -2,9 +2,8 @@ package org.team340.robot.subsystems;
 
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
-import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkFlex;
-import com.revrobotics.CANSparkMax;
+import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkPIDController;
 import edu.wpi.first.wpilibj.DigitalInput;
@@ -24,7 +23,6 @@ public class Pivot extends GRRSubsystem {
     private final CANSparkFlex pivotMotor;
     private final RelativeEncoder pivotEncoder;
     private final SparkPIDController pivotPID;
-    private final DigitalInput upperLimit;
     private final DigitalInput lowerLimit;
 
     private boolean hasBeenHomed = false;
@@ -35,7 +33,6 @@ public class Pivot extends GRRSubsystem {
         pivotMotor = createSparkFlex("Pivot Motor", RobotMap.SHOOTER_PIVOT_MOTOR, MotorType.kBrushless);
         pivotEncoder = pivotMotor.getEncoder();
         pivotPID = pivotMotor.getPIDController();
-        upperLimit = createDigitalInput("Pivot Upper Limit", RobotMap.PIVOT_UPPER_LIMIT);
         lowerLimit = createDigitalInput("Pivot Lower Limit", RobotMap.PIVOT_LOWER_LIMIT);
 
         PivotConstants.Configs.MOTOR.apply(pivotMotor);
@@ -57,22 +54,6 @@ public class Pivot extends GRRSubsystem {
      */
     private boolean getLowerLimit() {
         return !lowerLimit.get();
-    }
-
-    /**
-     * Checks if the upper limit switch is pressed.
-     * @return {@code true} if pressed.
-     */
-    private boolean getUpperLimit() {
-        return !upperLimit.get();
-    }
-
-    /**
-     * Checks if either limit switch is pressed.
-     * @return {@code true} if either pressed.
-     */
-    private boolean getAtLimit() {
-        return getLowerLimit() || getUpperLimit();
     }
 
     /**
@@ -158,9 +139,9 @@ public class Pivot extends GRRSubsystem {
                             pivotPID.setReference(angleValue, ControlType.kSmartMotion);
                         }
                     })
-                    .isFinished(() -> getAtLimit() || isOnTarget())
+                    .isFinished(() -> getLowerLimit() || isOnTarget())
                     .onEnd(interrupted -> {
-                        if (interrupted || getAtLimit()) {
+                        if (interrupted || getLowerLimit()) {
                             currentTarget = pivotEncoder.getPosition();
                         } else {
                             currentTarget = angle.get();
