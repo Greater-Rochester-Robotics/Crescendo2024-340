@@ -48,6 +48,7 @@ public class Shooter extends GRRSubsystem {
      * This starts running the shooter motors to their respective speeds.
      * @param speed This is speed the right motor will be set to with the left motor set to {@link ShooterConstants#LEFT_TO_RIGHT_RATIO} times this.
      */
+    private void applySpeed(double speed) {
         double leftSpeed = speed * ShooterConstants.LEFT_TO_RIGHT_RATIO;
         double rightSpeed = speed;
         leftTargetSpeed = leftSpeed;
@@ -80,6 +81,7 @@ public class Shooter extends GRRSubsystem {
      * @param shooterSpeed This is the speed to drive the shooter at.
      */
     public Command setSpeed(Supplier<Double> shooterSpeed) {
+        return commandBuilder("shooter.setShootSpeed()").onExecute(() -> applySpeed(shooterSpeed.get())).onEnd(() -> applySpeed(0.0));
     }
 
     /**
@@ -88,6 +90,8 @@ public class Shooter extends GRRSubsystem {
     public Command spit() {
         return commandBuilder("shooter.spit()")
             .onInitialize(() -> {
+                leftShootMotor.set(ShooterConstants.LEFT_SPIT_SPEED);
+                rightShootMotor.set(ShooterConstants.RIGHT_SPIT_SPEED);
             })
             .onEnd(() -> {
                 leftShootMotor.stopMotor();
