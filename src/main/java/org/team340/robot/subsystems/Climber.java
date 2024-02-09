@@ -13,7 +13,7 @@ import org.team340.robot.Constants.RobotMap;
 
 /**
  * This subsystem is to pull the robot up onto the chain.
- * <br></br><em><b>The disign is not finalized.</b></em>
+ * <br></br><em><b>The design is not finalized.</b></em>
  */
 public class Climber extends GRRSubsystem {
 
@@ -37,12 +37,12 @@ public class Climber extends GRRSubsystem {
         leftPID = leftMotor.getPIDController();
         rightPID = rightMotor.getPIDController();
 
-        ClimberConstants.CLIMBER_MOTORS_CONFIG.apply(leftMotor);
-        ClimberConstants.CLIMBER_MOTORS_CONFIG.apply(rightMotor);
-        ClimberConstants.CLIMBER_ENCODER_CONFIG.apply(leftMotor, leftEncoder);
-        ClimberConstants.CLIMBER_ENCODER_CONFIG.apply(rightMotor, rightEncoder);
-        ClimberConstants.CLIMBER_PID_CONFIG.apply(leftMotor, leftPID);
-        ClimberConstants.CLIMBER_PID_CONFIG.apply(rightMotor, rightPID);
+        ClimberConstants.Configs.MOTOR.apply(leftMotor);
+        ClimberConstants.Configs.MOTOR.apply(rightMotor);
+        ClimberConstants.Configs.ENCODER.apply(leftMotor, leftEncoder);
+        ClimberConstants.Configs.ENCODER.apply(rightMotor, rightEncoder);
+        ClimberConstants.Configs.PID.apply(leftMotor, leftPID);
+        ClimberConstants.Configs.PID.apply(rightMotor, rightPID);
     }
 
     public boolean getLeftLimit() {

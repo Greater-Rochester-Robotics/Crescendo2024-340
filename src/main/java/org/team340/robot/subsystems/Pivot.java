@@ -3,6 +3,7 @@ package org.team340.robot.subsystems;
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
+import com.revrobotics.CANSparkFlex;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkPIDController;
@@ -20,7 +21,7 @@ import org.team340.robot.Constants.RobotMap;
  */
 public class Pivot extends GRRSubsystem {
 
-    private final CANSparkMax pivotMotor;
+    private final CANSparkFlex pivotMotor;
     private final RelativeEncoder pivotEncoder;
     private final SparkPIDController pivotPID;
     private final DigitalInput upperLimit;
@@ -31,14 +32,15 @@ public class Pivot extends GRRSubsystem {
 
     public Pivot() {
         super("Pivot");
-        pivotMotor = createSparkMax("Pivot Motor", RobotMap.SHOOTER_PIVOT_MOTOR, MotorType.kBrushless);
+        pivotMotor = createSparkFlex("Pivot Motor", RobotMap.SHOOTER_PIVOT_MOTOR, MotorType.kBrushless);
         pivotEncoder = pivotMotor.getEncoder();
         pivotPID = pivotMotor.getPIDController();
         upperLimit = createDigitalInput("Pivot Upper Limit", RobotMap.PIVOT_UPPER_LIMIT);
         lowerLimit = createDigitalInput("Pivot Lower Limit", RobotMap.PIVOT_LOWER_LIMIT);
 
-        PivotConstants.PIVOT_MOTOR_CONFIG.apply(pivotMotor);
-        PivotConstants.PIVOT_PID_CONFIG.apply(pivotMotor, pivotPID);
+        PivotConstants.Configs.MOTOR.apply(pivotMotor);
+        PivotConstants.Configs.PID.apply(pivotMotor, pivotPID);
+        PivotConstants.Configs.ENCODER.apply(pivotMotor, pivotEncoder);
     }
 
     /**

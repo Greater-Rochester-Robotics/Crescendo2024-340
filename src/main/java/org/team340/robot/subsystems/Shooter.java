@@ -36,19 +36,18 @@ public class Shooter extends GRRSubsystem {
         leftShootPID = leftShootMotor.getPIDController();
         rightShootPID = rightShootMotor.getPIDController();
 
-        ShooterConstants.SHOOT_LEFT_MOTOR_CONFIG.apply(leftShootMotor);
-        ShooterConstants.SHOOT_RIGHT_MOTOR_CONFIG.apply(rightShootMotor);
-        ShooterConstants.SHOOTER_ENC_CONFIG.apply(leftShootMotor, leftEncoder);
-        ShooterConstants.SHOOTER_ENC_CONFIG.apply(rightShootMotor, rightEncoder);
-        ShooterConstants.SHOOT_PID_CONFIG.apply(leftShootMotor, leftShootPID);
-        ShooterConstants.SHOOT_PID_CONFIG.apply(rightShootMotor, rightShootPID);
+        ShooterConstants.Configs.LEFT_MOTOR.apply(leftShootMotor);
+        ShooterConstants.Configs.RIGHT_MOTOR.apply(rightShootMotor);
+        ShooterConstants.Configs.ENCODER.apply(leftShootMotor, leftEncoder);
+        ShooterConstants.Configs.ENCODER.apply(rightShootMotor, rightEncoder);
+        ShooterConstants.Configs.PID.apply(leftShootMotor, leftShootPID);
+        ShooterConstants.Configs.PID.apply(rightShootMotor, rightShootPID);
     }
 
     /**
      * This starts running the shooter motors to their respective speeds.
      * @param speed This is speed the right motor will be set to with the left motor set to {@link ShooterConstants#LEFT_TO_RIGHT_RATIO} times this.
      */
-    private void setToSpeed(double speed) {
         double leftSpeed = speed * ShooterConstants.LEFT_TO_RIGHT_RATIO;
         double rightSpeed = speed;
         leftTargetSpeed = leftSpeed;
@@ -81,7 +80,6 @@ public class Shooter extends GRRSubsystem {
      * @param shooterSpeed This is the speed to drive the shooter at.
      */
     public Command setSpeed(Supplier<Double> shooterSpeed) {
-        return commandBuilder("shooter.setShootSpeed()").onExecute(() -> setToSpeed(shooterSpeed.get())).onEnd(() -> setSpeed(0.0));
     }
 
     /**
@@ -90,8 +88,6 @@ public class Shooter extends GRRSubsystem {
     public Command spit() {
         return commandBuilder("shooter.spit()")
             .onInitialize(() -> {
-                leftShootPID.setReference(ShooterConstants.LEFT_SPIT_SPEED, ControlType.kDutyCycle);
-                rightShootPID.setReference(ShooterConstants.RIGHT_SPIT_SPEED, ControlType.kDutyCycle);
             })
             .onEnd(() -> {
                 leftShootMotor.stopMotor();

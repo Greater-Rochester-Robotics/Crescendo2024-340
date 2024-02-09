@@ -5,10 +5,12 @@ import static edu.wpi.first.wpilibj2.command.Commands.*;
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
+import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkPIDController;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj2.command.Command;
 import org.team340.lib.GRRSubsystem;
+import org.team340.lib.util.Math2;
 import org.team340.robot.Constants.FeederConstants;
 import org.team340.robot.Constants.RobotMap;
 
@@ -20,6 +22,7 @@ import org.team340.robot.Constants.RobotMap;
 public class Feeder extends GRRSubsystem {
 
     private final CANSparkMax feedMotor;
+    private final RelativeEncoder feedEncoder;
     private final DigitalInput noteDetector;
     private final SparkPIDController feedPID;
 
@@ -29,11 +32,12 @@ public class Feeder extends GRRSubsystem {
     public Feeder() {
         super("Feeder");
         feedMotor = createSparkMax("Motor", RobotMap.SHOOTER_FEEDER_MOTOR, MotorType.kBrushless);
+        feedEncoder = feedMotor.getEncoder();
         noteDetector = createDigitalInput("Note Detector", RobotMap.SHOOTER_NOTE_DETECTOR);
         feedPID = feedMotor.getPIDController();
 
-        FeederConstants.FEED_MOTOR_CONFIG.apply(feedMotor);
-        FeederConstants.FEED_PID_CONFIG.apply(feedMotor, feedPID);
+        FeederConstants.Configs.MOTOR.apply(feedMotor);
+        FeederConstants.Configs.PID.apply(feedMotor, feedPID);
     }
 
     /**
@@ -51,14 +55,15 @@ public class Feeder extends GRRSubsystem {
     public Command receiveNote() {
         return sequence(
             commandBuilder("feeder.receiveNote()")
-                .onInitialize(() -> feedPID.setReference(FeederConstants.FEED_INTAKE_SPEED, ControlType.kDutyCycle))
+                .onInitialize(() -> feedPID.setReference(FeederConstants.INTAKE_SPEED, ControlType.kDutyCycle))
                 .isFinished(() -> getNoteDetector()),
             commandBuilder("feeder.receiveNote()")
-                .onInitialize(() -> feedPID.setReference(FeederConstants.FEED_BACK_SPEED, ControlType.kDutyCycle))
-                .isFinished(() -> !getNoteDetector()),
+                .onInitialize(() -> feedPID.setReference(FeederConstants.BACK_SLOW_SPEED, ControlType.kDutyCycle))
+                .isFinished(() -> !getNoteDetector())
+                .onEnd(() -> feedEncoder.setPosition(0.0)),
             commandBuilder("feeder.receiveNote()")
-                .onInitialize(() -> feedPID.setReference(FeederConstants.FEED_SLOW_INTAKE_SPEED, ControlType.kDutyCycle))
-                .isFinished(() -> getNoteDetector())
+                .onInitialize(() -> feedPID.setReference(FeederConstants.POSITION_OFFSET, ControlType.kPosition))
+                .isFinished(() -> Math2.epsilonEquals(feedEncoder.getPosition(), FeederConstants.POSITION_OFFSET, FeederConstants.CLOSED_LOOP_ERR))
         );
     }
 
@@ -67,7 +72,7 @@ public class Feeder extends GRRSubsystem {
      */
     public Command shootNote() {
         return commandBuilder("feeder.shootNote()")
-            .onInitialize(() -> feedPID.setReference(FeederConstants.FEED_SHOOT_SPEED, ControlType.kDutyCycle))
+            .onInitialize(() -> feedPID.setReference(FeederConstants.SHOOT_SPEED, ControlType.kDutyCycle))
             .isFinished(() -> !getNoteDetector())
             .andThen(waitSeconds(FeederConstants.SHOOT_DELAY))
             .andThen(runOnce(() -> feedMotor.stopMotor()));
@@ -78,7 +83,7 @@ public class Feeder extends GRRSubsystem {
      */
     public Command spit() {
         return commandBuilder("feeder.spit()")
-            .onInitialize(() -> feedPID.setReference(FeederConstants.FEEDER_SPIT_SPEED, ControlType.kDutyCycle))
+            .onInitialize(() -> feedPID.setReference(FeederConstants.SPIT_SPEED, ControlType.kDutyCycle))
             .onEnd(() -> feedMotor.stopMotor());
     }
 }

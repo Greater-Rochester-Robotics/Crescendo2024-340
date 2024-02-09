@@ -40,6 +40,13 @@ public final class Constants {
      * Driver and co-driver controller constants.
      */
     public static final class ControllerConstants {
+        
+        public static final double DRIVE_EXP = 1.0;
+        public static final double DRIVE_MULTIPLIER = 0.75;
+        public static final double DRIVE_MULTIPLIER_MODIFIED = 0.95;
+
+        public static final double DRIVE_ROT_EXP = 2.0;
+        public static final double DRIVE_ROT_MULTIPLIER = 0.4;
 
         public static final Controller2Config DRIVER = new Controller2Config()
             .setLabel("Driver")
@@ -60,13 +67,6 @@ public final class Constants {
             .setTriggerThreshold(0.1)
             .setLeftProfile("joystickprofiles/CoDriverLeft.json")
             .setRightProfile("joystickprofiles/CoDriverRight.json");
-
-        public static final double DRIVE_EXP = 1.0;
-        public static final double DRIVE_MULTIPLIER = 0.75;
-        public static final double DRIVE_MULTIPLIER_MODIFIED = 0.95;
-
-        public static final double DRIVE_ROT_EXP = 2.0;
-        public static final double DRIVE_ROT_MULTIPLIER = 0.4;
     }
 
     /**
@@ -108,97 +108,101 @@ public final class Constants {
         public static final double MAXIMUM_ANGLE = 0.0;
         public static final double MINIMUM_ANGLE = 0.0;
 
-        public static final double INTAKE_AMP_SCORE_POSITION = 0.0;
-
-        public static final double ROLLER_SCORE_AMP_SPEED = 0.0;
-
+        public static final double SCORE_AMP_POSITION = 0.0;
         public static final double DEPLOY_POSITION = 0.0;
 
+        public static final double SCORE_AMP_ROLLER_SPEED = 0.0;
         public static final double INTAKE_ROLLER_SPEED = 0.0;
         public static final double SPIT_ROLLER_SPEED = -0.0;
 
-        private static final SparkFlexConfig ARM_MOTOR_BASE_CONFIG = new SparkFlexConfig()
-            .clearFaults()
-            .restoreFactoryDefaults()
-            .enableVoltageCompensation(VOLTAGE)
-            .setSmartCurrentLimit(60, 30)
-            .setIdleMode(IdleMode.kBrake)
-            .setClosedLoopRampRate(1.5)
-            .setOpenLoopRampRate(1.5);
-
-        private static final SparkMaxConfig ROLLER_MOTOR_BASE_CONFIG = new SparkMaxConfig()
-            .clearFaults()
-            .restoreFactoryDefaults()
-            .enableVoltageCompensation(VOLTAGE)
-            .setSmartCurrentLimit(30)
-            .setIdleMode(IdleMode.kCoast)
-            .setClosedLoopRampRate(1.5)
-            .setOpenLoopRampRate(1.5);
-
-        public static final SparkFlexConfig ARM_LEFT_MOTOR_CONFIG = ARM_MOTOR_BASE_CONFIG.clone().setInverted(false);
-        public static final SparkFlexConfig ARM_RIGHT_MOTOR_CONFIG = ARM_MOTOR_BASE_CONFIG
+        public static final class ArmConfigs {
+            private static final SparkFlexConfig MOTOR_BASE = new SparkFlexConfig()
+                .clearFaults()
+                .restoreFactoryDefaults()
+                .enableVoltageCompensation(VOLTAGE)
+                .setSmartCurrentLimit(60, 30)
+                .setIdleMode(IdleMode.kBrake)
+                .setClosedLoopRampRate(1.5)
+                .setOpenLoopRampRate(1.5);
+            public static final SparkFlexConfig LEFT_MOTOR = MOTOR_BASE.clone().setInverted(false);
+            public static final SparkFlexConfig RIGHT_MOTOR = MOTOR_BASE
             .clone()
             .follow(ExternalFollower.kFollowerSpark, RobotMap.INTAKE_ARM_LEFT_MOTOR, false);
+            public static final AbsoluteEncoderConfig ENCODER = new AbsoluteEncoderConfig()
+                .setZeroOffset(0.0)
+                .setInverted(false)
+                .setPositionConversionFactor(Math2.TWO_PI)
+                .setVelocityConversionFactor(Math2.TWO_PI / 60.0);
 
-        public static final SparkMaxConfig ROLLER_UPPER_MOTOR_CONFIG = ROLLER_MOTOR_BASE_CONFIG.clone().setInverted(false);
-        public static final SparkMaxConfig ROLLER_LOWER_MOTOR_CONFIG = ROLLER_MOTOR_BASE_CONFIG
-            .clone()
-            .follow(ExternalFollower.kFollowerSpark, RobotMap.INTAKE_ROLLER_UPPER_MOTOR, true);
-
-        public static final AbsoluteEncoderConfig ARM_ENCODER_CONFIG = new AbsoluteEncoderConfig()
-            .setZeroOffset(0.0)
-            .setInverted(false)
-            .setPositionConversionFactor(Math2.TWO_PI)
-            .setVelocityConversionFactor(Math2.TWO_PI / 60.0);
-
-        // TODO: set these values.
-        public static final SparkPIDControllerConfig ARM_MOTOR_PID_CONFIG = new SparkPIDControllerConfig()
-            .setPID(0.0, 0.0, 0.0)
-            .setSmartMotionMaxAccel(0, 0)
-            .setSmartMotionMaxVelocity(0, 0)
-            .setSmartMotionMinOutputVelocity(0, 0)
-            .setSmartMotionAccelStrategy(AccelStrategy.kTrapezoidal, 0)
-            .setSmartMotionAllowedClosedLoopError(0, 0);
+            public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
+                .setPID(0.0, 0.0, 0.0)
+                .setSmartMotionMaxAccel(0, 0)
+                .setSmartMotionMaxVelocity(0, 0)
+                .setSmartMotionMinOutputVelocity(0, 0)
+                .setSmartMotionAccelStrategy(AccelStrategy.kTrapezoidal, 0)
+                .setSmartMotionAllowedClosedLoopError(0, 0);
+        }
+        
+        public static final class RollerConfigs {
+            private static final SparkMaxConfig MOTOR_BASE = new SparkMaxConfig()
+                .clearFaults()
+                .restoreFactoryDefaults()
+                .enableVoltageCompensation(VOLTAGE)
+                .setSmartCurrentLimit(30)
+                .setIdleMode(IdleMode.kCoast)
+                .setClosedLoopRampRate(1.5)
+                .setOpenLoopRampRate(1.5);
+            public static final SparkMaxConfig UPPER_MOTOR = MOTOR_BASE.clone().setInverted(false);
+            public static final SparkMaxConfig LOWER_MOTOR = MOTOR_BASE
+                .clone()
+                .follow(ExternalFollower.kFollowerSpark, RobotMap.INTAKE_ROLLER_UPPER_MOTOR, true);
+        }
     }
 
     public static final class ShooterConstants {
 
-        private static final SparkFlexConfig SHOOT_MOTOR_BASE_CONFIG = new SparkFlexConfig()
-            .clearFaults()
-            .restoreFactoryDefaults()
-            .enableVoltageCompensation(VOLTAGE)
-            .setSmartCurrentLimit(60, 30)
-            .setIdleMode(IdleMode.kCoast)
-            .setClosedLoopRampRate(1.5)
-            .setOpenLoopRampRate(1.5);
-
-        public static final SparkFlexConfig SHOOT_LEFT_MOTOR_CONFIG = SHOOT_MOTOR_BASE_CONFIG.clone().setInverted(false);
-        public static final SparkFlexConfig SHOOT_RIGHT_MOTOR_CONFIG = SHOOT_MOTOR_BASE_CONFIG.clone().setInverted(true);
-
-        public static final SparkPIDControllerConfig SHOOT_PID_CONFIG = new SparkPIDControllerConfig().setPID(0.0, 0.0, 0.0, 0);
-
-        public static final double REL_ENC_CONVERSION = 1.0;
-
-        public static final RelativeEncoderConfig SHOOTER_ENC_CONFIG = new RelativeEncoderConfig()
-            .setPositionConversionFactor(REL_ENC_CONVERSION)
-            .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
-
         public static final double SPEED_TOLERANCE = 0.0;
 
-        public static final double LEFT_SPIT_SPEED = 0;
+        public static final double LEFT_SPIT_SPEED = 0.0;
+        public static final double RIGHT_SPIT_SPEED = 0.0;
 
-        public static final double RIGHT_SPIT_SPEED = 0;
+        public static final double LEFT_TO_RIGHT_RATIO = 0.0;
+        
+        public static final double REL_ENC_CONVERSION = 1.0;
 
-        public static final double LEFT_TO_RIGHT_RATIO = 0;
+        public static final class Configs {
+            private static final SparkFlexConfig MOTOR_BASE = new SparkFlexConfig()
+                .clearFaults()
+                .restoreFactoryDefaults()
+                .enableVoltageCompensation(VOLTAGE)
+                .setSmartCurrentLimit(60, 30)
+                .setIdleMode(IdleMode.kCoast)
+                .setClosedLoopRampRate(1.5)
+                .setOpenLoopRampRate(1.5);
+            public static final SparkFlexConfig LEFT_MOTOR = MOTOR_BASE.clone().setInverted(false);
+            public static final SparkFlexConfig RIGHT_MOTOR = MOTOR_BASE.clone().setInverted(true);
+
+            public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig().setPID(0.0, 0.0, 0.0, 0);
+
+            public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
+                .setPositionConversionFactor(REL_ENC_CONVERSION)
+                .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
+        }
     }
 
     public static final class FeederConstants {
 
         public static final double SHOOT_DELAY = 2.0;
+ 
+        public static final double INTAKE_SPEED = 0.0;
+        public static final double BACK_SLOW_SPEED = 0.0;
+        public static final double POSITION_OFFSET = 0.0;
+        public static final double CLOSED_LOOP_ERR = 0.0;
+        public static final double SHOOT_SPEED = 0.0;
+        public static final double SPIT_SPEED = 0.0;
 
-        public static final SparkPIDControllerConfig FEED_PID_CONFIG = new SparkPIDControllerConfig().setPID(0.0, 0.0, 0.0);
-
-        public static final SparkMaxConfig FEED_MOTOR_CONFIG = new SparkMaxConfig()
+        public static final class Configs {
+            public static final SparkMaxConfig MOTOR = new SparkMaxConfig()
             .clearFaults()
             .restoreFactoryDefaults()
             .enableVoltageCompensation(VOLTAGE)
@@ -207,71 +211,74 @@ public final class Constants {
             .setClosedLoopRampRate(1.5)
             .setOpenLoopRampRate(1.5);
 
-        public static final double FEED_INTAKE_SPEED = 0;
-        public static final double FEED_BACK_SPEED = 0;
-        public static final double FEED_SLOW_INTAKE_SPEED = 0;
-        public static final double FEED_SHOOT_SPEED = 0;
-        public static final double FEEDER_SPIT_SPEED = 0;
+            public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig().setPID(0.0, 0.0, 0.0);
+        }
     }
 
     public static final class PivotConstants {
-
-        public static final SparkMaxConfig PIVOT_MOTOR_CONFIG = new SparkMaxConfig()
-            .clearFaults()
-            .restoreFactoryDefaults()
-            .enableVoltageCompensation(VOLTAGE)
-            .setSmartCurrentLimit(30)
-            .setIdleMode(IdleMode.kBrake)
-            .setClosedLoopRampRate(1.5)
-            .setOpenLoopRampRate(1.5);
-
-        //TODO: Determine all pivot constants after this point.
+        
         public static final double CLOSED_LOOP_ERR = 0.0;
-
-        public static final SparkPIDControllerConfig PIVOT_PID_CONFIG = new SparkPIDControllerConfig()
-            .setPID(0.0, 0.0, 0.0, 0)
-            .setOutputRange(-.5, .5)
-            .setSmartMotionAccelStrategy(AccelStrategy.kTrapezoidal, 0)
-            .setSmartMotionMaxVelocity(0, 0)
-            .setSmartMotionMinOutputVelocity(0, 0)
-            .setSmartMotionMaxAccel(0, 0)
-            .setSmartMotionAllowedClosedLoopError(CLOSED_LOOP_ERR, 0);
-        public static final double REL_ENC_CONVERSION = 0.2;
-        public static final RelativeEncoderConfig PIVOT_ENC_CONFIG = new RelativeEncoderConfig()
-            .setPositionConversionFactor(REL_ENC_CONVERSION)
-            .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
 
         public static final double MINIMUM_ANGLE = 0.0;
         public static final double MAXIMUM_ANGLE = 0.0;
 
         public static final double HOMING_SPEED = 0.0;
+        
+        public static final double REL_ENC_CONVERSION = 0.2;
+
+        public static final class Configs {
+            public static final SparkFlexConfig MOTOR = new SparkFlexConfig()
+                .clearFaults()
+                .restoreFactoryDefaults()
+                .enableVoltageCompensation(VOLTAGE)
+                .setSmartCurrentLimit(60, 30)
+                .setIdleMode(IdleMode.kBrake)
+                .setClosedLoopRampRate(1.5)
+                .setOpenLoopRampRate(1.5);
+
+            public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
+                .setPID(0.0, 0.0, 0.0, 0)
+                .setOutputRange(-.5, .5)
+                .setSmartMotionAccelStrategy(AccelStrategy.kTrapezoidal, 0)
+                .setSmartMotionMaxVelocity(0, 0)
+                .setSmartMotionMinOutputVelocity(0, 0)
+                .setSmartMotionMaxAccel(0, 0)
+                .setSmartMotionAllowedClosedLoopError(CLOSED_LOOP_ERR, 0);
+
+            public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
+                .setPositionConversionFactor(REL_ENC_CONVERSION)
+                .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
+        }
+
     }
 
     public static final class ClimberConstants {
 
         public static final double REL_ENC_CONVERSION = 0.2;
 
-        public static final SparkMaxConfig CLIMBER_MOTORS_CONFIG = new SparkMaxConfig()
-            .clearFaults()
-            .restoreFactoryDefaults()
-            .enableVoltageCompensation(VOLTAGE)
-            .setSmartCurrentLimit(30)
-            .setIdleMode(IdleMode.kBrake)
-            .setClosedLoopRampRate(1.5)
-            .setOpenLoopRampRate(1.5);
+        public static final class Configs {
+            public static final SparkMaxConfig MOTOR = new SparkMaxConfig()
+                .clearFaults()
+                .restoreFactoryDefaults()
+                .enableVoltageCompensation(VOLTAGE)
+                .setSmartCurrentLimit(30)
+                .setIdleMode(IdleMode.kBrake)
+                .setClosedLoopRampRate(1.5)
+                .setOpenLoopRampRate(1.5);
 
-        public static final SparkPIDControllerConfig CLIMBER_PID_CONFIG = new SparkPIDControllerConfig()
-            .setPID(0.0, 0.0, 0.0, 0)
-            .setOutputRange(-.5, .5)
-            .setSmartMotionAccelStrategy(AccelStrategy.kTrapezoidal, 0)
-            .setSmartMotionMaxVelocity(0, 0)
-            .setSmartMotionMinOutputVelocity(0, 0)
-            .setSmartMotionMaxAccel(0, 0)
-            .setSmartMotionAllowedClosedLoopError(0.0, 0);
+            public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
+                .setPID(0.0, 0.0, 0.0, 0)
+                .setOutputRange(-.5, .5)
+                .setSmartMotionAccelStrategy(AccelStrategy.kTrapezoidal, 0)
+                .setSmartMotionMaxVelocity(0, 0)
+                .setSmartMotionMinOutputVelocity(0, 0)
+                .setSmartMotionMaxAccel(0, 0)
+                .setSmartMotionAllowedClosedLoopError(0.0, 0);
 
-        public static final RelativeEncoderConfig CLIMBER_ENCODER_CONFIG = new RelativeEncoderConfig()
-            .setPositionConversionFactor(REL_ENC_CONVERSION)
-            .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
+            public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
+                .setPositionConversionFactor(REL_ENC_CONVERSION)
+                .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
+        }
     }
 
     public static final class SwerveConstants {
