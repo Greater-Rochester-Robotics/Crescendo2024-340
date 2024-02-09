@@ -50,6 +50,14 @@ public class Intake extends GRRSubsystem {
         IntakeConstants.ArmConfigs.ENCODER.apply(armLeftMotor, armEncoder);
         IntakeConstants.ArmConfigs.PID.apply(armLeftMotor, armPID);
     }
+
+    /**
+     * Set idle mode of pivot motor to brake or coast.
+     * @param brakeOn If idle mode should be set to brake.
+     */
+    public void setBrakeMode(boolean brakeOn) {
+        armLeftMotor.setIdleMode(brakeOn ? IdleMode.kBrake : IdleMode.kCoast);
+        armRightMotor.setIdleMode(brakeOn ? IdleMode.kBrake : IdleMode.kCoast);
     }
 
     /**
