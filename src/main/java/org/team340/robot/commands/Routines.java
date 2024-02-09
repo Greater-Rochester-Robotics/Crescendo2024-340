@@ -46,10 +46,11 @@ public class Routines {
     public Command noteBackToIntake() {
         return deadline(
             sequence(
-                // waitUntil(() -> intake.getNoteDetector() && !feeder.getNoteDetector()),
+                waitUntil(() -> intake.getNoteDetector() && !feeder.getNoteDetector()),
                 waitSeconds(0.0001)
             ),
-            shooterFeederSpit()
+            shooterFeederSpit(),
+            intake.spitSlow()
         );
     }
 

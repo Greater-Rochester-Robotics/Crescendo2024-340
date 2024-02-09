@@ -98,6 +98,7 @@ public final class Constants {
         public static final int PIVOT_LOWER_LIMIT = 1;
         public static final int CLIMBER_LEFT_LIMIT = 2;
         public static final int CLIMBER_RIGHT_LIMIT = 3;
+        public static final int INTAKE_NOTE_DETECTOR = 4;
     }
 
     public static final class IntakeConstants {
@@ -111,6 +112,7 @@ public final class Constants {
         public static final double SCORE_AMP_ROLLER_SPEED = 0.0;
         public static final double INTAKE_ROLLER_SPEED = 0.0;
         public static final double SPIT_ROLLER_SPEED = -0.0;
+        public static final double SPIT_SLOW_ROLLER_SPEED = -0.0;
 
         public static final class ArmConfigs {
 

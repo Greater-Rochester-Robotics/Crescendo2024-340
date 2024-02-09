@@ -104,12 +104,13 @@ public final class RobotContainer {
     private static void configAutos() {}
 
     /**
-     * Set idle mode of pivot motor and intake arm motors to brake or coast.
+     * Set idle mode of pivot, intake arm, and climber motors to brake or coast.
      * @param brakeOn If idle mode should be set to brake.
      */
     public static void setBrakeModes(boolean brakeOn) {
         pivot.setBrakeMode(brakeOn);
         intake.setBrakeMode(brakeOn);
+        climber.setBrakeMode(brakeOn);
     }
 
     /**

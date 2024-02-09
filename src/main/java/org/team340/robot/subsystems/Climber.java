@@ -1,5 +1,6 @@
 package org.team340.robot.subsystems;
 
+import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
@@ -43,6 +44,15 @@ public class Climber extends GRRSubsystem {
         ClimberConstants.Configs.ENCODER.apply(rightMotor, rightEncoder);
         ClimberConstants.Configs.PID.apply(leftMotor, leftPID);
         ClimberConstants.Configs.PID.apply(rightMotor, rightPID);
+    }
+
+    /**
+     * Set idle mode of motors to brake or coast.
+     * @param brakeOn If idle mode should be set to brake.
+     */
+    public void setBrakeMode(boolean brakeOn) {
+        leftMotor.setIdleMode(brakeOn ? IdleMode.kBrake : IdleMode.kCoast);
+        rightMotor.setIdleMode(brakeOn ? IdleMode.kBrake : IdleMode.kCoast);
     }
 
     public boolean getLeftLimit() {

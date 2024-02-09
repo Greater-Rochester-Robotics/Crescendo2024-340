@@ -54,18 +54,19 @@ public class Feeder extends GRRSubsystem {
      */
     public Command receiveNote() {
         return sequence(
-            commandBuilder("feeder.receiveNote()")
+            commandBuilder("feeder.receiveNote().initIn")
                 .onInitialize(() -> feedPID.setReference(FeederConstants.INTAKE_SPEED, ControlType.kDutyCycle))
                 .isFinished(() -> getNoteDetector()),
-            commandBuilder("feeder.receiveNote()")
+            commandBuilder("feeder.receiveNote().backUp")
                 .onInitialize(() -> feedPID.setReference(FeederConstants.BACK_SLOW_SPEED, ControlType.kDutyCycle))
                 .isFinished(() -> !getNoteDetector())
                 .onEnd(() -> feedEncoder.setPosition(0.0)),
-            commandBuilder("feeder.receiveNote()")
+            commandBuilder("feeder.receiveNote().inToPos")
                 .onInitialize(() -> feedPID.setReference(FeederConstants.POSITION_OFFSET, ControlType.kPosition))
                 .isFinished(() ->
                     Math2.epsilonEquals(feedEncoder.getPosition(), FeederConstants.POSITION_OFFSET, FeederConstants.CLOSED_LOOP_ERR)
                 )
+                .onEnd(() -> feedMotor.stopMotor())
         );
     }
 

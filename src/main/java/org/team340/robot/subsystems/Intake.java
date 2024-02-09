@@ -10,6 +10,8 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.SparkAbsoluteEncoder;
 import com.revrobotics.SparkAbsoluteEncoder.Type;
 import com.revrobotics.SparkPIDController;
+
+import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import org.team340.lib.GRRSubsystem;
@@ -18,7 +20,6 @@ import org.team340.robot.Constants.IntakeConstants;
 import org.team340.robot.Constants.RobotMap;
 
 // TODO Motion profiling (?)
-// TODO Note detector
 // TODO Receive from feeder
 // TODO Amp score
 
@@ -33,6 +34,7 @@ public class Intake extends GRRSubsystem {
     private final CANSparkMax rollerLowerMotor;
     private final SparkAbsoluteEncoder armEncoder;
     private final SparkPIDController armPID;
+    private final DigitalInput noteDetector;
 
     public Intake() {
         super("Intake");
@@ -42,6 +44,7 @@ public class Intake extends GRRSubsystem {
         rollerLowerMotor = createSparkMax("Roller Lower Motor", RobotMap.INTAKE_ROLLER_LOWER_MOTOR, MotorType.kBrushless);
         armEncoder = createSparkFlexAbsoluteEncoder("Arm Encoder", armLeftMotor, Type.kDutyCycle);
         armPID = armLeftMotor.getPIDController();
+        noteDetector = new DigitalInput(RobotMap.INTAKE_NOTE_DETECTOR);
 
         IntakeConstants.ArmConfigs.LEFT_MOTOR.apply(armLeftMotor);
         IntakeConstants.ArmConfigs.RIGHT_MOTOR.apply(armRightMotor);
@@ -49,6 +52,13 @@ public class Intake extends GRRSubsystem {
         IntakeConstants.RollerConfigs.LOWER_MOTOR.apply(rollerLowerMotor);
         IntakeConstants.ArmConfigs.ENCODER.apply(armLeftMotor, armEncoder);
         IntakeConstants.ArmConfigs.PID.apply(armLeftMotor, armPID);
+    }
+
+    /**
+     * Returns {@code true} when the note detector is detecting a note.
+     */
+    public boolean getNoteDetector() {
+        return !noteDetector.get();
     }
 
     /**
@@ -113,6 +123,12 @@ public class Intake extends GRRSubsystem {
     public Command spit() {
         return commandBuilder("intake.spit()")
             .onInitialize(() -> rollerUpperMotor.set(IntakeConstants.SPIT_ROLLER_SPEED))
+            .onEnd(() -> rollerUpperMotor.stopMotor());
+    }
+
+    public Command spitSlow() {
+        return commandBuilder("intake.spitSlow()")
+            .onInitialize(() -> rollerUpperMotor.set(IntakeConstants.SPIT_SLOW_ROLLER_SPEED))
             .onEnd(() -> rollerUpperMotor.stopMotor());
     }
 
