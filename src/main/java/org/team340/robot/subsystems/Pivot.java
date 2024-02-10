@@ -168,6 +168,7 @@ public class Pivot extends GRRSubsystem {
 
     /**
      * Maintains the current angle. Does nothing if the pivot is not homed.
+     * @return This command.
      */
     public Command maintainPosition() {
         return commandBuilder("pivot.maintainPosition()")

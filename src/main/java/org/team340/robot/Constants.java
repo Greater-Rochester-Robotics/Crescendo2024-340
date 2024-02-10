@@ -101,12 +101,12 @@ public final class Constants {
 
         public static final int CLIMBER_LEFT_MOTOR = 40;
         public static final int CLIMBER_RIGHT_MOTOR = 41;
-
-        public static final int SHOOTER_NOTE_DETECTOR = 0;
-        public static final int PIVOT_LOWER_LIMIT = 1;
+        
         public static final int CLIMBER_LEFT_LIMIT = 2;
         public static final int CLIMBER_RIGHT_LIMIT = 3;
-        public static final int INTAKE_NOTE_DETECTOR = 4;
+        public static final int PIVOT_LOWER_LIMIT = 7;
+        public static final int SHOOTER_NOTE_DETECTOR = 8;
+        public static final int INTAKE_NOTE_DETECTOR = 9;
     }
 
     public static final class IntakeConstants {
