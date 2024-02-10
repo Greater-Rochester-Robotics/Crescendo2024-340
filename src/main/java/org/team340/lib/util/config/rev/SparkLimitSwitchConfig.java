@@ -37,7 +37,7 @@ public final class SparkLimitSwitchConfig extends RevConfigBase<SparkLimitSwitch
     public void apply(CANSparkMax sparkMax, SparkLimitSwitch limitSwitch) {
         addStep(
             ls -> {
-                RevConfigUtils.burnFlashSleep();
+                RevConfigRegistry.burnFlashSleep();
                 return sparkMax.burnFlash();
             },
             ls -> true,
@@ -56,7 +56,7 @@ public final class SparkLimitSwitchConfig extends RevConfigBase<SparkLimitSwitch
     public void apply(CANSparkFlex sparkFlex, SparkLimitSwitch limitSwitch) {
         addStep(
             ls -> {
-                RevConfigUtils.burnFlashSleep();
+                RevConfigRegistry.burnFlashSleep();
                 return sparkFlex.burnFlash();
             },
             ls -> true,

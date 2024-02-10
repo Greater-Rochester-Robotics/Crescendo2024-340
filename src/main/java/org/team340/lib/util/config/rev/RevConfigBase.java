@@ -28,7 +28,7 @@ abstract class RevConfigBase<T> {
         }
 
         public RevConfigStep(Function<T, REVLibError> applier, Function<T, Boolean> checker, boolean trustCheck, String name) {
-            this(applier, checker, trustCheck, RevConfigUtils.DEFAULT_SET_ITERATIONS, name);
+            this(applier, checker, trustCheck, RevConfigRegistry.DEFAULT_SET_ITERATIONS, name);
         }
     }
 
@@ -84,7 +84,13 @@ abstract class RevConfigBase<T> {
      */
     void applySteps(T hardware, String identifier) {
         for (RevConfigStep<T> step : configSteps) {
-            applyStep(hardware, identifier, step, new String[RevConfigUtils.DEFAULT_SET_ITERATIONS], RevConfigUtils.DEFAULT_SET_ITERATIONS);
+            applyStep(
+                hardware,
+                identifier,
+                step,
+                new String[RevConfigRegistry.DEFAULT_SET_ITERATIONS],
+                RevConfigRegistry.DEFAULT_SET_ITERATIONS
+            );
         }
     }
 
@@ -101,7 +107,7 @@ abstract class RevConfigBase<T> {
             REVLibError status = step.applier().apply(hardware);
             if (!RobotBase.isSimulation()) {
                 try {
-                    Thread.sleep((long) RevConfigUtils.CHECK_SLEEP);
+                    Thread.sleep((long) RevConfigRegistry.CHECK_SLEEP);
                 } catch (Exception e) {}
             }
 
@@ -135,7 +141,7 @@ abstract class RevConfigBase<T> {
             }
 
             if (!hadSuccess) {
-                RevConfigUtils.addError(identifier + " \"" + step.name() + "\": " + resultsString);
+                RevConfigRegistry.addError(identifier + " \"" + step.name() + "\": " + resultsString);
             }
         } else {
             applyStep(hardware, identifier, step, results, iterationsLeft);

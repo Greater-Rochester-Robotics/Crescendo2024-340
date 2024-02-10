@@ -4,6 +4,8 @@ import com.revrobotics.CANSparkFlex;
 import com.revrobotics.CANSparkLowLevel.PeriodicFrame;
 import com.revrobotics.REVLibError;
 import edu.wpi.first.wpilibj.RobotBase;
+import java.util.ArrayList;
+import java.util.List;
 import org.team340.lib.util.Math2;
 
 /**
@@ -40,7 +42,7 @@ public final class SparkFlexConfig extends RevConfigBase<CANSparkFlex> {
     public void apply(CANSparkFlex sparkFlex) {
         addStep(
             sf -> {
-                RevConfigUtils.burnFlashSleep();
+                RevConfigRegistry.burnFlashSleep();
                 return sf.burnFlash();
             },
             sf -> true,
@@ -259,7 +261,7 @@ public final class SparkFlexConfig extends RevConfigBase<CANSparkFlex> {
     public SparkFlexConfig disableVoltageCompensation() {
         addStep(
             sparkFlex -> sparkFlex.disableVoltageCompensation(),
-            sparkFlex -> Math2.epsilonEquals(sparkFlex.getVoltageCompensationNominalVoltage(), 0.0, RevConfigUtils.EPSILON),
+            sparkFlex -> Math2.epsilonEquals(sparkFlex.getVoltageCompensationNominalVoltage(), 0.0, RevConfigRegistry.EPSILON),
             "Disable Voltage Compensation"
         );
         return this;
@@ -286,7 +288,7 @@ public final class SparkFlexConfig extends RevConfigBase<CANSparkFlex> {
     public SparkFlexConfig enableVoltageCompensation(double nominalVoltage) {
         addStep(
             sparkFlex -> sparkFlex.enableVoltageCompensation(nominalVoltage),
-            sparkFlex -> Math2.epsilonEquals(sparkFlex.getVoltageCompensationNominalVoltage(), nominalVoltage, RevConfigUtils.EPSILON),
+            sparkFlex -> Math2.epsilonEquals(sparkFlex.getVoltageCompensationNominalVoltage(), nominalVoltage, RevConfigRegistry.EPSILON),
             "Enable Voltage Compensation"
         );
         return this;
@@ -359,7 +361,7 @@ public final class SparkFlexConfig extends RevConfigBase<CANSparkFlex> {
     public SparkFlexConfig setClosedLoopRampRate(double rate) {
         addStep(
             sparkFlex -> sparkFlex.setClosedLoopRampRate(rate),
-            sparkFlex -> Math2.epsilonEquals(sparkFlex.getClosedLoopRampRate(), rate, RevConfigUtils.EPSILON),
+            sparkFlex -> Math2.epsilonEquals(sparkFlex.getClosedLoopRampRate(), rate, RevConfigRegistry.EPSILON),
             "Closed Loop Ramp Rate"
         );
         return this;
@@ -399,7 +401,7 @@ public final class SparkFlexConfig extends RevConfigBase<CANSparkFlex> {
     public SparkFlexConfig setOpenLoopRampRate(double rate) {
         addStep(
             sparkFlex -> sparkFlex.setOpenLoopRampRate(rate),
-            sparkFlex -> Math2.epsilonEquals(sparkFlex.getOpenLoopRampRate(), rate, RevConfigUtils.EPSILON),
+            sparkFlex -> Math2.epsilonEquals(sparkFlex.getOpenLoopRampRate(), rate, RevConfigRegistry.EPSILON),
             "Open Loop Ramp Rate"
         );
         return this;
@@ -413,7 +415,17 @@ public final class SparkFlexConfig extends RevConfigBase<CANSparkFlex> {
      * @param periodMs The rate the controller sends the frame in milliseconds.
      */
     public SparkFlexConfig setPeriodicFramePeriod(Frame frame, int periodMs) {
-        addStep(sparkFlex -> sparkFlex.setPeriodicFramePeriod(frame.frame, periodMs), "Periodic Frame Status " + frame.ordinal());
+        List<CANSparkFlex> applied = new ArrayList<>();
+        addStep(
+            sparkFlex -> {
+                if (!applied.contains(sparkFlex)) {
+                    RevConfigRegistry.addPeriodic(() -> sparkFlex.setPeriodicFramePeriod(frame.frame, periodMs));
+                    applied.add(sparkFlex);
+                }
+                return sparkFlex.setPeriodicFramePeriod(frame.frame, periodMs);
+            },
+            "Periodic Frame Status " + frame.ordinal()
+        );
         return this;
     }
 
@@ -517,7 +529,7 @@ public final class SparkFlexConfig extends RevConfigBase<CANSparkFlex> {
     public SparkFlexConfig setSoftLimit(CANSparkFlex.SoftLimitDirection direction, double limit) {
         addStep(
             sparkFlex -> sparkFlex.setSoftLimit(direction, (float) limit),
-            sparkFlex -> Math2.epsilonEquals(sparkFlex.getSoftLimit(direction), limit, RevConfigUtils.EPSILON),
+            sparkFlex -> Math2.epsilonEquals(sparkFlex.getSoftLimit(direction), limit, RevConfigRegistry.EPSILON),
             "Soft Limit"
         );
         return this;
