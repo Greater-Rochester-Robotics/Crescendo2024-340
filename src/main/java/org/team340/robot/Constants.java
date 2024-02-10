@@ -105,16 +105,16 @@ public final class Constants {
 
     public static final class IntakeConstants {
 
-        public static final double MAXIMUM_ANGLE = 0.0;
+        public static final double MAXIMUM_ANGLE = Math.toRadians(135.0);
         public static final double MINIMUM_ANGLE = 0.0;
 
-        public static final double SCORE_AMP_POSITION = 0.0;
+        public static final double SCORE_AMP_POSITION = Math.toRadians(100.0);
         public static final double DEPLOY_POSITION = 0.0;
 
-        public static final double SCORE_AMP_ROLLER_SPEED = 0.0;
-        public static final double INTAKE_ROLLER_SPEED = 0.0;
-        public static final double SPIT_ROLLER_SPEED = -0.0;
-        public static final double SPIT_SLOW_ROLLER_SPEED = -0.0;
+        public static final double SCORE_AMP_ROLLER_SPEED = 0.25;
+        public static final double INTAKE_ROLLER_SPEED = 0.8;
+        public static final double SPIT_ROLLER_SPEED = -0.5;
+        public static final double SPIT_SLOW_ROLLER_SPEED = -0.25;
 
         public static final class ArmConfigs {
 
@@ -131,7 +131,7 @@ public final class Constants {
                 .clone()
                 .follow(ExternalFollower.kFollowerSpark, RobotMap.INTAKE_ARM_LEFT_MOTOR, false);
             public static final AbsoluteEncoderConfig ENCODER = new AbsoluteEncoderConfig()
-                .setZeroOffset(0.0)
+                .setZeroOffset(0.0) // TODO: put in this angle before running
                 .setInverted(false)
                 .setPositionConversionFactor(Math2.TWO_PI)
                 .setVelocityConversionFactor(Math2.TWO_PI / 60.0);
@@ -164,14 +164,14 @@ public final class Constants {
 
     public static final class ShooterConstants {
 
-        public static final double SPEED_TOLERANCE = 0.0;
+        public static final double SPEED_TOLERANCE = 300.0;
 
-        public static final double LEFT_SPIT_SPEED = 0.0;
-        public static final double RIGHT_SPIT_SPEED = 0.0;
+        public static final double LEFT_SPIT_SPEED = -0.25;
+        public static final double RIGHT_SPIT_SPEED = -0.25;
 
-        public static final double LEFT_TO_RIGHT_RATIO = 0.0;
+        public static final double LEFT_TO_RIGHT_RATIO = 1.0;
 
-        public static final double REL_ENC_CONVERSION = 1.0;
+        public static final double REL_ENC_CONVERSION = 2.0; // gear ratio
 
         public static final class Configs {
 
@@ -186,7 +186,7 @@ public final class Constants {
             public static final SparkFlexConfig LEFT_MOTOR = MOTOR_BASE.clone().setInverted(false);
             public static final SparkFlexConfig RIGHT_MOTOR = MOTOR_BASE.clone().setInverted(true);
 
-            public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig().setPID(0.0, 0.0, 0.0, 0);
+            public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig().setPIDF(0.0, 0.0, 0.0, 1.0 / 13568.0, 0);
 
             public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
                 .setPositionConversionFactor(REL_ENC_CONVERSION)
@@ -196,14 +196,16 @@ public final class Constants {
 
     public static final class FeederConstants {
 
-        public static final double SHOOT_DELAY = 2.0;
+        public static final double SHOOT_DELAY = 0.5;
 
-        public static final double INTAKE_SPEED = 0.0;
-        public static final double BACK_SLOW_SPEED = 0.0;
-        public static final double POSITION_OFFSET = 0.0;
-        public static final double CLOSED_LOOP_ERR = 0.0;
-        public static final double SHOOT_SPEED = 0.0;
-        public static final double SPIT_SPEED = 0.0;
+        public static final double INTAKE_SPEED = 0.75;
+        public static final double BACK_SLOW_SPEED = -0.25;
+        public static final double POSITION_OFFSET = 2.5; // In inches
+        public static final double CLOSED_LOOP_ERR = 0.125;
+        public static final double SHOOT_SPEED = 0.8;
+        public static final double SPIT_SPEED = -0.5;
+
+        public static final double REL_ENC_CONVERSION = 1 / (0.5 * 1.4 * Math.PI); // 1 / (gear ratio * roller diameter * pi)
 
         public static final class Configs {
 
@@ -216,20 +218,24 @@ public final class Constants {
                 .setClosedLoopRampRate(1.5)
                 .setOpenLoopRampRate(1.5);
 
+            public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
+                .setPositionConversionFactor(REL_ENC_CONVERSION)
+                .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
+
             public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig().setPID(0.0, 0.0, 0.0);
         }
     }
 
     public static final class PivotConstants {
 
-        public static final double CLOSED_LOOP_ERR = 0.0;
+        public static final double CLOSED_LOOP_ERR = Math.toRadians(2.0);
 
         public static final double MINIMUM_ANGLE = 0.0;
-        public static final double MAXIMUM_ANGLE = 0.0;
+        public static final double MAXIMUM_ANGLE = Math.toRadians(80.0);
 
-        public static final double HOMING_SPEED = 0.0;
+        public static final double HOMING_SPEED = -0.2;
 
-        public static final double REL_ENC_CONVERSION = 0.2;
+        public static final double REL_ENC_CONVERSION = 1 / (25 * 1.1 * Math.PI / 7.568); // 1 / (gear ratio * circ output pinion / radius of arc) 
 
         public static final class Configs {
 
@@ -249,7 +255,7 @@ public final class Constants {
                 .setSmartMotionMaxVelocity(0, 0)
                 .setSmartMotionMinOutputVelocity(0, 0)
                 .setSmartMotionMaxAccel(0, 0)
-                .setSmartMotionAllowedClosedLoopError(CLOSED_LOOP_ERR, 0);
+                .setSmartMotionAllowedClosedLoopError(CLOSED_LOOP_ERR / REL_ENC_CONVERSION, 0);
 
             public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
                 .setPositionConversionFactor(REL_ENC_CONVERSION)
@@ -275,7 +281,8 @@ public final class Constants {
 
     public static final class ClimberConstants {
 
-        public static final double REL_ENC_CONVERSION = 0.2;
+        public static final double REL_ENC_CONVERSION = 1 / (125 * 12 * 0.25); // 1 / (gear ratio * sprocket teeth * inches/tooth)
+        public static final double CLOSED_LOOP_ERR = 0.125;
 
         public static final class Configs {
 
@@ -295,7 +302,7 @@ public final class Constants {
                 .setSmartMotionMaxVelocity(0, 0)
                 .setSmartMotionMinOutputVelocity(0, 0)
                 .setSmartMotionMaxAccel(0, 0)
-                .setSmartMotionAllowedClosedLoopError(0.0, 0);
+                .setSmartMotionAllowedClosedLoopError(CLOSED_LOOP_ERR * REL_ENC_CONVERSION, 0);
 
             public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
                 .setPositionConversionFactor(REL_ENC_CONVERSION)
@@ -307,28 +314,28 @@ public final class Constants {
 
         private static final SwerveModuleConfig FRONT_LEFT = new SwerveModuleConfig()
             .setLabel("Front Left")
-            .useSparkAttachedEncoder(0.0, false)
-            .setPosition(0.3000, 0.3000)
+            .useSparkAttachedEncoder(0.0, false) // TODO: put in this angle before running
+            .setPosition(0.3000, 0.3000) 
             .setMoveMotor(RobotMap.FRONT_LEFT_MOVE, true, true)
             .setTurnMotor(RobotMap.FRONT_LEFT_TURN, false, true);
 
         private static final SwerveModuleConfig BACK_LEFT = new SwerveModuleConfig()
             .setLabel("Back Left")
-            .useSparkAttachedEncoder(0.0, false)
+            .useSparkAttachedEncoder(0.0, false) // TODO: put in this angle before running
             .setPosition(-0.3000, 0.3000)
             .setMoveMotor(RobotMap.BACK_LEFT_MOVE, true, true)
             .setTurnMotor(RobotMap.BACK_LEFT_TURN, false, true);
 
         private static final SwerveModuleConfig BACK_RIGHT = new SwerveModuleConfig()
             .setLabel("Back Right")
-            .useSparkAttachedEncoder(0.0, false)
+            .useSparkAttachedEncoder(0.0, false) // TODO: put in this angle before running
             .setPosition(-0.3000, -0.3000)
             .setMoveMotor(RobotMap.BACK_RIGHT_MOVE, true, true)
             .setTurnMotor(RobotMap.BACK_RIGHT_TURN, false, true);
 
         private static final SwerveModuleConfig FRONT_RIGHT = new SwerveModuleConfig()
             .setLabel("Front Right")
-            .useSparkAttachedEncoder(0.0, false)
+            .useSparkAttachedEncoder(0.0, false) // TODO: put in this angle before running
             .setPosition(0.3000, -0.3000)
             .setMoveMotor(RobotMap.FRONT_RIGHT_MOVE, true, true)
             .setTurnMotor(RobotMap.FRONT_RIGHT_TURN, false, true);

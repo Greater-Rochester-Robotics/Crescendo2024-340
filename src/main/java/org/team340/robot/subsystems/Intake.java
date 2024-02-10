@@ -136,7 +136,7 @@ public class Intake extends GRRSubsystem {
      * @return This command.
      */
     public Command scoreAmp() {
-        return commandBuilder()
+        return commandBuilder("intake.scoreAmp()")
             .onExecute(() -> setValidPosition(IntakeConstants.SCORE_AMP_POSITION))
             .isFinished(() -> Math2.epsilonEquals(armEncoder.getPosition(), IntakeConstants.SCORE_AMP_POSITION))
             .onEnd(() -> rollerUpperMotor.set(IntakeConstants.SCORE_AMP_ROLLER_SPEED))
