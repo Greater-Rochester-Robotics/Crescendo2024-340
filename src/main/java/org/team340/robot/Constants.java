@@ -101,7 +101,7 @@ public final class Constants {
 
         public static final int CLIMBER_LEFT_MOTOR = 40;
         public static final int CLIMBER_RIGHT_MOTOR = 41;
-        
+
         public static final int CLIMBER_LEFT_LIMIT = 2;
         public static final int CLIMBER_RIGHT_LIMIT = 3;
         public static final int PIVOT_LOWER_LIMIT = 7;
@@ -115,6 +115,8 @@ public final class Constants {
         public static final double MINIMUM_ANGLE = 0.0;
         public static final double MINIMUM_PID_ANGLE = 0.0;
 
+        public static final double CLOSED_LOOP_ERROR = Math.toRadians(2.0);
+
         public static final double SCORE_AMP_POSITION = Math.toRadians(100.0);
         public static final double DEPLOY_POSITION = 0.0;
         public static final double STRAIGHT_UP_POSITION = Math2.HALF_PI;
@@ -124,6 +126,8 @@ public final class Constants {
         public static final double INTAKE_ROLLER_SPEED = 0.8;
         public static final double SPIT_ROLLER_SPEED = -0.5;
         public static final double SPIT_SLOW_ROLLER_SPEED = -0.25;
+
+        public static final double AMP_SCORING_TIMEOUT = 2.0;
 
         public static final class ArmConfigs {
 

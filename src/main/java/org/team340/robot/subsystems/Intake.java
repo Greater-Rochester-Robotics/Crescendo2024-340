@@ -1,7 +1,5 @@
 package org.team340.robot.subsystems;
 
-import static edu.wpi.first.wpilibj2.command.Commands.waitSeconds;
-
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkFlex;
@@ -14,13 +12,12 @@ import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import org.team340.lib.GRRSubsystem;
+import org.team340.lib.commands.CommandBuilder;
 import org.team340.lib.util.Math2;
 import org.team340.robot.Constants.IntakeConstants;
 import org.team340.robot.Constants.RobotMap;
 
 // TODO Motion profiling (?)
-// TODO Receive from feeder
-// TODO Amp score
 
 /**
  * This subsystem intakes notes from the floor and can score them in the amp, or pass them to the shooter.
@@ -99,10 +96,21 @@ public class Intake extends GRRSubsystem {
     }
 
     /**
+     * This moves the intake down to the intake position, but doesn't start the rollers.
+     * @return This command.
+     */
+    public Command intakeDown() {
+        return commandBuilder("intake.intakeDown()")
+            .onInitialize(() -> setValidPosition(IntakeConstants.DEPLOY_POSITION))
+            .isFinished(() -> armEncoder.getPosition() < IntakeConstants.DEPLOY_POSITION + IntakeConstants.CLOSED_LOOP_ERROR)
+            .onEnd(() -> armLeftMotor.stopMotor());
+    }
+
+    /**
      * Deploys the intake and runs the roller motors to intake a note.
      */
-    public Command deploy() {
-        return commandBuilder("intake.deploy()")
+    public Command intake() {
+        return commandBuilder("intake.intake()")
             .onInitialize(() -> rollerUpperMotor.set(IntakeConstants.INTAKE_ROLLER_SPEED))
             .onExecute(() -> {
                 setValidPosition(IntakeConstants.DEPLOY_POSITION);
@@ -116,6 +124,10 @@ public class Intake extends GRRSubsystem {
             });
     }
 
+    /**
+     * This moves the intake arm to point straight up.
+     * @return This command.
+     */
     public Command retract() {
         return commandBuilder("intake.retract()")
             .onInitialize(() -> rollerUpperMotor.stopMotor())
@@ -142,18 +154,19 @@ public class Intake extends GRRSubsystem {
     }
 
     /**
-     * Spits the note out of the intake in case it is stuck.
+     * This command moves the intake to the {@link IntakeConstants#SCORE_AMP_POSITION SCORE_AMP_POSITION}
+     * and ends once the position has been reached.
+     * @return This command.
      */
-    public Command spit() {
-        return commandBuilder("intake.spit()")
-            .onInitialize(() -> rollerUpperMotor.set(IntakeConstants.SPIT_ROLLER_SPEED))
-            .onEnd(() -> rollerUpperMotor.stopMotor());
-    }
-
-    public Command spitSlow() {
-        return commandBuilder("intake.spitSlow()")
-            .onInitialize(() -> rollerUpperMotor.set(IntakeConstants.SPIT_SLOW_ROLLER_SPEED))
-            .onEnd(() -> rollerUpperMotor.stopMotor());
+    public Command scoreAmpPosition() {
+        return commandBuilder("intake.scoreAmpPosition()")
+            .onExecute(() -> setValidPosition(IntakeConstants.SCORE_AMP_POSITION))
+            .isFinished(() -> Math2.epsilonEquals(armEncoder.getPosition(), IntakeConstants.SCORE_AMP_POSITION))
+            .onEnd(interrupted -> {
+                if (interrupted) {
+                    targetAngle = armEncoder.getPosition();
+                }
+            });
     }
 
     /**
@@ -161,16 +174,13 @@ public class Intake extends GRRSubsystem {
      * @return This command.
      */
     public Command scoreAmp() {
-        return commandBuilder("intake.scoreAmp()")
-            .onExecute(() -> setValidPosition(IntakeConstants.SCORE_AMP_POSITION))
-            .isFinished(() -> Math2.epsilonEquals(armEncoder.getPosition(), IntakeConstants.SCORE_AMP_POSITION))
-            .onEnd((Boolean interrupted) -> {
-                rollerUpperMotor.set(IntakeConstants.SCORE_AMP_ROLLER_SPEED);
-                if (interrupted) {
-                    targetAngle = armEncoder.getPosition();
-                }
-            })
-            .andThen(waitSeconds(2), runOnce(() -> rollerUpperMotor.stopMotor()));
+        return scoreAmpPosition()
+            .andThen(
+                commandBuilder("intake.scoreAmp().scoring")
+                    .onInitialize(() -> rollerUpperMotor.set(IntakeConstants.SCORE_AMP_ROLLER_SPEED))
+                    .onEnd(() -> rollerUpperMotor.stopMotor())
+                    .withTimeout(IntakeConstants.AMP_SCORING_TIMEOUT)
+            );
     }
 
     /**
@@ -178,7 +188,7 @@ public class Intake extends GRRSubsystem {
      * It should only be null if the position hasn't been set yet.
      * @return This command.
      */
-    public Command maintainPosition() {
+    public CommandBuilder maintainPosition() {
         return commandBuilder("intake.maintainPosition()")
             .onExecute(() -> {
                 if (targetAngle != null && targetAngle < IntakeConstants.MINIMUM_PID_ANGLE) {
@@ -187,5 +197,26 @@ public class Intake extends GRRSubsystem {
                     setValidPosition(targetAngle);
                 }
             });
+    }
+
+    /**
+     * Spits the note out of the intake in case it is stuck.
+     */
+    public Command spit() {
+        return maintainPosition()
+            .onInitialize(() -> rollerUpperMotor.set(IntakeConstants.SPIT_ROLLER_SPEED))
+            .onEnd(() -> rollerUpperMotor.stopMotor())
+            .withName("intake.spit()");
+    }
+
+    /**
+     * This command spits using the {@link IntakeConstants#SPIT_SLOW_ROLLER_SPEED slow roller speed}.
+     * @return This command.
+     */
+    public Command spitSlow() {
+        return maintainPosition()
+            .onInitialize(() -> rollerUpperMotor.set(IntakeConstants.SPIT_SLOW_ROLLER_SPEED))
+            .onEnd(() -> rollerUpperMotor.stopMotor())
+            .withName("intake.spitSlow()");
     }
 }
