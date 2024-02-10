@@ -116,6 +116,8 @@ public final class Constants {
 
         public static final double SCORE_AMP_POSITION = Math.toRadians(100.0);
         public static final double DEPLOY_POSITION = 0.0;
+        public static final double STRAIGHT_UP_POSITION = Math2.HALF_PI;
+        public static final double SAFE_POSITION = Math.toRadians(65.0);
 
         public static final double SCORE_AMP_ROLLER_SPEED = 0.25;
         public static final double INTAKE_ROLLER_SPEED = 0.8;

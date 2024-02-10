@@ -19,5 +19,6 @@
         "vscjava.vscode-java-test",
         "wpilibsuite.vscode-wpilib",
         "asciidoctor.asciidoctor-vscode"
+        "eamodio.gitlens"
     ]
 }

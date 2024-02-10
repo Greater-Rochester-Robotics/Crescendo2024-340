@@ -26,6 +26,13 @@ public class Routines {
         return sequence(swerve.drive(() -> 0.1, () -> 0.0, () -> 0.0, true).withTimeout(1.0));
     }
 
+    public Command intakeToBehindBumper() {
+        return sequence(
+            either(none(), pivot.goToAngle(Constants.PivotConstants.SAFE_FOR_INTAKE_ANGLE), pivot::isSafeForIntake),
+            intake.toSafePosition()
+        );
+    }
+
     public Command intake() {
         return sequence(
             deadline(

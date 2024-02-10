@@ -107,13 +107,19 @@ public class Intake extends GRRSubsystem {
             });
     }
 
-    /**
-     * Retracts the intake into the frame perimeter and stops the rollers.
-     */
     public Command retract() {
         return commandBuilder("intake.retract()")
             .onInitialize(() -> rollerUpperMotor.stopMotor())
-            .onExecute(() -> armPID.setReference(0, ControlType.kPosition, 0));
+            .onExecute(() -> armPID.setReference(IntakeConstants.STRAIGHT_UP_POSITION, ControlType.kPosition, 0));
+    }
+
+    /**
+     * Retracts the intake into the frame perimeter and stops the rollers.
+     */
+    public Command toSafePosition() {
+        return commandBuilder("intake.toSafePosition()")
+            .onInitialize(() -> rollerUpperMotor.stopMotor())
+            .onExecute(() -> armPID.setReference(IntakeConstants.SAFE_POSITION, ControlType.kPosition, 0));
     }
 
     /**
