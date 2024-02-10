@@ -3,6 +3,8 @@ package org.team340.robot;
 import com.revrobotics.CANSparkBase.ExternalFollower;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.SparkPIDController.AccelStrategy;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.CalibrationTime;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
@@ -252,6 +254,22 @@ public final class Constants {
             public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
                 .setPositionConversionFactor(REL_ENC_CONVERSION)
                 .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
+        }
+
+        private static final InterpolatingDoubleTreeMap DISTANCE_TO_ANGLE_MAP = new InterpolatingDoubleTreeMap();
+
+        static {
+            DISTANCE_TO_ANGLE_MAP.put(0.0, 0.0);
+            DISTANCE_TO_ANGLE_MAP.put(5.6, 1.2);
+        }
+
+        public static double interpolateAngle(Pose2d robotPosition, Pose2d targetPosition) {
+            // Find the distance between the two
+            double distance = robotPosition.getTranslation().getDistance(targetPosition.getTranslation());
+
+            double angle = DISTANCE_TO_ANGLE_MAP.get(distance);
+
+            return angle;
         }
     }
 
