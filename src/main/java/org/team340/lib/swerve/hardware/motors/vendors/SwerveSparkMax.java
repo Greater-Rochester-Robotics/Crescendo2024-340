@@ -3,10 +3,9 @@ package org.team340.lib.swerve.hardware.motors.vendors;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
-import com.revrobotics.SparkAbsoluteEncoder.Type;
+import com.revrobotics.SparkAbsoluteEncoder;
 import com.revrobotics.SparkPIDController;
 import com.revrobotics.SparkPIDController.ArbFFUnits;
-import org.team340.lib.swerve.SwerveBase.SwerveEncoderType;
 import org.team340.lib.swerve.config.SwerveConfig;
 import org.team340.lib.swerve.config.SwerveModuleConfig;
 import org.team340.lib.swerve.hardware.encoders.SwerveEncoder;
@@ -56,7 +55,8 @@ public class SwerveSparkMax implements SwerveMotor {
         SwerveConversions conversions = new SwerveConversions(config);
 
         int periodMs = (int) (config.getPeriod() * 1000.0);
-        boolean usingAttachedEncoder = SwerveEncoderType.SPARK_ENCODER.equals(moduleConfig.getEncoderType());
+        int periodOdometryMs = (int) (config.getOdometryPeriod() * 1000.0);
+        boolean usingAttachedEncoder = SwerveEncoder.Type.SPARK_ENCODER.equals(moduleConfig.getEncoderType());
         double conversionFactor = 1.0 / (isMoveMotor ? conversions.moveRotationsPerMeter() : conversions.turnRotationsPerRadian());
         PIDConfig pidConfig = isMoveMotor ? config.getMovePID() : config.getTurnPID();
 
@@ -72,11 +72,11 @@ public class SwerveSparkMax implements SwerveMotor {
             .setOpenLoopRampRate(isMoveMotor ? config.getMoveRampRate() : config.getTurnRampRate())
             .setClosedLoopRampRate(isMoveMotor ? config.getMoveRampRate() : config.getTurnRampRate())
             .setPeriodicFramePeriod(Frame.S0, periodMs)
-            .setPeriodicFramePeriod(Frame.S1, periodMs)
-            .setPeriodicFramePeriod(Frame.S2, periodMs)
+            .setPeriodicFramePeriod(Frame.S1, periodOdometryMs)
+            .setPeriodicFramePeriod(Frame.S2, periodOdometryMs)
             .setPeriodicFramePeriod(Frame.S3, 10000)
-            .setPeriodicFramePeriod(Frame.S4, usingAttachedEncoder ? periodMs : 10000)
-            .setPeriodicFramePeriod(Frame.S5, usingAttachedEncoder ? periodMs : 10000)
+            .setPeriodicFramePeriod(Frame.S4, usingAttachedEncoder ? periodOdometryMs : 10000)
+            .setPeriodicFramePeriod(Frame.S5, usingAttachedEncoder ? periodOdometryMs : 10000)
             .apply(sparkMax);
 
         new SparkPIDControllerConfig()
@@ -96,7 +96,7 @@ public class SwerveSparkMax implements SwerveMotor {
                 .setVelocityConversionFactor(Math2.TWO_PI / 60.0)
                 .setInverted(moduleConfig.getEncoderInverted())
                 .setZeroOffset(moduleConfig.getEncoderOffset())
-                .apply(sparkMax, sparkMax.getAbsoluteEncoder(Type.kDutyCycle));
+                .apply(sparkMax, sparkMax.getAbsoluteEncoder(SparkAbsoluteEncoder.Type.kDutyCycle));
         }
 
         sparkMax.set(0.0);
@@ -111,6 +111,11 @@ public class SwerveSparkMax implements SwerveMotor {
     @Override
     public double getPosition() {
         return relativeEncoder.getPosition();
+    }
+
+    @Override
+    public double getDutyCycle() {
+        return sparkMax.getAppliedOutput();
     }
 
     @Override

@@ -4,6 +4,8 @@ import com.revrobotics.CANSparkLowLevel.PeriodicFrame;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.REVLibError;
 import edu.wpi.first.wpilibj.RobotBase;
+import java.util.ArrayList;
+import java.util.List;
 import org.team340.lib.util.Math2;
 
 /**
@@ -40,9 +42,12 @@ public final class SparkMaxConfig extends RevConfigBase<CANSparkMax> {
     public void apply(CANSparkMax sparkMax) {
         addStep(
             sm -> {
-                RevConfigUtils.burnFlashSleep();
+                RevConfigRegistry.burnFlashSleep();
                 return sm.burnFlash();
             },
+            sm -> true,
+            false,
+            1,
             "Burn Flash"
         );
         super.applySteps(sparkMax, "Spark Max (ID " + sparkMax.getDeviceId() + ")");
@@ -256,7 +261,7 @@ public final class SparkMaxConfig extends RevConfigBase<CANSparkMax> {
     public SparkMaxConfig disableVoltageCompensation() {
         addStep(
             sparkMax -> sparkMax.disableVoltageCompensation(),
-            sparkMax -> Math2.epsilonEquals(sparkMax.getVoltageCompensationNominalVoltage(), 0.0, RevConfigUtils.EPSILON),
+            sparkMax -> Math2.epsilonEquals(sparkMax.getVoltageCompensationNominalVoltage(), 0.0, RevConfigRegistry.EPSILON),
             "Disable Voltage Compensation"
         );
         return this;
@@ -283,7 +288,7 @@ public final class SparkMaxConfig extends RevConfigBase<CANSparkMax> {
     public SparkMaxConfig enableVoltageCompensation(double nominalVoltage) {
         addStep(
             sparkMax -> sparkMax.enableVoltageCompensation(nominalVoltage),
-            sparkMax -> Math2.epsilonEquals(sparkMax.getVoltageCompensationNominalVoltage(), nominalVoltage, RevConfigUtils.EPSILON),
+            sparkMax -> Math2.epsilonEquals(sparkMax.getVoltageCompensationNominalVoltage(), nominalVoltage, RevConfigRegistry.EPSILON),
             "Enable Voltage Compensation"
         );
         return this;
@@ -338,7 +343,7 @@ public final class SparkMaxConfig extends RevConfigBase<CANSparkMax> {
     /**
      * Sets timeout for sending CAN messages with {@code setParameter*()} and {@code getParameter*()}
      *  calls.These calls will block for up to this amount of time before returning a timeout error.
-     * A timeout of {@code 0.0} will make the {@code setParameter*()} calls non-blocking, and instead
+     * A timeout of {@code 0} will make the {@code setParameter*()} calls non-blocking, and instead
      * will check the response in a separate thread. With this configuration, any error messages will
      * appear on the driver station but will not be returned by the {@code getLastError()} call.
      * @param milliseconds The timeout in milliseconds.
@@ -356,7 +361,7 @@ public final class SparkMaxConfig extends RevConfigBase<CANSparkMax> {
     public SparkMaxConfig setClosedLoopRampRate(double rate) {
         addStep(
             sparkMax -> sparkMax.setClosedLoopRampRate(rate),
-            sparkMax -> Math2.epsilonEquals(sparkMax.getClosedLoopRampRate(), rate, RevConfigUtils.EPSILON),
+            sparkMax -> Math2.epsilonEquals(sparkMax.getClosedLoopRampRate(), rate, RevConfigRegistry.EPSILON),
             "Closed Loop Ramp Rate"
         );
         return this;
@@ -396,7 +401,7 @@ public final class SparkMaxConfig extends RevConfigBase<CANSparkMax> {
     public SparkMaxConfig setOpenLoopRampRate(double rate) {
         addStep(
             sparkMax -> sparkMax.setOpenLoopRampRate(rate),
-            sparkMax -> Math2.epsilonEquals(sparkMax.getOpenLoopRampRate(), rate, RevConfigUtils.EPSILON),
+            sparkMax -> Math2.epsilonEquals(sparkMax.getOpenLoopRampRate(), rate, RevConfigRegistry.EPSILON),
             "Open Loop Ramp Rate"
         );
         return this;
@@ -410,7 +415,17 @@ public final class SparkMaxConfig extends RevConfigBase<CANSparkMax> {
      * @param periodMs The rate the controller sends the frame in milliseconds.
      */
     public SparkMaxConfig setPeriodicFramePeriod(Frame frame, int periodMs) {
-        addStep(sparkMax -> sparkMax.setPeriodicFramePeriod(frame.frame, periodMs), "Periodic Frame Status " + frame.ordinal());
+        List<CANSparkMax> applied = new ArrayList<>();
+        addStep(
+            sparkMax -> {
+                if (!applied.contains(sparkMax)) {
+                    RevConfigRegistry.addPeriodic(() -> sparkMax.setPeriodicFramePeriod(frame.frame, periodMs));
+                    applied.add(sparkMax);
+                }
+                return sparkMax.setPeriodicFramePeriod(frame.frame, periodMs);
+            },
+            "Periodic Frame Status " + frame.ordinal()
+        );
         return this;
     }
 
@@ -421,7 +436,7 @@ public final class SparkMaxConfig extends RevConfigBase<CANSparkMax> {
      * 'on/off' controller. This limit is enabled by default but is set higher than
      * the default Smart Current Limit. The time the controller is off after the current
      * limit is reached is determined by the parameter limitCycles, which is the number
-     * of PWM cycles (20kHz). The recommended value is the default of {@code 0.0} which is
+     * of PWM cycles (20kHz). The recommended value is the default of {@code 0} which is
      * the minimum time and is part of a PWM cycle from when the over current is detected.
      * This allows the controller to regulate the current close to the limit value.
      * @param limit The current limit in amps.
@@ -438,7 +453,7 @@ public final class SparkMaxConfig extends RevConfigBase<CANSparkMax> {
      * 'on/off' controller. This limit is enabled by default but is set higher than
      * the default Smart Current Limit. The time the controller is off after the current
      * limit is reached is determined by the parameter limitCycles, which is the number
-     * of PWM cycles (20kHz). The recommended value is the default of {@code 0.0} which is
+     * of PWM cycles (20kHz). The recommended value is the default of {@code 0} which is
      * the minimum time and is part of a PWM cycle from when the over current is detected.
      * This allows the controller to regulate the current close to the limit value.
      * @param limit The current limit in amps.
@@ -475,8 +490,8 @@ public final class SparkMaxConfig extends RevConfigBase<CANSparkMax> {
      * smarter strategy to deal with high current draws and keep the motor and controller
      * operating in a safe region. The controller can also limit the current based on the RPM
      * of the motor in a linear fashion to help with controllability in closed loop control.
-     * For a response that is linear the entire RPM range leave limit RPM at {@code 0.0}.
-     * @param stallLimit The current limit in amps at {@code 0.0} RPM.
+     * For a response that is linear the entire RPM range leave limit RPM at {@code 0}.
+     * @param stallLimit The current limit in amps at {@code 0} RPM.
      * @param freeLimit The current limit at free speed ({@code 5700} RPM for NEO).
      */
     public SparkMaxConfig setSmartCurrentLimit(int stallLimit, int freeLimit) {
@@ -494,8 +509,8 @@ public final class SparkMaxConfig extends RevConfigBase<CANSparkMax> {
      * smarter strategy to deal with high current draws and keep the motor and controller
      * operating in a safe region. The controller can also limit the current based on the RPM
      * of the motor in a linear fashion to help with controllability in closed loop control.
-     * For a response that is linear the entire RPM range leave limit RPM at {@code 0.0}.
-     * @param stallLimit The current limit in amps at {@code 0.0} RPM.
+     * For a response that is linear the entire RPM range leave limit RPM at {@code 0}.
+     * @param stallLimit The current limit in amps at {@code 0} RPM.
      * @param freeLimit The current limit at free speed ({@code 5700} RPM for NEO).
      * @param limitRPM RPM less than this value will be set to the stallLimit, RPM values greater than limitRPM will scale linearly to freeLimit.
      */
@@ -514,7 +529,7 @@ public final class SparkMaxConfig extends RevConfigBase<CANSparkMax> {
     public SparkMaxConfig setSoftLimit(CANSparkMax.SoftLimitDirection direction, double limit) {
         addStep(
             sparkMax -> sparkMax.setSoftLimit(direction, (float) limit),
-            sparkMax -> Math2.epsilonEquals(sparkMax.getSoftLimit(direction), limit, RevConfigUtils.EPSILON),
+            sparkMax -> Math2.epsilonEquals(sparkMax.getSoftLimit(direction), limit, RevConfigRegistry.EPSILON),
             "Soft Limit"
         );
         return this;

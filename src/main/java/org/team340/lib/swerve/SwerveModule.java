@@ -15,7 +15,7 @@ import org.team340.lib.util.Math2;
 /**
  * A swerve module for {@link SwerveBase}
  */
-class SwerveModule {
+public class SwerveModule {
 
     private final SwerveConfig config;
     private final SwerveModuleConfig moduleConfig;
@@ -25,6 +25,7 @@ class SwerveModule {
     private final SimpleMotorFeedforward moveFFController;
     private final Timer controlTimer = new Timer();
 
+    private SwerveModuleState desiredState = new SwerveModuleState();
     private double lastMoveSpeed = 0.0;
     private double simDistance = 0.0;
     private double simHeading = 0.0;
@@ -38,7 +39,7 @@ class SwerveModule {
      * @param config The general swerve config.
      * @param moduleConfig The module's config.
      */
-    public SwerveModule(
+    SwerveModule(
         SwerveMotor moveMotor,
         SwerveMotor turnMotor,
         SwerveEncoder encoder,
@@ -59,6 +60,17 @@ class SwerveModule {
      */
     public String getLabel() {
         return moduleConfig.getLabel();
+    }
+
+    /**
+     * Gets current duty cycle of move motor.
+     */
+    public double getMoveDutyCycle() {
+        if (RobotBase.isSimulation()) {
+            return (simVelocity / config.getVelocity()) * 12.0;
+        } else {
+            return moveMotor.getDutyCycle();
+        }
     }
 
     /**
@@ -95,6 +107,13 @@ class SwerveModule {
     }
 
     /**
+     * Gets the desired state of the swerve module.
+     */
+    public SwerveModuleState getDesiredState() {
+        return desiredState;
+    }
+
+    /**
      * Gets the current state of the swerve module.
      */
     public SwerveModuleState getModuleState() {
@@ -109,9 +128,8 @@ class SwerveModule {
     }
 
     /**
-     * Sets a desired state of the swerve module.
+     * Sets the desired state of the swerve module.
      * @param state The new state.
-     * @return If the module was flipped.
      */
     public void setDesiredState(SwerveModuleState state) {
         double moveSpeed = state.speedMetersPerSecond;
@@ -139,6 +157,7 @@ class SwerveModule {
             simVelocity = moveSpeed;
         }
 
+        desiredState = state;
         lastMoveSpeed = moveSpeed;
         controlTimer.restart();
     }
@@ -154,17 +173,20 @@ class SwerveModule {
         moveMotor.setVoltage(voltage);
         turnMotor.setReference(turnTarget, 0.0);
 
+        double expectedVelocity =
+            moveFFController.maxAchievableVelocity(
+                config.getOptimalVoltage(),
+                controlTimer.get() == 0 ? 0.0 : (simVelocity - lastMoveSpeed) / controlTimer.get()
+            ) *
+            (voltage / config.getOptimalVoltage());
+
         if (RobotBase.isSimulation()) {
             simDistance += simVelocity * controlTimer.get();
             simHeading = heading.getRadians();
-            simVelocity =
-                moveFFController.maxAchievableVelocity(
-                    config.getOptimalVoltage(),
-                    controlTimer.get() == 0 ? 0.0 : (simVelocity - lastMoveSpeed) / controlTimer.get()
-                ) *
-                (voltage / config.getOptimalVoltage());
+            simVelocity = expectedVelocity;
         }
 
+        desiredState = new SwerveModuleState(expectedVelocity, heading);
         lastMoveSpeed = RobotBase.isSimulation() ? simVelocity : getVelocity();
         controlTimer.restart();
     }

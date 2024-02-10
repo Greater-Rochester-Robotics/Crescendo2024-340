@@ -1,5 +1,10 @@
 package org.team340.lib.swerve;
 
+import static edu.wpi.first.units.MutableMeasure.mutable;
+import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.Volts;
+
 import com.revrobotics.CANSparkFlex;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
@@ -16,16 +21,21 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.units.Distance;
+import edu.wpi.first.units.Measure;
+import edu.wpi.first.units.MutableMeasure;
+import edu.wpi.first.units.Velocity;
+import edu.wpi.first.units.Voltage;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.ADIS16470_IMU;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.SPI;
-import java.util.ArrayList;
-import java.util.List;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism;
+import java.util.function.Consumer;
 import org.team340.lib.GRRDashboard;
 import org.team340.lib.GRRSubsystem;
-import org.team340.lib.blacklight.Blacklight;
-import org.team340.lib.blacklight.BlacklightConfig;
 import org.team340.lib.swerve.config.SwerveConfig;
 import org.team340.lib.swerve.config.SwerveModuleConfig;
 import org.team340.lib.swerve.hardware.encoders.SwerveEncoder;
@@ -41,7 +51,9 @@ import org.team340.lib.swerve.hardware.motors.vendors.SwerveSparkMax;
 import org.team340.lib.swerve.hardware.motors.vendors.SwerveTalonFX;
 import org.team340.lib.swerve.util.SwerveConversions;
 import org.team340.lib.swerve.util.SwerveField2d;
+import org.team340.lib.swerve.util.SwerveOdometryThread;
 import org.team340.lib.swerve.util.SwerveRatelimiter;
+import org.team340.lib.swerve.util.SwerveSerializer;
 import org.team340.lib.util.Math2;
 import org.team340.lib.util.SendableFactory;
 import org.team340.lib.util.StringUtil;
@@ -62,54 +74,33 @@ import org.team340.lib.util.StringUtil;
  * Supported encoders:
  * <ul>
  *   <li>CANcoder</li>
- *   <li>Spark Attached Encoders (Through Bore, MagEncoder with adapter board, CANandcoder, etc)</li>
+ *   <li>Spark Attached Encoders</li>
  * </ul>
  *
  * Supported IMUs:
  * <ul>
- *   <li>ADIS16470 (Using modified implementation with support for 3 axis)</li>
+ *   <li>ADIS16470</li>
  *   <li>Pigeon 2</li>
  * </ul>
  */
 public abstract class SwerveBase extends GRRSubsystem {
 
-    /**
-     * Supported IMUs.
-     */
-    public static enum SwerveIMUType {
-        ADIS16470,
-        PIGEON2,
-    }
-
-    /**
-     * Supported motors.
-     */
-    public static enum SwerveMotorType {
-        SPARK_MAX_BRUSHED,
-        SPARK_MAX_BRUSHLESS,
-        SPARK_FLEX_BRUSHED,
-        SPARK_FLEX_BRUSHLESS,
-        TALONFX,
-    }
-
-    /**
-     * Supported encoders.
-     */
-    public static enum SwerveEncoderType {
-        CANCODER,
-        SPARK_ENCODER,
-    }
-
     protected final SwerveConfig config;
-    protected final SwerveIMU imu;
-    protected final SwerveModule[] modules;
-    protected final Translation2d[] moduleTranslations;
     protected final SwerveConversions conversions;
+    protected final SwerveIMU imu;
     protected final SwerveDriveKinematics kinematics;
-    protected final SwerveRatelimiter ratelimiter;
-    protected final SwerveField2d field;
+    protected final SwerveModule[] modules;
     protected final SwerveDrivePoseEstimator poseEstimator;
-    protected final List<Blacklight> blacklights = new ArrayList<>();
+    protected final SysIdRoutine sysIdRoutine;
+
+    private final Translation2d[] moduleTranslations;
+    private final SwerveOdometryThread odometryThread;
+    private final SwerveRatelimiter ratelimiter;
+    private final SwerveField2d field;
+
+    private final MutableMeasure<Voltage> sysIdAppliedVoltage = mutable(Volts.of(0));
+    private final MutableMeasure<Distance> sysIdDistance = mutable(Meters.of(0));
+    private final MutableMeasure<Velocity<Distance>> sysIdVelocity = mutable(MetersPerSecond.of(0));
 
     /**
      * Create the GRRSwerve subsystem.
@@ -133,10 +124,11 @@ public abstract class SwerveBase extends GRRSubsystem {
 
         conversions = new SwerveConversions(config);
         kinematics = new SwerveDriveKinematics(moduleTranslations);
+        odometryThread = new SwerveOdometryThread(modules, imu::getYaw, config);
         ratelimiter = new SwerveRatelimiter(config, kinematics, getModuleStates());
-        field = new SwerveField2d(config, moduleTranslations);
+        field = new SwerveField2d(config);
 
-        double[] std = config.getStandardDeviations();
+        double[] std = config.getOdometryStd();
         poseEstimator =
             new SwerveDrivePoseEstimator(
                 kinematics,
@@ -147,14 +139,31 @@ public abstract class SwerveBase extends GRRSubsystem {
                 VecBuilder.fill(0.0, 0.0, 0.0)
             );
 
-        for (BlacklightConfig blacklightConfig : config.getBlacklights()) {
-            Blacklight blacklight = new Blacklight(blacklightConfig);
-            blacklight.publishConfig();
-            blacklight.startListeners();
-            blacklights.add(blacklight);
-        }
+        sysIdRoutine =
+            new SysIdRoutine(
+                config.getSysIdConfig(),
+                new Mechanism(
+                    (Measure<Voltage> volts) -> {
+                        driveVoltage(volts.in(Volts), Math2.ROTATION2D_0);
+                    },
+                    log -> {
+                        for (SwerveModule module : modules) {
+                            log
+                                .motor("module-" + StringUtil.toCamelCase(module.getLabel()))
+                                .voltage(
+                                    sysIdAppliedVoltage.mut_replace(module.getMoveDutyCycle() * RobotController.getBatteryVoltage(), Volts)
+                                )
+                                .linearPosition(sysIdDistance.mut_replace(module.getDistance(), Meters))
+                                .linearVelocity(sysIdVelocity.mut_replace(module.getVelocity(), MetersPerSecond));
+                        }
+                    },
+                    this,
+                    "Swerve"
+                )
+            );
 
         imu.setZero(Math2.ROTATION2D_0);
+        odometryThread.start();
 
         System.out.println(
             "\nGRRSwerve Conversions:" +
@@ -174,18 +183,18 @@ public abstract class SwerveBase extends GRRSubsystem {
         builder.addDoubleProperty("velocityX", () -> Math2.toFixed(getVelocity(true).vxMetersPerSecond), null);
         builder.addDoubleProperty("velocityY", () -> Math2.toFixed(getVelocity(true).vyMetersPerSecond), null);
         builder.addDoubleProperty("velocityRot", () -> Math2.toFixed(getVelocity(true).omegaRadiansPerSecond), null);
-        builder.addDoubleProperty(
-            "velocityNorm",
-            () -> {
-                ChassisSpeeds velocity = getVelocity(true);
-                return Math2.toFixed(Math.hypot(velocity.vxMetersPerSecond, velocity.vyMetersPerSecond));
-            },
-            null
-        );
+        builder.addDoubleProperty("velocityNorm", () -> SwerveSerializer.chassisSpeedsNorm(getVelocity(true), true), null);
 
         builder.addDoubleProperty("odometryX", () -> Math2.toFixed(getPosition().getX()), null);
         builder.addDoubleProperty("odometryY", () -> Math2.toFixed(getPosition().getY()), null);
         builder.addDoubleProperty("odometryRot", () -> Math2.toFixed(getPosition().getRotation().getRadians()), null);
+
+        builder.addDoubleArrayProperty(
+            "desiredModuleStates",
+            () -> SwerveSerializer.moduleStatesDoubleArray(getDesiredModuleStates(), true),
+            null
+        );
+        builder.addDoubleArrayProperty("moduleStates", () -> SwerveSerializer.moduleStatesDoubleArray(getModuleStates(), true), null);
 
         for (SwerveModule module : modules) {
             GRRDashboard.addSubsystemSendable(
@@ -193,40 +202,14 @@ public abstract class SwerveBase extends GRRSubsystem {
                 this,
                 SendableFactory.create(moduleBuilder -> {
                     moduleBuilder.publishConstString(".label", module.getLabel());
-                    moduleBuilder.addDoubleProperty(
-                        "velocity",
-                        () -> Math2.toFixed(module.getVelocity()),
-                        v -> module.setDesiredState(new SwerveModuleState(v, Rotation2d.fromRadians(module.getHeading())))
-                    );
+                    moduleBuilder.addDoubleProperty("velocity", () -> Math2.toFixed(module.getVelocity()), null);
                     moduleBuilder.addDoubleProperty("distance", () -> Math2.toFixed(module.getDistance()), null);
-                    moduleBuilder.addDoubleProperty(
-                        "angle",
-                        () -> Math2.toFixed(module.getHeading()),
-                        v -> module.setDesiredState(new SwerveModuleState(0.0, Rotation2d.fromRadians(v)))
-                    );
+                    moduleBuilder.addDoubleProperty("angle", () -> Math2.toFixed(module.getHeading()), null);
                 })
             );
         }
 
         GRRDashboard.addSubsystemSendable("Field", this, field);
-    }
-
-    /**
-     * Gets the states of all swerve modules.
-     */
-    protected SwerveModuleState[] getModuleStates() {
-        SwerveModuleState[] moduleStates = new SwerveModuleState[modules.length];
-        for (int i = 0; i < moduleStates.length; i++) moduleStates[i] = modules[i].getModuleState();
-        return moduleStates;
-    }
-
-    /**
-     * Gets the positions of all swerve modules.
-     */
-    protected SwerveModulePosition[] getModulePositions() {
-        SwerveModulePosition[] modulePositions = new SwerveModulePosition[modules.length];
-        for (int i = 0; i < modulePositions.length; i++) modulePositions[i] = modules[i].getModulePosition();
-        return modulePositions;
     }
 
     /**
@@ -249,6 +232,33 @@ public abstract class SwerveBase extends GRRSubsystem {
     }
 
     /**
+     * Gets the desired states of all swerve modules.
+     */
+    protected SwerveModuleState[] getDesiredModuleStates() {
+        SwerveModuleState[] desiredModuleStates = new SwerveModuleState[modules.length];
+        for (int i = 0; i < desiredModuleStates.length; i++) desiredModuleStates[i] = modules[i].getDesiredState();
+        return desiredModuleStates;
+    }
+
+    /**
+     * Gets the states of all swerve modules.
+     */
+    protected SwerveModuleState[] getModuleStates() {
+        SwerveModuleState[] moduleStates = new SwerveModuleState[modules.length];
+        for (int i = 0; i < moduleStates.length; i++) moduleStates[i] = modules[i].getModuleState();
+        return moduleStates;
+    }
+
+    /**
+     * Gets the positions of all swerve modules.
+     */
+    protected SwerveModulePosition[] getModulePositions() {
+        SwerveModulePosition[] modulePositions = new SwerveModulePosition[modules.length];
+        for (int i = 0; i < modulePositions.length; i++) modulePositions[i] = modules[i].getModulePosition();
+        return modulePositions;
+    }
+
+    /**
      * Resets odometry.
      * @param newPose The new pose.
      */
@@ -262,10 +272,18 @@ public abstract class SwerveBase extends GRRSubsystem {
      * Should be ran periodically.
      */
     protected void updateOdometry() {
-        for (Blacklight blacklight : blacklights) blacklight.update(poseEstimator);
-        SwerveModulePosition[] modulePositions = getModulePositions();
-        Pose2d newPose = poseEstimator.update(imu.getYaw(), modulePositions);
-        field.update(newPose, modulePositions);
+        updateOdometry(poseEstimator -> {});
+    }
+
+    /**
+     * Updates odometry.
+     * Should be ran periodically.
+     * @param poseEstimatorConsumer A consumer that accepts the pose estimator. Should be used for applying field-relative poses from vision data. Note that it is expected that standard deviations are specified when using {@link SwerveDrivePoseEstimator#addVisionMeasurement}, as the initial standard deviations are set to {@code 0.0}.
+     */
+    protected void updateOdometry(Consumer<SwerveDrivePoseEstimator> poseEstimatorConsumer) {
+        odometryThread.update(poseEstimator);
+        poseEstimatorConsumer.accept(poseEstimator);
+        field.update(getPosition());
     }
 
     /**
@@ -296,7 +314,7 @@ public abstract class SwerveBase extends GRRSubsystem {
      * @param fieldRelative If the robot should drive field relative.
      */
     protected void drive(double x, double y, double rot, boolean fieldRelative) {
-        driveVelocity(x * config.getMaxV(), y * config.getMaxV(), rot * config.getMaxRv(), fieldRelative);
+        driveVelocity(x * config.getVelocity(), y * config.getVelocity(), rot * config.getRotationalVelocity(), fieldRelative);
     }
 
     /**
@@ -322,7 +340,7 @@ public abstract class SwerveBase extends GRRSubsystem {
      * @param controller A profiled PID controller to use for translating to and maintaining the angle to the desired point.
      */
     protected void driveAroundPoint(double x, double y, Translation2d point, ProfiledPIDController controller) {
-        driveAroundPointVelocity(x * config.getMaxV(), y * config.getMaxV(), point, controller);
+        driveAroundPointVelocity(x * config.getVelocity(), y * config.getVelocity(), point, controller);
     }
 
     /**
@@ -346,7 +364,7 @@ public abstract class SwerveBase extends GRRSubsystem {
      * @param controller A profiled PID controller to use for translating to and maintaining the angle.
      */
     protected void driveAngle(double x, double y, double angle, ProfiledPIDController controller) {
-        driveAngleVelocity(x * config.getMaxV(), y * config.getMaxV(), angle, controller);
+        driveAngleVelocity(x * config.getVelocity(), y * config.getVelocity(), angle, controller);
     }
 
     /**
@@ -428,7 +446,7 @@ public abstract class SwerveBase extends GRRSubsystem {
             driveStates(ratelimiter.calculate(chassisSpeeds).moduleStates());
         } else {
             SwerveModuleState[] states = kinematics.toSwerveModuleStates(chassisSpeeds);
-            SwerveDriveKinematics.desaturateWheelSpeeds(states, config.getMaxV());
+            SwerveDriveKinematics.desaturateWheelSpeeds(states, config.getVelocity());
             ratelimiter.setLastState(chassisSpeeds, states);
             driveStates(states);
         }
@@ -514,14 +532,14 @@ public abstract class SwerveBase extends GRRSubsystem {
                 break;
             case SPARK_ENCODER:
                 if (
-                    config.getMoveMotorType().equals(SwerveMotorType.SPARK_MAX_BRUSHED) ||
-                    config.getMoveMotorType().equals(SwerveMotorType.SPARK_MAX_BRUSHLESS)
+                    config.getMoveMotorType().equals(SwerveMotor.Type.SPARK_MAX_BRUSHED) ||
+                    config.getMoveMotorType().equals(SwerveMotor.Type.SPARK_MAX_BRUSHLESS)
                 ) {
                     turnSparkMax =
                         createSparkMax(
                             moduleConfig.getLabel() + "Turn Motor",
                             moduleConfig.getTurnMotorDeviceId(),
-                            config.getMoveMotorType().equals(SwerveMotorType.SPARK_MAX_BRUSHLESS)
+                            config.getMoveMotorType().equals(SwerveMotor.Type.SPARK_MAX_BRUSHLESS)
                                 ? MotorType.kBrushless
                                 : MotorType.kBrushed
                         );
@@ -539,7 +557,7 @@ public abstract class SwerveBase extends GRRSubsystem {
                         createSparkFlex(
                             moduleConfig.getLabel() + "Turn Motor",
                             moduleConfig.getTurnMotorDeviceId(),
-                            config.getMoveMotorType().equals(SwerveMotorType.SPARK_FLEX_BRUSHLESS)
+                            config.getMoveMotorType().equals(SwerveMotor.Type.SPARK_FLEX_BRUSHLESS)
                                 ? MotorType.kBrushless
                                 : MotorType.kBrushed
                         );
@@ -589,7 +607,7 @@ public abstract class SwerveBase extends GRRSubsystem {
                     createSparkMax(
                         label,
                         deviceId,
-                        config.getMoveMotorType().equals(SwerveMotorType.SPARK_MAX_BRUSHLESS) ? MotorType.kBrushless : MotorType.kBrushed
+                        config.getMoveMotorType().equals(SwerveMotor.Type.SPARK_MAX_BRUSHLESS) ? MotorType.kBrushless : MotorType.kBrushed
                     ),
                     encoder,
                     config,
@@ -602,7 +620,7 @@ public abstract class SwerveBase extends GRRSubsystem {
                     createSparkFlex(
                         label,
                         deviceId,
-                        config.getMoveMotorType().equals(SwerveMotorType.SPARK_FLEX_BRUSHLESS) ? MotorType.kBrushless : MotorType.kBrushed
+                        config.getMoveMotorType().equals(SwerveMotor.Type.SPARK_FLEX_BRUSHLESS) ? MotorType.kBrushless : MotorType.kBrushed
                     ),
                     encoder,
                     config,

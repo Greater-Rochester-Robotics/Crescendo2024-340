@@ -1,11 +1,9 @@
 package org.team340.robot.subsystems;
 
-import static edu.wpi.first.wpilibj2.command.Commands.*;
-
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import java.util.function.Supplier;
 import org.team340.lib.swerve.SwerveBase;
 import org.team340.lib.util.Math2;
@@ -68,24 +66,18 @@ public class Swerve extends SwerveBase {
     }
 
     /**
-     * Drives the robot while snapping to facing up or down the field, whichever is closer.
-     * Ends when the robot is at the determined angle.
-     * @param x X speed.
-     * @param y Y speed.
+     * Runs a SysId quasistatic test.
+     * @param direction The direction to run the test in.
      */
-    public Command driveSnap180(Supplier<Double> x, Supplier<Double> y) {
-        return either(
-            driveAngle(x, y, 0.0),
-            driveAngle(x, y, Math.PI),
-            () -> Math.abs(MathUtil.angleModulus(imu.getYaw().getRadians())) < Math2.HALF_PI
-        )
-            .withName("swerve.driveSnap180()");
+    public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
+        return sysIdRoutine.quasistatic(direction);
     }
 
     /**
-     * Drives the modules into an X formation to prevent the robot from moving.
+     * Runs a SysId dynamic test.
+     * @param direction The direction to run the test in.
      */
-    public Command lock() {
-        return commandBuilder("swerve.lock()").onExecute(this::lockWheels);
+    public Command sysIdDynamic(SysIdRoutine.Direction direction) {
+        return sysIdRoutine.dynamic(direction);
     }
 }

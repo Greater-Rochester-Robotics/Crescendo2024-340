@@ -1,10 +1,23 @@
 package org.team340.lib.swerve.hardware.motors;
 
+import com.ctre.phoenix6.mechanisms.swerve.SwerveModule;
+
 /**
  * A motor for swerve, can be a move or turn motor.
  * Bound to {@link SwerveModule}s.
  */
 public interface SwerveMotor {
+    /**
+     * Supported motors.
+     */
+    public static enum Type {
+        SPARK_MAX_BRUSHED,
+        SPARK_MAX_BRUSHLESS,
+        SPARK_FLEX_BRUSHED,
+        SPARK_FLEX_BRUSHLESS,
+        TALONFX,
+    }
+
     /**
      * Gets the motor's velocity.
      */
@@ -14,6 +27,11 @@ public interface SwerveMotor {
      * Gets the motor's relative position.
      */
     public abstract double getPosition();
+
+    /**
+     * Gets the motor's applied duty cycle.
+     */
+    public abstract double getDutyCycle();
 
     /**
      * Sets the motor's closed loop target.

@@ -1,85 +1,145 @@
 package org.team340.robot.subsystems;
 
+import static edu.wpi.first.wpilibj2.command.Commands.waitSeconds;
+
 import com.revrobotics.CANSparkBase.ControlType;
+import com.revrobotics.CANSparkBase.IdleMode;
+import com.revrobotics.CANSparkFlex;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
+import com.revrobotics.SparkAbsoluteEncoder;
+import com.revrobotics.SparkAbsoluteEncoder.Type;
 import com.revrobotics.SparkPIDController;
+import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import org.team340.lib.GRRSubsystem;
 import org.team340.lib.util.Math2;
-import org.team340.lib.util.Mutable;
 import org.team340.robot.Constants.IntakeConstants;
 import org.team340.robot.Constants.RobotMap;
 
+// TODO Motion profiling (?)
+// TODO Receive from feeder
+// TODO Amp score
+
 /**
- * The Intake subsystem.
+ * This subsystem intakes notes from the floor and can score them in the amp, or pass them to the shooter.
  */
 public class Intake extends GRRSubsystem {
 
-    private final CANSparkMax deployMotor = createSparkMax("Deploy Motor", RobotMap.INTAKE_DEPLOY_MOTOR, MotorType.kBrushless);
-    private final CANSparkMax rollerMotor = createSparkMax("Roller Motor", RobotMap.INTAKE_ROLLER_MOTOR, MotorType.kBrushless);
-
-    private final SparkPIDController deployPID = deployMotor.getPIDController();
+    private final CANSparkFlex armLeftMotor;
+    private final CANSparkFlex armRightMotor;
+    private final CANSparkMax rollerUpperMotor;
+    private final CANSparkMax rollerLowerMotor;
+    private final SparkAbsoluteEncoder armEncoder;
+    private final SparkPIDController armPID;
+    private final DigitalInput noteDetector;
 
     public Intake() {
         super("Intake");
-        deployPID.setP(IntakeConstants.INTAKE_DEPLOY_STRONG_PID.p(), 0);
-        deployPID.setI(IntakeConstants.INTAKE_DEPLOY_STRONG_PID.i(), 0);
-        deployPID.setD(IntakeConstants.INTAKE_DEPLOY_STRONG_PID.d(), 0);
+        armLeftMotor = createSparkFlex("Arm Left Motor", RobotMap.INTAKE_ARM_LEFT_MOTOR, MotorType.kBrushless);
+        armRightMotor = createSparkFlex("Arm Right Motor", RobotMap.INTAKE_ARM_RIGHT_MOTOR, MotorType.kBrushless);
+        rollerUpperMotor = createSparkMax("Roller Upper Motor", RobotMap.INTAKE_ROLLER_UPPER_MOTOR, MotorType.kBrushless);
+        rollerLowerMotor = createSparkMax("Roller Lower Motor", RobotMap.INTAKE_ROLLER_LOWER_MOTOR, MotorType.kBrushless);
+        armEncoder = createSparkFlexAbsoluteEncoder("Arm Encoder", armLeftMotor, Type.kDutyCycle);
+        armPID = armLeftMotor.getPIDController();
+        noteDetector = new DigitalInput(RobotMap.INTAKE_NOTE_DETECTOR);
 
-        deployPID.setP(IntakeConstants.INTAKE_DEPLOY_WEAK_PID.p(), 1);
-        deployPID.setI(IntakeConstants.INTAKE_DEPLOY_WEAK_PID.i(), 1);
-        deployPID.setD(IntakeConstants.INTAKE_DEPLOY_WEAK_PID.d(), 1);
+        IntakeConstants.ArmConfigs.LEFT_MOTOR.apply(armLeftMotor);
+        IntakeConstants.ArmConfigs.RIGHT_MOTOR.apply(armRightMotor);
+        IntakeConstants.RollerConfigs.UPPER_MOTOR.apply(rollerUpperMotor);
+        IntakeConstants.RollerConfigs.LOWER_MOTOR.apply(rollerLowerMotor);
+        IntakeConstants.ArmConfigs.ENCODER.apply(armLeftMotor, armEncoder);
+        IntakeConstants.ArmConfigs.PID.apply(armLeftMotor, armPID);
     }
 
-    public Command deploy() {
-        Mutable<Boolean> weakPID = new Mutable<>(false);
+    /**
+     * Returns {@code true} when the note detector is detecting a note.
+     */
+    public boolean getNoteDetector() {
+        return !noteDetector.get();
+    }
 
+    /**
+     * Set idle mode of pivot motor to brake or coast.
+     * @param brakeOn If idle mode should be set to brake.
+     */
+    public void setBrakeMode(boolean brakeOn) {
+        armLeftMotor.setIdleMode(brakeOn ? IdleMode.kBrake : IdleMode.kCoast);
+        armRightMotor.setIdleMode(brakeOn ? IdleMode.kBrake : IdleMode.kCoast);
+    }
+
+    /**
+     * Sets the {@link #armPID} to go to the specified angle if it is valid
+     * (within the intake {@link IntakeConstants#MINIMUM_ANGLE minimum} and
+     * {@link IntakeConstants#MAXIMUM_ANGLE maximum} angles).
+     * @param position The angle to set.
+     */
+    private void setValidPosition(double position) {
+        if (position > IntakeConstants.MINIMUM_ANGLE && position < IntakeConstants.MAXIMUM_ANGLE) {
+            DriverStation.reportWarning(
+                "The angle " +
+                position +
+                " is not valid. is must be within " +
+                IntakeConstants.MAXIMUM_ANGLE +
+                " and " +
+                IntakeConstants.MINIMUM_ANGLE +
+                ".",
+                null
+            );
+        } else {
+            armPID.setReference(position, ControlType.kPosition);
+        }
+    }
+
+    /**
+     * Deploys the intake and runs the roller motors to intake a note.
+     */
+    public Command deploy() {
         return commandBuilder("intake.deploy()")
-            .onInitialize(() -> rollerMotor.set(IntakeConstants.INTAKE_DEPLOY_ROLLER_SPEED))
+            .onInitialize(() -> rollerUpperMotor.set(IntakeConstants.INTAKE_ROLLER_SPEED))
             .onExecute(() -> {
-                if (
-                    Math2.epsilonEquals(
-                        IntakeConstants.INTAKE_DEPLOY_POSITION,
-                        deployMotor.getEncoder().getPosition(),
-                        IntakeConstants.INTAKE_DEPLOY_POSITION_TOLERANCE
-                    )
-                ) weakPID.set(true);
-                deployPID.setReference(IntakeConstants.INTAKE_DEPLOY_POSITION, ControlType.kPosition, weakPID.get() ? 1 : 0);
+                armPID.setReference(IntakeConstants.DEPLOY_POSITION, ControlType.kPosition);
             })
             .onEnd(() -> {
-                rollerMotor.stopMotor();
-                deployMotor.stopMotor();
+                rollerUpperMotor.stopMotor();
+                armLeftMotor.stopMotor();
             });
     }
 
+    /**
+     * Retracts the intake into the frame perimeter and stops the rollers.
+     */
     public Command retract() {
         return commandBuilder("intake.retract()")
-            .onInitialize(() -> rollerMotor.stopMotor())
-            .onExecute(() -> {
-                deployPID.setReference(0, ControlType.kPosition, 0);
-            });
+            .onInitialize(() -> rollerUpperMotor.stopMotor())
+            .onExecute(() -> armPID.setReference(0, ControlType.kPosition, 0));
     }
 
+    /**
+     * Spits the note out of the intake in case it is stuck.
+     */
     public Command spit() {
-        Mutable<Boolean> weakPID = new Mutable<>(false);
-
         return commandBuilder("intake.spit()")
-            .onInitialize(() -> rollerMotor.set(IntakeConstants.INTAKE_SPIT_ROLLER_SPEED))
-            .onExecute(() -> {
-                if (
-                    Math2.epsilonEquals(
-                        IntakeConstants.INTAKE_DEPLOY_POSITION,
-                        deployMotor.getEncoder().getPosition(),
-                        IntakeConstants.INTAKE_DEPLOY_POSITION_TOLERANCE
-                    )
-                ) weakPID.set(true);
+            .onInitialize(() -> rollerUpperMotor.set(IntakeConstants.SPIT_ROLLER_SPEED))
+            .onEnd(() -> rollerUpperMotor.stopMotor());
+    }
 
-                deployPID.setReference(IntakeConstants.INTAKE_DEPLOY_POSITION, ControlType.kPosition, weakPID.get() ? 1 : 0);
-            })
-            .onEnd(() -> {
-                rollerMotor.stopMotor();
-                deployMotor.stopMotor();
-            });
+    public Command spitSlow() {
+        return commandBuilder("intake.spitSlow()")
+            .onInitialize(() -> rollerUpperMotor.set(IntakeConstants.SPIT_SLOW_ROLLER_SPEED))
+            .onEnd(() -> rollerUpperMotor.stopMotor());
+    }
+
+    /**
+     * This command moves the intake up, and then scores it with a delay. This doesn't bring it back down.
+     * @return This command.
+     */
+    public Command scoreAmp() {
+        return commandBuilder()
+            .onExecute(() -> setValidPosition(IntakeConstants.SCORE_AMP_POSITION))
+            .isFinished(() -> Math2.epsilonEquals(armEncoder.getPosition(), IntakeConstants.SCORE_AMP_POSITION))
+            .onEnd(() -> rollerUpperMotor.set(IntakeConstants.SCORE_AMP_ROLLER_SPEED))
+            .andThen(waitSeconds(2), runOnce(() -> rollerUpperMotor.stopMotor()));
     }
 }

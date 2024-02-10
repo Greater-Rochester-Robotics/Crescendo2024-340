@@ -38,9 +38,12 @@ public final class AbsoluteEncoderConfig extends RevConfigBase<AbsoluteEncoder> 
     public void apply(CANSparkMax sparkMax, AbsoluteEncoder absoluteEncoder) {
         addStep(
             ae -> {
-                RevConfigUtils.burnFlashSleep();
+                RevConfigRegistry.burnFlashSleep();
                 return sparkMax.burnFlash();
             },
+            ae -> true,
+            false,
+            1,
             "Burn Flash"
         );
         super.applySteps(absoluteEncoder, "Spark Max (ID " + sparkMax.getDeviceId() + ") Absolute Encoder");
@@ -54,9 +57,12 @@ public final class AbsoluteEncoderConfig extends RevConfigBase<AbsoluteEncoder> 
     public void apply(CANSparkFlex sparkFlex, AbsoluteEncoder absoluteEncoder) {
         addStep(
             ae -> {
-                RevConfigUtils.burnFlashSleep();
+                RevConfigRegistry.burnFlashSleep();
                 return sparkFlex.burnFlash();
             },
+            ae -> true,
+            false,
+            1,
             "Burn Flash"
         );
         super.applySteps(absoluteEncoder, "Spark Flex (ID " + sparkFlex.getDeviceId() + ") Absolute Encoder");
@@ -97,7 +103,7 @@ public final class AbsoluteEncoderConfig extends RevConfigBase<AbsoluteEncoder> 
     public AbsoluteEncoderConfig setPositionConversionFactor(double factor) {
         addStep(
             absoluteEncoder -> absoluteEncoder.setPositionConversionFactor(factor),
-            absoluteEncoder -> Math2.epsilonEquals(absoluteEncoder.getPositionConversionFactor(), factor, RevConfigUtils.EPSILON),
+            absoluteEncoder -> Math2.epsilonEquals(absoluteEncoder.getPositionConversionFactor(), factor, RevConfigRegistry.EPSILON),
             "Position Conversion Factor"
         );
         return this;
@@ -111,7 +117,7 @@ public final class AbsoluteEncoderConfig extends RevConfigBase<AbsoluteEncoder> 
     public AbsoluteEncoderConfig setVelocityConversionFactor(double factor) {
         addStep(
             absoluteEncoder -> absoluteEncoder.setVelocityConversionFactor(factor),
-            absoluteEncoder -> Math2.epsilonEquals(absoluteEncoder.getVelocityConversionFactor(), factor, RevConfigUtils.EPSILON),
+            absoluteEncoder -> Math2.epsilonEquals(absoluteEncoder.getVelocityConversionFactor(), factor, RevConfigRegistry.EPSILON),
             "Velocity Conversion Factor"
         );
         return this;
@@ -129,7 +135,7 @@ public final class AbsoluteEncoderConfig extends RevConfigBase<AbsoluteEncoder> 
     public AbsoluteEncoderConfig setZeroOffset(double offset) {
         addStep(
             absoluteEncoder -> absoluteEncoder.setZeroOffset(offset),
-            absoluteEncoder -> Math2.epsilonEquals(absoluteEncoder.getZeroOffset(), offset, RevConfigUtils.EPSILON),
+            absoluteEncoder -> Math2.epsilonEquals(absoluteEncoder.getZeroOffset(), offset, RevConfigRegistry.EPSILON),
             "Zero Offset"
         );
         return this;

@@ -4,6 +4,8 @@ import com.revrobotics.CANSparkFlex;
 import com.revrobotics.CANSparkLowLevel.PeriodicFrame;
 import com.revrobotics.REVLibError;
 import edu.wpi.first.wpilibj.RobotBase;
+import java.util.ArrayList;
+import java.util.List;
 import org.team340.lib.util.Math2;
 
 /**
@@ -11,7 +13,7 @@ import org.team340.lib.util.Math2;
  */
 public final class SparkFlexConfig extends RevConfigBase<CANSparkFlex> {
 
-    private static final double FACTORY_DEFAULTS_SLEEP = 50.0;
+    private static final double FACTORY_DEFAULTS_SLEEP = 25.0;
 
     /**
      * Creates an empty config.
@@ -39,10 +41,13 @@ public final class SparkFlexConfig extends RevConfigBase<CANSparkFlex> {
      */
     public void apply(CANSparkFlex sparkFlex) {
         addStep(
-            sm -> {
-                RevConfigUtils.burnFlashSleep();
-                return sm.burnFlash();
+            sf -> {
+                RevConfigRegistry.burnFlashSleep();
+                return sf.burnFlash();
             },
+            sf -> true,
+            false,
+            1,
             "Burn Flash"
         );
         super.applySteps(sparkFlex, "Spark Flex (ID " + sparkFlex.getDeviceId() + ")");
@@ -256,7 +261,7 @@ public final class SparkFlexConfig extends RevConfigBase<CANSparkFlex> {
     public SparkFlexConfig disableVoltageCompensation() {
         addStep(
             sparkFlex -> sparkFlex.disableVoltageCompensation(),
-            sparkFlex -> Math2.epsilonEquals(sparkFlex.getVoltageCompensationNominalVoltage(), 0.0, RevConfigUtils.EPSILON),
+            sparkFlex -> Math2.epsilonEquals(sparkFlex.getVoltageCompensationNominalVoltage(), 0.0, RevConfigRegistry.EPSILON),
             "Disable Voltage Compensation"
         );
         return this;
@@ -283,7 +288,7 @@ public final class SparkFlexConfig extends RevConfigBase<CANSparkFlex> {
     public SparkFlexConfig enableVoltageCompensation(double nominalVoltage) {
         addStep(
             sparkFlex -> sparkFlex.enableVoltageCompensation(nominalVoltage),
-            sparkFlex -> Math2.epsilonEquals(sparkFlex.getVoltageCompensationNominalVoltage(), nominalVoltage, RevConfigUtils.EPSILON),
+            sparkFlex -> Math2.epsilonEquals(sparkFlex.getVoltageCompensationNominalVoltage(), nominalVoltage, RevConfigRegistry.EPSILON),
             "Enable Voltage Compensation"
         );
         return this;
@@ -338,7 +343,7 @@ public final class SparkFlexConfig extends RevConfigBase<CANSparkFlex> {
     /**
      * Sets timeout for sending CAN messages with {@code setParameter*()} and {@code getParameter*()}
      *  calls.These calls will block for up to this amount of time before returning a timeout error.
-     * A timeout of {@code 0.0} will make the {@code setParameter*()} calls non-blocking, and instead
+     * A timeout of {@code 0} will make the {@code setParameter*()} calls non-blocking, and instead
      * will check the response in a separate thread. With this configuration, any error messages will
      * appear on the driver station but will not be returned by the {@code getLastError()} call.
      * @param milliseconds The timeout in milliseconds.
@@ -356,7 +361,7 @@ public final class SparkFlexConfig extends RevConfigBase<CANSparkFlex> {
     public SparkFlexConfig setClosedLoopRampRate(double rate) {
         addStep(
             sparkFlex -> sparkFlex.setClosedLoopRampRate(rate),
-            sparkFlex -> Math2.epsilonEquals(sparkFlex.getClosedLoopRampRate(), rate, RevConfigUtils.EPSILON),
+            sparkFlex -> Math2.epsilonEquals(sparkFlex.getClosedLoopRampRate(), rate, RevConfigRegistry.EPSILON),
             "Closed Loop Ramp Rate"
         );
         return this;
@@ -396,7 +401,7 @@ public final class SparkFlexConfig extends RevConfigBase<CANSparkFlex> {
     public SparkFlexConfig setOpenLoopRampRate(double rate) {
         addStep(
             sparkFlex -> sparkFlex.setOpenLoopRampRate(rate),
-            sparkFlex -> Math2.epsilonEquals(sparkFlex.getOpenLoopRampRate(), rate, RevConfigUtils.EPSILON),
+            sparkFlex -> Math2.epsilonEquals(sparkFlex.getOpenLoopRampRate(), rate, RevConfigRegistry.EPSILON),
             "Open Loop Ramp Rate"
         );
         return this;
@@ -410,7 +415,17 @@ public final class SparkFlexConfig extends RevConfigBase<CANSparkFlex> {
      * @param periodMs The rate the controller sends the frame in milliseconds.
      */
     public SparkFlexConfig setPeriodicFramePeriod(Frame frame, int periodMs) {
-        addStep(sparkFlex -> sparkFlex.setPeriodicFramePeriod(frame.frame, periodMs), "Periodic Frame Status " + frame.ordinal());
+        List<CANSparkFlex> applied = new ArrayList<>();
+        addStep(
+            sparkFlex -> {
+                if (!applied.contains(sparkFlex)) {
+                    RevConfigRegistry.addPeriodic(() -> sparkFlex.setPeriodicFramePeriod(frame.frame, periodMs));
+                    applied.add(sparkFlex);
+                }
+                return sparkFlex.setPeriodicFramePeriod(frame.frame, periodMs);
+            },
+            "Periodic Frame Status " + frame.ordinal()
+        );
         return this;
     }
 
@@ -421,7 +436,7 @@ public final class SparkFlexConfig extends RevConfigBase<CANSparkFlex> {
      * 'on/off' controller. This limit is enabled by default but is set higher than
      * the default Smart Current Limit. The time the controller is off after the current
      * limit is reached is determined by the parameter limitCycles, which is the number
-     * of PWM cycles (20kHz). The recommended value is the default of {@code 0.0} which is
+     * of PWM cycles (20kHz). The recommended value is the default of {@code 0} which is
      * the minimum time and is part of a PWM cycle from when the over current is detected.
      * This allows the controller to regulate the current close to the limit value.
      * @param limit The current limit in amps.
@@ -438,7 +453,7 @@ public final class SparkFlexConfig extends RevConfigBase<CANSparkFlex> {
      * 'on/off' controller. This limit is enabled by default but is set higher than
      * the default Smart Current Limit. The time the controller is off after the current
      * limit is reached is determined by the parameter limitCycles, which is the number
-     * of PWM cycles (20kHz). The recommended value is the default of {@code 0.0} which is
+     * of PWM cycles (20kHz). The recommended value is the default of {@code 0} which is
      * the minimum time and is part of a PWM cycle from when the over current is detected.
      * This allows the controller to regulate the current close to the limit value.
      * @param limit The current limit in amps.
@@ -475,8 +490,8 @@ public final class SparkFlexConfig extends RevConfigBase<CANSparkFlex> {
      * smarter strategy to deal with high current draws and keep the motor and controller
      * operating in a safe region. The controller can also limit the current based on the RPM
      * of the motor in a linear fashion to help with controllability in closed loop control.
-     * For a response that is linear the entire RPM range leave limit RPM at {@code 0.0}.
-     * @param stallLimit The current limit in amps at {@code 0.0} RPM.
+     * For a response that is linear the entire RPM range leave limit RPM at {@code 0}.
+     * @param stallLimit The current limit in amps at {@code 0} RPM.
      * @param freeLimit The current limit at free speed ({@code 5700} RPM for NEO).
      */
     public SparkFlexConfig setSmartCurrentLimit(int stallLimit, int freeLimit) {
@@ -494,8 +509,8 @@ public final class SparkFlexConfig extends RevConfigBase<CANSparkFlex> {
      * smarter strategy to deal with high current draws and keep the motor and controller
      * operating in a safe region. The controller can also limit the current based on the RPM
      * of the motor in a linear fashion to help with controllability in closed loop control.
-     * For a response that is linear the entire RPM range leave limit RPM at {@code 0.0}.
-     * @param stallLimit The current limit in amps at {@code 0.0} RPM.
+     * For a response that is linear the entire RPM range leave limit RPM at {@code 0}.
+     * @param stallLimit The current limit in amps at {@code 0} RPM.
      * @param freeLimit The current limit at free speed ({@code 5700} RPM for NEO).
      * @param limitRPM RPM less than this value will be set to the stallLimit, RPM values greater than limitRPM will scale linearly to freeLimit.
      */
@@ -514,7 +529,7 @@ public final class SparkFlexConfig extends RevConfigBase<CANSparkFlex> {
     public SparkFlexConfig setSoftLimit(CANSparkFlex.SoftLimitDirection direction, double limit) {
         addStep(
             sparkFlex -> sparkFlex.setSoftLimit(direction, (float) limit),
-            sparkFlex -> Math2.epsilonEquals(sparkFlex.getSoftLimit(direction), limit, RevConfigUtils.EPSILON),
+            sparkFlex -> Math2.epsilonEquals(sparkFlex.getSoftLimit(direction), limit, RevConfigRegistry.EPSILON),
             "Soft Limit"
         );
         return this;
