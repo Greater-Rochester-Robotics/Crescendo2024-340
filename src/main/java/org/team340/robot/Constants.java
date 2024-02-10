@@ -113,6 +113,7 @@ public final class Constants {
 
         public static final double MAXIMUM_ANGLE = Math.toRadians(135.0);
         public static final double MINIMUM_ANGLE = 0.0;
+        public static final double MINIMUM_PID_ANGLE = 0.0;
 
         public static final double SCORE_AMP_POSITION = Math.toRadians(100.0);
         public static final double DEPLOY_POSITION = 0.0;

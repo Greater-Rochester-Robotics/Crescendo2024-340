@@ -80,6 +80,7 @@ public final class RobotContainer {
     private static void configBindings() {
         // Set default commands.
         pivot.setDefaultCommand(pivot.maintainPosition());
+        intake.setDefaultCommand(intake.maintainPosition());
         swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
 
         /**
