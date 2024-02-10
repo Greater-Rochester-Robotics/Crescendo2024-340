@@ -4,10 +4,13 @@ import com.revrobotics.CANSparkBase.ExternalFollower;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.SparkPIDController.AccelStrategy;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.CalibrationTime;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.SPI.Port;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import org.team340.lib.controller.Controller2Config;
@@ -35,6 +38,9 @@ public final class Constants {
     public static final double VOLTAGE = 12.0;
     public static final double FIELD_LENGTH = 16.5417;
     public static final double FIELD_WIDTH = 8.0136;
+
+    public static final Translation2d RED_TARGET = new Translation2d();
+    public static final Translation2d BLUE_TARGET = new Translation2d();
 
     /**
      * Driver and co-driver controller constants.
@@ -192,6 +198,26 @@ public final class Constants {
                 .setPositionConversionFactor(REL_ENC_CONVERSION)
                 .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
         }
+
+        private static final InterpolatingDoubleTreeMap DISTANCE_TO_SPEED_MAP = new InterpolatingDoubleTreeMap();
+
+        static { // TODO: find these
+            DISTANCE_TO_SPEED_MAP.put(0.0, 0.1);
+            DISTANCE_TO_SPEED_MAP.put(1.499, 0.25);
+            DISTANCE_TO_SPEED_MAP.put(1.5, 0.8);
+            DISTANCE_TO_SPEED_MAP.put(25.0, 0.9);
+        }
+
+        public static double interpolateSpeed(Pose2d robotPosition, Translation2d targetPosition) {
+            // Find the distance between the two
+            double distance = robotPosition.getTranslation().getDistance(targetPosition);
+            return DISTANCE_TO_SPEED_MAP.get(distance);
+        }
+
+        public static double interpolateSpeed(Pose2d robotPosition) {
+            Alliance alliance = DriverStation.getAlliance().orElse(Alliance.Red);
+            return interpolateSpeed(robotPosition, alliance == Alliance.Red ? RED_TARGET : BLUE_TARGET);
+        }
     }
 
     public static final class FeederConstants {
@@ -232,10 +258,12 @@ public final class Constants {
 
         public static final double MINIMUM_ANGLE = 0.0;
         public static final double MAXIMUM_ANGLE = Math.toRadians(80.0);
+        public static final double SAFE_FOR_INTAKE_ANGLE = Math.toRadians(60.0);
+        public static final double OPTIMAL_RECEIVE_NOTE_ANGLE = Math.toRadians(0.0);
 
         public static final double HOMING_SPEED = -0.2;
 
-        public static final double REL_ENC_CONVERSION = 1 / (25 * 1.1 * Math.PI / 7.568); // 1 / (gear ratio * circ output pinion / radius of arc) 
+        public static final double REL_ENC_CONVERSION = 1 / (25 * 1.1 * Math.PI / 7.568); // 1 / (gear ratio * circ output pinion / radius of arc)
 
         public static final class Configs {
 
@@ -264,18 +292,20 @@ public final class Constants {
 
         private static final InterpolatingDoubleTreeMap DISTANCE_TO_ANGLE_MAP = new InterpolatingDoubleTreeMap();
 
-        static {
+        static { // TODO: find these
             DISTANCE_TO_ANGLE_MAP.put(0.0, 0.0);
             DISTANCE_TO_ANGLE_MAP.put(5.6, 1.2);
         }
 
-        public static double interpolateAngle(Pose2d robotPosition, Pose2d targetPosition) {
+        public static double interpolateAngle(Pose2d robotPosition, Translation2d targetPosition) {
             // Find the distance between the two
-            double distance = robotPosition.getTranslation().getDistance(targetPosition.getTranslation());
+            double distance = robotPosition.getTranslation().getDistance(targetPosition);
+            return DISTANCE_TO_ANGLE_MAP.get(distance);
+        }
 
-            double angle = DISTANCE_TO_ANGLE_MAP.get(distance);
-
-            return angle;
+        public static double interpolateAngle(Pose2d robotPosition) {
+            Alliance alliance = DriverStation.getAlliance().orElse(Alliance.Red);
+            return interpolateAngle(robotPosition, alliance == Alliance.Red ? RED_TARGET : BLUE_TARGET);
         }
     }
 
@@ -315,7 +345,7 @@ public final class Constants {
         private static final SwerveModuleConfig FRONT_LEFT = new SwerveModuleConfig()
             .setLabel("Front Left")
             .useSparkAttachedEncoder(0.0, false) // TODO: put in this angle before running
-            .setPosition(0.3000, 0.3000) 
+            .setPosition(0.3000, 0.3000)
             .setMoveMotor(RobotMap.FRONT_LEFT_MOVE, true, true)
             .setTurnMotor(RobotMap.FRONT_LEFT_TURN, false, true);
 

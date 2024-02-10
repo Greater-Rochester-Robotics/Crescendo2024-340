@@ -49,24 +49,34 @@ public class Feeder extends GRRSubsystem {
 
     /**
      * Receives a note from the intake.
+     */
+    public Command receiveNote() {
+        return commandBuilder("feeder.receiveNote()")
+            .onInitialize(() -> feedPID.setReference(FeederConstants.INTAKE_SPEED, ControlType.kDutyCycle))
+            .isFinished(() -> getNoteDetector())
+            .onEnd(() -> feedMotor.stopMotor());
+    }
+
+    /**
      * This command moves it forward until it's detected, then backwards till it's not, then forward again,
      * to try to get it as consistent as possible.
      */
-    public Command receiveNote() {
-        return sequence(
-            commandBuilder("feeder.receiveNote().initIn")
-                .onInitialize(() -> feedPID.setReference(FeederConstants.INTAKE_SPEED, ControlType.kDutyCycle))
-                .isFinished(() -> getNoteDetector()),
-            commandBuilder("feeder.receiveNote().backUp")
-                .onInitialize(() -> feedPID.setReference(FeederConstants.BACK_SLOW_SPEED, ControlType.kDutyCycle))
-                .isFinished(() -> !getNoteDetector())
-                .onEnd(() -> feedEncoder.setPosition(0.0)),
-            commandBuilder("feeder.receiveNote().inToPos")
-                .onInitialize(() -> feedPID.setReference(FeederConstants.POSITION_OFFSET, ControlType.kPosition))
-                .isFinished(() ->
-                    Math2.epsilonEquals(feedEncoder.getPosition(), FeederConstants.POSITION_OFFSET, FeederConstants.CLOSED_LOOP_ERR)
-                )
-                .onEnd(() -> feedMotor.stopMotor())
+    public Command reseatNote() {
+        return either(
+            sequence(
+                commandBuilder("feeder.reseatNote().backUp")
+                    .onInitialize(() -> feedPID.setReference(FeederConstants.BACK_SLOW_SPEED, ControlType.kDutyCycle))
+                    .isFinished(() -> !getNoteDetector())
+                    .onEnd(() -> feedEncoder.setPosition(0.0)),
+                commandBuilder("feeder.reseatNote().inToPos")
+                    .onInitialize(() -> feedPID.setReference(FeederConstants.POSITION_OFFSET, ControlType.kPosition))
+                    .isFinished(() ->
+                        Math2.epsilonEquals(feedEncoder.getPosition(), FeederConstants.POSITION_OFFSET, FeederConstants.CLOSED_LOOP_ERR)
+                    )
+                    .onEnd(() -> feedMotor.stopMotor())
+            ),
+            none(),
+            this::getNoteDetector
         );
     }
 

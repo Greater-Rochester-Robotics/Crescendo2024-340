@@ -6,6 +6,7 @@ import static org.team340.robot.RobotContainer.*;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.Supplier;
+import org.team340.robot.Constants;
 
 // TODO Discuss bindings and what commands are needed
 
@@ -25,6 +26,17 @@ public class Routines {
         return sequence(swerve.drive(() -> 0.1, () -> 0.0, () -> 0.0, true).withTimeout(1.0));
     }
 
+    public Command intake() {
+        return sequence(
+            deadline(
+                feeder.receiveNote(),
+                pivot.goToAngle(Constants.PivotConstants.OPTIMAL_RECEIVE_NOTE_ANGLE),
+                sequence(waitUntil(pivot::isSafeForIntake), intake.deploy())
+            ),
+            feeder.reseatNote()
+        );
+    }
+
     /**
      * This command takes the current position, uses it to decide the angle to shoot at, then shoots the note.
      * Note that this will not correct the robot's yaw or position.
@@ -39,8 +51,10 @@ public class Routines {
     }
 
     public Command prepShootSpeaker(Supplier<Pose2d> robotPosition) {
-        //TODO: this needs actual not zeros.
-        return parallel(shooter.setSpeed(0.0), pivot.goToAngle(0.0));
+        return parallel(
+            shooter.setSpeed(Constants.ShooterConstants.interpolateSpeed(robotPosition.get())),
+            pivot.goToAngle(Constants.PivotConstants.interpolateAngle(robotPosition.get()))
+        );
     }
 
     public Command noteBackToIntake() {

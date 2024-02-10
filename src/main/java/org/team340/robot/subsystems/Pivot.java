@@ -56,6 +56,10 @@ public class Pivot extends GRRSubsystem {
         return !lowerLimit.get();
     }
 
+    public boolean isSafeForIntake() {
+        return pivotEncoder.getPosition() <= PivotConstants.SAFE_FOR_INTAKE_ANGLE;
+    }
+
     /**
      * Checks if encoder position is within a set error of target.
      * @return {@code true} if within closed loop error.
