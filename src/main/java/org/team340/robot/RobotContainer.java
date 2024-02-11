@@ -4,10 +4,8 @@ import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 import org.team340.lib.GRRDashboard;
 import org.team340.lib.controller.Controller2;
-import org.team340.lib.util.Math2;
 import org.team340.lib.util.config.rev.RevConfigRegistry;
 import org.team340.robot.Constants.ControllerConstants;
-import org.team340.robot.commands.SystemsCheck;
 import org.team340.robot.subsystems.Climber;
 import org.team340.robot.subsystems.Feeder;
 import org.team340.robot.subsystems.Intake;
@@ -47,23 +45,23 @@ public final class RobotContainer {
         coDriver.addToDashboard();
 
         // Initialize subsystems.
-        climber = new Climber();
-        feeder = new Feeder();
+        // climber = new Climber();
+        // feeder = new Feeder();
         intake = new Intake();
-        pivot = new Pivot();
-        shooter = new Shooter();
-        swerve = new Swerve();
+        // pivot = new Pivot();
+        // shooter = new Shooter();
+        // swerve = new Swerve();
 
         // Add subsystems to the dashboard.
-        climber.addToDashboard();
-        feeder.addToDashboard();
+        // climber.addToDashboard();
+        // feeder.addToDashboard();
         intake.addToDashboard();
-        pivot.addToDashboard();
-        shooter.addToDashboard();
-        swerve.addToDashboard();
+        // pivot.addToDashboard();
+        // shooter.addToDashboard();
+        // swerve.addToDashboard();
 
         // Set systems check command.
-        GRRDashboard.setSystemsCheck(SystemsCheck.command());
+        // GRRDashboard.setSystemsCheck(SystemsCheck.command());
 
         // Print errors from REV hardware initialization.
         RevConfigRegistry.printError();
@@ -79,16 +77,16 @@ public final class RobotContainer {
      */
     private static void configBindings() {
         // Set default commands.
-        pivot.setDefaultCommand(pivot.maintainPosition());
-        intake.setDefaultCommand(intake.maintainPosition());
-        swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
+        // pivot.setDefaultCommand(pivot.maintainPosition());
+        // intake.setDefaultCommand(intake.maintainPosition());
+        // swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
 
         /**
          * Driver bindings.
          */
 
         // POV Left => Zero swerve
-        driver.povLeft().onTrue(swerve.zeroIMU(Math2.ROTATION2D_0));
+        // driver.povLeft().onTrue(swerve.zeroIMU(Math2.ROTATION2D_0));
 
         /**
          * Co-driver bindings.
@@ -109,9 +107,9 @@ public final class RobotContainer {
      * @param brakeOn If idle mode should be set to brake.
      */
     public static void setBrakeModes(boolean brakeOn) {
-        pivot.setBrakeMode(brakeOn);
-        intake.setBrakeMode(brakeOn);
-        climber.setBrakeMode(brakeOn);
+        // pivot.setBrakeMode(brakeOn);
+        // intake.setBrakeMode(brakeOn);
+        // climber.setBrakeMode(brakeOn);
     }
 
     /**

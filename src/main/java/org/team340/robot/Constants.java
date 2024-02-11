@@ -139,18 +139,20 @@ public final class Constants {
                 .setIdleMode(IdleMode.kBrake)
                 .setClosedLoopRampRate(1.5)
                 .setOpenLoopRampRate(1.5);
-            public static final SparkFlexConfig LEFT_MOTOR = MOTOR_BASE.clone().setInverted(false);
+            public static final SparkFlexConfig LEFT_MOTOR = MOTOR_BASE.clone().setInverted(true);
             public static final SparkFlexConfig RIGHT_MOTOR = MOTOR_BASE
                 .clone()
                 .follow(ExternalFollower.kFollowerSpark, RobotMap.INTAKE_ARM_LEFT_MOTOR, false);
             public static final AbsoluteEncoderConfig ENCODER = new AbsoluteEncoderConfig()
-                .setZeroOffset(0.0) // TODO: put in this angle before running
-                .setInverted(false)
+                .setInverted(true)
                 .setPositionConversionFactor(Math2.TWO_PI)
-                .setVelocityConversionFactor(Math2.TWO_PI / 60.0);
+                .setVelocityConversionFactor(Math2.TWO_PI / 60.0)
+                .setZeroOffset(2.832); // TODO: put in this angle before running
 
             public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
                 .setPID(0.0, 0.0, 0.0)
+                .setPositionPIDWrappingEnabled(true)
+                .setPositionPIDWrappingInputLimits(0.0, Math2.TWO_PI)
                 .setSmartMotionMaxAccel(0, 0)
                 .setSmartMotionMaxVelocity(0, 0)
                 .setSmartMotionMinOutputVelocity(0, 0)
@@ -168,10 +170,10 @@ public final class Constants {
                 .setIdleMode(IdleMode.kCoast)
                 .setClosedLoopRampRate(1.5)
                 .setOpenLoopRampRate(1.5);
-            public static final SparkMaxConfig UPPER_MOTOR = MOTOR_BASE.clone().setInverted(false);
+            public static final SparkMaxConfig UPPER_MOTOR = MOTOR_BASE.clone().setInverted(true);
             public static final SparkMaxConfig LOWER_MOTOR = MOTOR_BASE
                 .clone()
-                .follow(ExternalFollower.kFollowerSpark, RobotMap.INTAKE_ROLLER_UPPER_MOTOR, true);
+                .follow(ExternalFollower.kFollowerSpark, RobotMap.INTAKE_ROLLER_UPPER_MOTOR, false);
         }
     }
 
@@ -196,8 +198,8 @@ public final class Constants {
                 .setIdleMode(IdleMode.kCoast)
                 .setClosedLoopRampRate(1.5)
                 .setOpenLoopRampRate(1.5);
-            public static final SparkFlexConfig LEFT_MOTOR = MOTOR_BASE.clone().setInverted(false);
-            public static final SparkFlexConfig RIGHT_MOTOR = MOTOR_BASE.clone().setInverted(true);
+            public static final SparkFlexConfig LEFT_MOTOR = MOTOR_BASE.clone().setInverted(true);
+            public static final SparkFlexConfig RIGHT_MOTOR = MOTOR_BASE.clone().setInverted(false);
 
             public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig().setPIDF(0.0, 0.0, 0.0, 1.0 / 13568.0, 0);
 
@@ -391,7 +393,7 @@ public final class Constants {
             .setPowerProperties(VOLTAGE, 60.0, 30.0)
             .setMechanicalProperties(6.5, 7.0, 4.0)
             .setDiscretizationLookahead(0.020)
-            .setOdometryPeriod(0.005)
+            .setOdometryPeriod(0.01)
             .setOdometryStd(0.1, 0.1, 0.1)
             .setSysIdConfig(new SysIdRoutine.Config())
             .setFieldSize(FIELD_LENGTH, FIELD_WIDTH)

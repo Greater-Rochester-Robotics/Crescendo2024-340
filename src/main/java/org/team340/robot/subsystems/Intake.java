@@ -8,6 +8,7 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.SparkAbsoluteEncoder;
 import com.revrobotics.SparkAbsoluteEncoder.Type;
 import com.revrobotics.SparkPIDController;
+import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -42,7 +43,7 @@ public class Intake extends GRRSubsystem {
         rollerLowerMotor = createSparkMax("Roller Lower Motor", RobotMap.INTAKE_ROLLER_LOWER_MOTOR, MotorType.kBrushless);
         armEncoder = createSparkFlexAbsoluteEncoder("Arm Encoder", armLeftMotor, Type.kDutyCycle);
         armPID = armLeftMotor.getPIDController();
-        noteDetector = new DigitalInput(RobotMap.INTAKE_NOTE_DETECTOR);
+        noteDetector = createDigitalInput("Note Detector", RobotMap.INTAKE_NOTE_DETECTOR);
 
         IntakeConstants.ArmConfigs.LEFT_MOTOR.apply(armLeftMotor);
         IntakeConstants.ArmConfigs.RIGHT_MOTOR.apply(armRightMotor);
@@ -52,11 +53,17 @@ public class Intake extends GRRSubsystem {
         IntakeConstants.ArmConfigs.PID.apply(armLeftMotor, armPID);
     }
 
+    @Override
+    public void initSendable(SendableBuilder builder) {
+        super.initSendable(builder);
+        builder.addBooleanProperty("hasNote", this::hasNote, null);
+    }
+
     /**
      * Returns {@code true} when the note detector is detecting a note.
      */
-    public boolean getNoteDetector() {
-        return !noteDetector.get();
+    public boolean hasNote() {
+        return noteDetector.get();
     }
 
     /**

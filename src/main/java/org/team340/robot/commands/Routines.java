@@ -48,7 +48,7 @@ public class Routines {
                     ),
                     noteBackToIntake()
                 ),
-                intake::getNoteDetector
+                intake::hasNote
             ),
             intake.scoreAmpPosition()
         );
@@ -101,7 +101,7 @@ public class Routines {
      */
     private Command noteBackToIntake() {
         return deadline(
-            sequence(waitUntil(() -> intake.getNoteDetector() && !feeder.getNoteDetector()), waitSeconds(0.0001)),
+            sequence(waitUntil(() -> intake.hasNote() && !feeder.getNoteDetector()), waitSeconds(0.0001)),
             shooterFeederSpit(),
             intake.spitSlow()
         );

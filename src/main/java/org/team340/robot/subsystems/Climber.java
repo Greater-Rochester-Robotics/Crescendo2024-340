@@ -1,5 +1,7 @@
 package org.team340.robot.subsystems;
 
+import static edu.wpi.first.wpilibj2.command.Commands.either;
+
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
@@ -9,10 +11,6 @@ import com.revrobotics.SparkPIDController;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
-
-import static edu.wpi.first.wpilibj2.command.Commands.either;
-import static edu.wpi.first.wpilibj2.command.Commands.none;
-
 import org.team340.lib.GRRSubsystem;
 import org.team340.robot.Constants.ClimberConstants;
 import org.team340.robot.Constants.RobotMap;
@@ -101,19 +99,20 @@ public class Climber extends GRRSubsystem {
     }
 
     public Command toPosition(double position) {
-        return either(commandBuilder("climber.toPosition(" + position + ")")
-            .onExecute(() -> {
-                double difference = rightEncoder.getPosition() - leftEncoder.getPosition();
+        return either(
+            commandBuilder("climber.toPosition(" + position + ")")
+                .onExecute(() -> {
+                    double difference = rightEncoder.getPosition() - leftEncoder.getPosition();
 
-                leftPID.setReference(position, ControlType.kPosition);
-                rightPID.setReference(position, ControlType.kPosition);
-            })
-            .onEnd(() -> {
-                leftMotor.stopMotor();
-                rightMotor.stopMotor();
-            }), 
-            commandBuilder()
-                .onInitialize(()->DriverStation.reportWarning("The climber has not been homed.", false)), 
-            () -> isZeroedLeft && isZeroedRight);
+                    leftPID.setReference(position, ControlType.kPosition);
+                    rightPID.setReference(position, ControlType.kPosition);
+                })
+                .onEnd(() -> {
+                    leftMotor.stopMotor();
+                    rightMotor.stopMotor();
+                }),
+            commandBuilder().onInitialize(() -> DriverStation.reportWarning("The climber has not been homed.", false)),
+            () -> isZeroedLeft && isZeroedRight
+        );
     }
 }
