@@ -6,11 +6,15 @@ import edu.wpi.first.wpilibj.RobotBase;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import org.team340.lib.util.Sleep;
 
 /**
  * Base class for configuring REV hardware.
  */
 abstract class RevConfigBase<T> {
+
+    private static final double CHECK_SLEEP = 25.0;
+    private static final int DEFAULT_SET_ITERATIONS = 3;
 
     private static final record RevConfigStep<T>(
         Function<T, REVLibError> applier,
@@ -28,7 +32,7 @@ abstract class RevConfigBase<T> {
         }
 
         public RevConfigStep(Function<T, REVLibError> applier, Function<T, Boolean> checker, boolean trustCheck, String name) {
-            this(applier, checker, trustCheck, RevConfigRegistry.DEFAULT_SET_ITERATIONS, name);
+            this(applier, checker, trustCheck, DEFAULT_SET_ITERATIONS, name);
         }
     }
 
@@ -84,13 +88,7 @@ abstract class RevConfigBase<T> {
      */
     void applySteps(T hardware, String identifier) {
         for (RevConfigStep<T> step : configSteps) {
-            applyStep(
-                hardware,
-                identifier,
-                step,
-                new String[RevConfigRegistry.DEFAULT_SET_ITERATIONS],
-                RevConfigRegistry.DEFAULT_SET_ITERATIONS
-            );
+            applyStep(hardware, identifier, step, new String[DEFAULT_SET_ITERATIONS], DEFAULT_SET_ITERATIONS);
         }
     }
 
@@ -105,11 +103,7 @@ abstract class RevConfigBase<T> {
     private void applyStep(T hardware, String identifier, RevConfigStep<T> step, String[] results, int iterationsLeft) {
         try {
             REVLibError status = step.applier().apply(hardware);
-            if (!RobotBase.isSimulation()) {
-                try {
-                    Thread.sleep((long) RevConfigRegistry.CHECK_SLEEP);
-                } catch (Exception e) {}
-            }
+            Sleep.ms(CHECK_SLEEP);
 
             boolean check = step.checker().apply(hardware);
             results[results.length - iterationsLeft] = status.name() + (!check ? " (Failed Check)" : "");

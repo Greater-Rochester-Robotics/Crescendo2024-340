@@ -2,8 +2,10 @@ package org.team340.robot;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import org.team340.lib.GRRDashboard;
 import org.team340.lib.controller.Controller2;
+import org.team340.lib.util.Math2;
 import org.team340.lib.util.config.rev.RevConfigRegistry;
 import org.team340.robot.Constants.ControllerConstants;
 import org.team340.robot.subsystems.Climber;
@@ -47,23 +49,24 @@ public final class RobotContainer {
         // Initialize subsystems.
         // climber = new Climber();
         // feeder = new Feeder();
-        intake = new Intake();
+        // intake = new Intake();
         // pivot = new Pivot();
         // shooter = new Shooter();
-        // swerve = new Swerve();
+        swerve = new Swerve();
 
         // Add subsystems to the dashboard.
         // climber.addToDashboard();
         // feeder.addToDashboard();
-        intake.addToDashboard();
+        // intake.addToDashboard();
         // pivot.addToDashboard();
         // shooter.addToDashboard();
-        // swerve.addToDashboard();
+        swerve.addToDashboard();
 
         // Set systems check command.
         // GRRDashboard.setSystemsCheck(SystemsCheck.command());
 
-        // Print errors from REV hardware initialization.
+        // Complete REV hardware initialization.
+        RevConfigRegistry.burnFlash();
         RevConfigRegistry.printError();
 
         // Configure bindings and autos.
@@ -79,14 +82,19 @@ public final class RobotContainer {
         // Set default commands.
         // pivot.setDefaultCommand(pivot.maintainPosition());
         // intake.setDefaultCommand(intake.maintainPosition());
-        // swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
+        swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
 
         /**
          * Driver bindings.
          */
 
         // POV Left => Zero swerve
-        // driver.povLeft().onTrue(swerve.zeroIMU(Math2.ROTATION2D_0));
+        driver.povLeft().onTrue(swerve.zeroIMU(Math2.ROTATION2D_0));
+
+        driver.a().whileTrue(swerve.sysIdQuasistatic(Direction.kForward));
+        driver.x().whileTrue(swerve.sysIdQuasistatic(Direction.kReverse));
+        driver.b().whileTrue(swerve.sysIdDynamic(Direction.kForward));
+        driver.y().whileTrue(swerve.sysIdDynamic(Direction.kReverse));
 
         /**
          * Co-driver bindings.

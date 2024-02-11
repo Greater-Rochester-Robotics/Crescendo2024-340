@@ -3,10 +3,10 @@ package org.team340.lib.util.config.rev;
 import com.revrobotics.CANSparkLowLevel.PeriodicFrame;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.REVLibError;
-import edu.wpi.first.wpilibj.RobotBase;
 import java.util.ArrayList;
 import java.util.List;
 import org.team340.lib.util.Math2;
+import org.team340.lib.util.Sleep;
 
 /**
  * Config builder for {@link CANSparkMax}.
@@ -40,17 +40,9 @@ public final class SparkMaxConfig extends RevConfigBase<CANSparkMax> {
      * @param sparkMax The Spark Max to apply the config to.
      */
     public void apply(CANSparkMax sparkMax) {
-        addStep(
-            sm -> {
-                RevConfigRegistry.burnFlashSleep();
-                return sm.burnFlash();
-            },
-            sm -> true,
-            false,
-            1,
-            "Burn Flash"
-        );
-        super.applySteps(sparkMax, "Spark Max (ID " + sparkMax.getDeviceId() + ")");
+        String identifier = "Spark Max (ID " + sparkMax.getDeviceId() + ")";
+        super.applySteps(sparkMax, identifier);
+        RevConfigRegistry.addBurnFlash(identifier, () -> sparkMax.burnFlash());
     }
 
     /**
@@ -543,13 +535,7 @@ public final class SparkMaxConfig extends RevConfigBase<CANSparkMax> {
         addStep(
             sparkMax -> {
                 REVLibError res = sparkMax.restoreFactoryDefaults();
-
-                if (!RobotBase.isSimulation()) {
-                    try {
-                        Thread.sleep((long) FACTORY_DEFAULTS_SLEEP);
-                    } catch (Exception e) {}
-                }
-
+                Sleep.ms(FACTORY_DEFAULTS_SLEEP);
                 return res;
             },
             "Restore Factory Defaults"
@@ -566,13 +552,7 @@ public final class SparkMaxConfig extends RevConfigBase<CANSparkMax> {
         addStep(
             sparkMax -> {
                 REVLibError res = sparkMax.restoreFactoryDefaults(persist);
-
-                if (!RobotBase.isSimulation()) {
-                    try {
-                        Thread.sleep((long) FACTORY_DEFAULTS_SLEEP);
-                    } catch (Exception e) {}
-                }
-
+                Sleep.ms(FACTORY_DEFAULTS_SLEEP);
                 return res;
             },
             "Restore Factory Defaults"

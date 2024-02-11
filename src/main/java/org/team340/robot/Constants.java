@@ -19,8 +19,8 @@ import org.team340.lib.swerve.config.SwerveModuleConfig;
 import org.team340.lib.swerve.hardware.motors.SwerveMotor;
 import org.team340.lib.util.Math2;
 import org.team340.lib.util.config.PIDConfig;
-import org.team340.lib.util.config.rev.AbsoluteEncoderConfig;
 import org.team340.lib.util.config.rev.RelativeEncoderConfig;
+import org.team340.lib.util.config.rev.SparkAbsoluteEncoderConfig;
 import org.team340.lib.util.config.rev.SparkFlexConfig;
 import org.team340.lib.util.config.rev.SparkMaxConfig;
 import org.team340.lib.util.config.rev.SparkPIDControllerConfig;
@@ -143,7 +143,7 @@ public final class Constants {
             public static final SparkFlexConfig RIGHT_MOTOR = MOTOR_BASE
                 .clone()
                 .follow(ExternalFollower.kFollowerSpark, RobotMap.INTAKE_ARM_LEFT_MOTOR, false);
-            public static final AbsoluteEncoderConfig ENCODER = new AbsoluteEncoderConfig()
+            public static final SparkAbsoluteEncoderConfig ENCODER = new SparkAbsoluteEncoderConfig()
                 .setInverted(true)
                 .setPositionConversionFactor(Math2.TWO_PI)
                 .setVelocityConversionFactor(Math2.TWO_PI / 60.0)
@@ -354,29 +354,29 @@ public final class Constants {
 
         private static final SwerveModuleConfig FRONT_LEFT = new SwerveModuleConfig()
             .setLabel("Front Left")
-            .useSparkAttachedEncoder(0.0, false) // TODO: put in this angle before running
-            .setPosition(0.3000, 0.3000)
+            .useSparkAttachedEncoder(1.714, true)
+            .setPosition(0.288925, 0.288925)
             .setMoveMotor(RobotMap.FRONT_LEFT_MOVE, true, true)
             .setTurnMotor(RobotMap.FRONT_LEFT_TURN, false, true);
 
         private static final SwerveModuleConfig BACK_LEFT = new SwerveModuleConfig()
             .setLabel("Back Left")
-            .useSparkAttachedEncoder(0.0, false) // TODO: put in this angle before running
-            .setPosition(-0.3000, 0.3000)
+            .useSparkAttachedEncoder(1.865, true)
+            .setPosition(-0.288925, 0.288925)
             .setMoveMotor(RobotMap.BACK_LEFT_MOVE, true, true)
             .setTurnMotor(RobotMap.BACK_LEFT_TURN, false, true);
 
         private static final SwerveModuleConfig BACK_RIGHT = new SwerveModuleConfig()
             .setLabel("Back Right")
-            .useSparkAttachedEncoder(0.0, false) // TODO: put in this angle before running
-            .setPosition(-0.3000, -0.3000)
+            .useSparkAttachedEncoder(2.622, true)
+            .setPosition(-0.288925, -0.288925)
             .setMoveMotor(RobotMap.BACK_RIGHT_MOVE, true, true)
             .setTurnMotor(RobotMap.BACK_RIGHT_TURN, false, true);
 
         private static final SwerveModuleConfig FRONT_RIGHT = new SwerveModuleConfig()
             .setLabel("Front Right")
-            .useSparkAttachedEncoder(0.0, false) // TODO: put in this angle before running
-            .setPosition(0.3000, -0.3000)
+            .useSparkAttachedEncoder(2.287, true)
+            .setPosition(0.288925, -0.288925)
             .setMoveMotor(RobotMap.FRONT_RIGHT_MOVE, true, true)
             .setTurnMotor(RobotMap.FRONT_RIGHT_TURN, false, true);
 
@@ -385,15 +385,15 @@ public final class Constants {
             .setPeriod(PERIOD)
             .setMovePID(0.001, 0.0, 0.0, 0.0)
             .setMoveFF(0.0, 2.84, 0.0)
-            .setTurnPID(0.5, 0.0, 15.0, 0.0)
+            .setTurnPID(2.0, 0.0, 1.0, 0.0)
             .setRampRate(0.03, 0.03)
             .setMotorTypes(SwerveMotor.Type.SPARK_FLEX_BRUSHLESS, SwerveMotor.Type.SPARK_FLEX_BRUSHLESS)
             .setMaxSpeeds(5.0, 10.0)
             .setRatelimits(17.5, 30.0)
-            .setPowerProperties(VOLTAGE, 60.0, 30.0)
-            .setMechanicalProperties(6.5, 7.0, 4.0)
+            .setPowerProperties(VOLTAGE, 60.0, 40.0)
+            .setMechanicalProperties(6.75, 150.0 / 7.0, 4.0)
             .setDiscretizationLookahead(0.020)
-            .setOdometryPeriod(0.01)
+            .setOdometryPeriod(0.02)
             .setOdometryStd(0.1, 0.1, 0.1)
             .setSysIdConfig(new SysIdRoutine.Config())
             .setFieldSize(FIELD_LENGTH, FIELD_WIDTH)

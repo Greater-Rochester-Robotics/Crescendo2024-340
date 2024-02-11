@@ -462,6 +462,11 @@ public abstract class SwerveBase extends GRRSubsystem {
         for (int i = 0; i < modules.length; i++) {
             modules[i].setVoltage(voltage, heading);
         }
+        SwerveModuleState[] states = new SwerveModuleState[modules.length];
+        for (int i = 0; i < states.length; i++) {
+            states[i] = new SwerveModuleState(0, heading);
+        }
+        ratelimiter.setLastState(new SwerveRatelimiter.SwerveState(new ChassisSpeeds(), states));
     }
 
     /**

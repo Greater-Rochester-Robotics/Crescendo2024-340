@@ -40,16 +40,6 @@ public final class SparkPIDControllerConfig extends RevConfigBase<SparkPIDContro
      * @param pidController The PID controller.
      */
     public void apply(CANSparkMax sparkMax, SparkPIDController pidController) {
-        addStep(
-            pc -> {
-                RevConfigRegistry.burnFlashSleep();
-                return sparkMax.burnFlash();
-            },
-            pc -> true,
-            false,
-            1,
-            "Burn Flash"
-        );
         super.applySteps(pidController, "Spark Max (ID " + sparkMax.getDeviceId() + ") PID Controller");
     }
 
@@ -59,16 +49,6 @@ public final class SparkPIDControllerConfig extends RevConfigBase<SparkPIDContro
      * @param pidController The PID controller.
      */
     public void apply(CANSparkFlex sparkFlex, SparkPIDController pidController) {
-        addStep(
-            pc -> {
-                RevConfigRegistry.burnFlashSleep();
-                return sparkFlex.burnFlash();
-            },
-            pc -> true,
-            false,
-            1,
-            "Burn Flash"
-        );
         super.applySteps(pidController, "Spark Flex (ID " + sparkFlex.getDeviceId() + ") PID Controller");
     }
 
