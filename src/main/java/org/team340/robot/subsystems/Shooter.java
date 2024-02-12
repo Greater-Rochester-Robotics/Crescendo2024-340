@@ -5,6 +5,7 @@ import com.revrobotics.CANSparkFlex;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkPIDController;
+import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.Supplier;
 import org.team340.lib.GRRSubsystem;
@@ -44,13 +45,19 @@ public class Shooter extends GRRSubsystem {
         ShooterConstants.Configs.PID.apply(rightShootMotor, rightShootPID);
     }
 
+    public void initSendable(SendableBuilder builder) {
+        super.initSendable(builder);
+        builder.addDoubleProperty("left-target", () -> leftTargetSpeed, null);
+        builder.addDoubleProperty("right-target", () -> rightTargetSpeed, null);
+    }
+
     /**
      * This starts running the shooter motors to their respective speeds.
-     * @param speed This is speed the right motor will be set to with the left motor set to {@link ShooterConstants#LEFT_TO_RIGHT_RATIO} times this.
+     * @param speed This is speed the right motor will be set to with the left motor set to {@link ShooterConstants#RIGHT_TO_LEFT_RATIO} times this.
      */
     private void applySpeed(double speed) {
-        double leftSpeed = speed * ShooterConstants.LEFT_TO_RIGHT_RATIO;
-        double rightSpeed = speed;
+        double leftSpeed = speed;
+        double rightSpeed = speed * ShooterConstants.RIGHT_TO_LEFT_RATIO;
         leftTargetSpeed = leftSpeed;
         rightTargetSpeed = rightSpeed;
         leftShootPID.setReference(leftSpeed, ControlType.kVelocity);
@@ -81,7 +88,12 @@ public class Shooter extends GRRSubsystem {
      * @param shooterSpeed This is the speed to drive the shooter at.
      */
     public Command setSpeed(Supplier<Double> shooterSpeed) {
-        return commandBuilder("shooter.setShootSpeed()").onExecute(() -> applySpeed(shooterSpeed.get())).onEnd(() -> applySpeed(0.0));
+        return commandBuilder("shooter.setShootSpeed()")
+            .onExecute(() -> applySpeed(shooterSpeed.get()))
+            .onEnd(() -> {
+                leftShootMotor.stopMotor();
+                rightShootMotor.stopMotor();
+            });
     }
 
     /**

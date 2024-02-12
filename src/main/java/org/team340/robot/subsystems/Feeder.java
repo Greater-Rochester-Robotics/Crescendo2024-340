@@ -3,6 +3,7 @@ package org.team340.robot.subsystems;
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 import com.revrobotics.CANSparkBase.ControlType;
+import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
@@ -44,7 +45,7 @@ public class Feeder extends GRRSubsystem {
      * Returns {@code true} when the note detector is detecting a note.
      */
     public boolean getNoteDetector() {
-        return !noteDetector.get();
+        return noteDetector.get();
     }
 
     /**
@@ -52,7 +53,7 @@ public class Feeder extends GRRSubsystem {
      */
     public Command receiveNote() {
         return commandBuilder("feeder.receiveNote()")
-            .onInitialize(() -> feedPID.setReference(FeederConstants.INTAKE_SPEED, ControlType.kDutyCycle))
+            .onInitialize(() -> feedMotor.set(FeederConstants.INTAKE_SPEED))
             .isFinished(() -> getNoteDetector())
             .onEnd(() -> feedMotor.stopMotor());
     }
@@ -61,22 +62,23 @@ public class Feeder extends GRRSubsystem {
      * This command moves it forward until it's detected, then backwards till it's not, then forward again,
      * to try to get it as consistent as possible.
      */
-    public Command reseatNote() {
+    public Command seatNote() {
         return either(
             sequence(
-                commandBuilder("feeder.reseatNote().backUp")
-                    .onInitialize(() -> feedPID.setReference(FeederConstants.BACK_SLOW_SPEED, ControlType.kDutyCycle))
-                    .isFinished(() -> !getNoteDetector())
+                commandBuilder("feeder.seatNote().slowIn")
+                    .onInitialize(() -> feedMotor.set(FeederConstants.IN_SLOW_SPEED))
+                    .isFinished(() -> getNoteDetector())
                     .onEnd(() -> feedEncoder.setPosition(0.0)),
-                commandBuilder("feeder.reseatNote().inToPos")
+                commandBuilder("feeder.seatNote().inToPos")
                     .onInitialize(() -> feedPID.setReference(FeederConstants.POSITION_OFFSET, ControlType.kPosition))
                     .isFinished(() ->
                         Math2.epsilonEquals(feedEncoder.getPosition(), FeederConstants.POSITION_OFFSET, FeederConstants.CLOSED_LOOP_ERR)
                     )
                     .onEnd(() -> feedMotor.stopMotor())
-            ),
+            )
+                .withTimeout(2.0),
             none(),
-            this::getNoteDetector
+            () -> !getNoteDetector()
         );
     }
 
@@ -85,7 +87,7 @@ public class Feeder extends GRRSubsystem {
      */
     public Command shootNote() {
         return commandBuilder("feeder.shootNote()")
-            .onInitialize(() -> feedPID.setReference(FeederConstants.SHOOT_SPEED, ControlType.kDutyCycle))
+            .onInitialize(() -> feedMotor.set(FeederConstants.SHOOT_SPEED))
             .isFinished(() -> !getNoteDetector())
             .andThen(waitSeconds(FeederConstants.SHOOT_DELAY))
             .andThen(runOnce(() -> feedMotor.stopMotor()));
@@ -96,7 +98,15 @@ public class Feeder extends GRRSubsystem {
      */
     public Command spit() {
         return commandBuilder("feeder.spit()")
-            .onInitialize(() -> feedPID.setReference(FeederConstants.SPIT_SPEED, ControlType.kDutyCycle))
+            .onInitialize(() -> feedMotor.set(FeederConstants.SPIT_SPEED))
             .onEnd(() -> feedMotor.stopMotor());
+    }
+
+    public Command onDisable() {
+        return commandBuilder()
+            .onInitialize(() -> feedMotor.setIdleMode(IdleMode.kCoast))
+            .onEnd(() -> feedMotor.setIdleMode(IdleMode.kBrake))
+            .ignoringDisable(true)
+            .withName("feeder.onDisable()");
     }
 }

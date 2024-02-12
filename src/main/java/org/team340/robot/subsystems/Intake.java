@@ -8,12 +8,12 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.SparkAbsoluteEncoder;
 import com.revrobotics.SparkAbsoluteEncoder.Type;
 import com.revrobotics.SparkPIDController;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import org.team340.lib.GRRSubsystem;
-import org.team340.lib.commands.CommandBuilder;
 import org.team340.lib.util.Math2;
 import org.team340.robot.Constants.IntakeConstants;
 import org.team340.robot.Constants.RobotMap;
@@ -33,22 +33,26 @@ public class Intake extends GRRSubsystem {
     private final SparkPIDController armPID;
     private final DigitalInput noteDetector;
 
-    private Double targetAngle = null;
+    private double maintainAngle = 0.0;
+    private double target = 0.0;
 
     public Intake() {
         super("Intake");
         armLeftMotor = createSparkFlex("Arm Left Motor", RobotMap.INTAKE_ARM_LEFT_MOTOR, MotorType.kBrushless);
         armRightMotor = createSparkFlex("Arm Right Motor", RobotMap.INTAKE_ARM_RIGHT_MOTOR, MotorType.kBrushless);
-        rollerUpperMotor = createSparkMax("Roller Upper Motor", RobotMap.INTAKE_ROLLER_UPPER_MOTOR, MotorType.kBrushless);
-        rollerLowerMotor = createSparkMax("Roller Lower Motor", RobotMap.INTAKE_ROLLER_LOWER_MOTOR, MotorType.kBrushless);
         armEncoder = createSparkFlexAbsoluteEncoder("Arm Encoder", armLeftMotor, Type.kDutyCycle);
         armPID = armLeftMotor.getPIDController();
+        armPID.setFeedbackDevice(armEncoder);
+
+        rollerUpperMotor = createSparkMax("Roller Upper Motor", RobotMap.INTAKE_ROLLER_UPPER_MOTOR, MotorType.kBrushless);
+        rollerLowerMotor = createSparkMax("Roller Lower Motor", RobotMap.INTAKE_ROLLER_LOWER_MOTOR, MotorType.kBrushless);
+
         noteDetector = createDigitalInput("Note Detector", RobotMap.INTAKE_NOTE_DETECTOR);
 
         IntakeConstants.ArmConfigs.LEFT_MOTOR.apply(armLeftMotor);
         IntakeConstants.ArmConfigs.RIGHT_MOTOR.apply(armRightMotor);
-        IntakeConstants.RollerConfigs.UPPER_MOTOR.apply(rollerUpperMotor);
-        IntakeConstants.RollerConfigs.LOWER_MOTOR.apply(rollerLowerMotor);
+        IntakeConstants.RollerConfigs.MOTOR.apply(rollerUpperMotor);
+        IntakeConstants.RollerConfigs.MOTOR.apply(rollerLowerMotor);
         IntakeConstants.ArmConfigs.ENCODER.apply(armLeftMotor, armEncoder);
         IntakeConstants.ArmConfigs.PID.apply(armLeftMotor, armPID);
     }
@@ -56,6 +60,7 @@ public class Intake extends GRRSubsystem {
     @Override
     public void initSendable(SendableBuilder builder) {
         super.initSendable(builder);
+        builder.addDoubleProperty("armTarget", () -> target, null);
         builder.addBooleanProperty("hasNote", this::hasNote, null);
     }
 
@@ -67,25 +72,13 @@ public class Intake extends GRRSubsystem {
     }
 
     /**
-     * Set idle mode of pivot motor to brake or coast.
-     * @param brakeOn If idle mode should be set to brake.
-     */
-    public void setBrakeMode(boolean brakeOn) {
-        armLeftMotor.setIdleMode(brakeOn ? IdleMode.kBrake : IdleMode.kCoast);
-        armRightMotor.setIdleMode(brakeOn ? IdleMode.kBrake : IdleMode.kCoast);
-    }
-
-    /**
      * Sets the {@link #armPID} to go to the specified angle if it is valid
      * (within the intake {@link IntakeConstants#MINIMUM_ANGLE minimum} and
      * {@link IntakeConstants#MAXIMUM_ANGLE maximum} angles).
      * @param position The angle to set.
      */
-    private void setValidPosition(Double position) {
-        if (position == null) {
-            // This is to check if the position hasn't been set yet.
-            return;
-        } else if (position < IntakeConstants.MINIMUM_ANGLE || position > IntakeConstants.MAXIMUM_ANGLE) {
+    private void setValidPosition(double position) {
+        if (position < IntakeConstants.MINIMUM_ANGLE || position > IntakeConstants.MAXIMUM_ANGLE) {
             DriverStation.reportWarning(
                 "The angle " +
                 position +
@@ -94,12 +87,32 @@ public class Intake extends GRRSubsystem {
                 " and " +
                 IntakeConstants.MINIMUM_ANGLE +
                 ".",
-                null
+                true
             );
         } else {
-            targetAngle = position;
             armPID.setReference(position, ControlType.kPosition);
+            target = position;
         }
+    }
+
+    private Command useState(double angle, double upperSpeed, double lowerSpeed, boolean willFinish) {
+        return commandBuilder()
+            .onInitialize(() -> {
+                rollerUpperMotor.set(upperSpeed);
+                rollerLowerMotor.set(lowerSpeed);
+            })
+            .onExecute(() -> {
+                setValidPosition(angle);
+                maintainAngle = armEncoder.getPosition();
+            })
+            .isFinished(() -> willFinish && Math2.epsilonEquals(armEncoder.getPosition(), angle, IntakeConstants.CLOSED_LOOP_ERROR))
+            .onEnd(interrupted -> {
+                if (!interrupted || Math2.epsilonEquals(armEncoder.getPosition(), angle, IntakeConstants.CLOSED_LOOP_ERROR)) maintainAngle =
+                    angle;
+                rollerUpperMotor.stopMotor();
+                rollerLowerMotor.stopMotor();
+                armLeftMotor.stopMotor();
+            });
     }
 
     /**
@@ -107,28 +120,20 @@ public class Intake extends GRRSubsystem {
      * @return This command.
      */
     public Command intakeDown() {
-        return commandBuilder("intake.intakeDown()")
-            .onInitialize(() -> setValidPosition(IntakeConstants.DEPLOY_POSITION))
-            .isFinished(() -> armEncoder.getPosition() < IntakeConstants.DEPLOY_POSITION + IntakeConstants.CLOSED_LOOP_ERROR)
-            .onEnd(() -> armLeftMotor.stopMotor());
+        return useState(IntakeConstants.DEPLOY_POSITION, 0, 0, true).withName("intake.intakeDown()");
     }
 
     /**
      * Deploys the intake and runs the roller motors to intake a note.
      */
     public Command intake() {
-        return commandBuilder("intake.intake()")
-            .onInitialize(() -> rollerUpperMotor.set(IntakeConstants.INTAKE_ROLLER_SPEED))
-            .onExecute(() -> {
-                setValidPosition(IntakeConstants.DEPLOY_POSITION);
-            })
-            .onEnd(interrupted -> {
-                rollerUpperMotor.stopMotor();
-                armLeftMotor.stopMotor();
-                if (interrupted) {
-                    targetAngle = armEncoder.getPosition();
-                }
-            });
+        return useState(
+            IntakeConstants.DEPLOY_POSITION,
+            IntakeConstants.INTAKE_ROLLER_SPEED,
+            IntakeConstants.INTAKE_ROLLER_SPEED * .6,
+            false
+        )
+            .withName("intake.intake()");
     }
 
     /**
@@ -136,28 +141,14 @@ public class Intake extends GRRSubsystem {
      * @return This command.
      */
     public Command retract() {
-        return commandBuilder("intake.retract()")
-            .onInitialize(() -> rollerUpperMotor.stopMotor())
-            .onExecute(() -> setValidPosition(IntakeConstants.STRAIGHT_UP_POSITION))
-            .onEnd(interrupted -> {
-                if (interrupted) {
-                    targetAngle = armEncoder.getPosition();
-                }
-            });
+        return useState(IntakeConstants.STRAIGHT_UP_POSITION, 0, 0, true).withName("intake.retract()");
     }
 
     /**
      * Retracts the intake into the frame perimeter and stops the rollers.
      */
     public Command toSafePosition() {
-        return commandBuilder("intake.toSafePosition()")
-            .onInitialize(() -> rollerUpperMotor.stopMotor())
-            .onExecute(() -> setValidPosition(IntakeConstants.SAFE_POSITION))
-            .onEnd((Boolean interrupted) -> {
-                if (interrupted) {
-                    targetAngle = armEncoder.getPosition();
-                }
-            });
+        return useState(IntakeConstants.SAFE_POSITION, 0, 0, true).withName("intake.toSafePosition()");
     }
 
     /**
@@ -166,14 +157,7 @@ public class Intake extends GRRSubsystem {
      * @return This command.
      */
     public Command scoreAmpPosition() {
-        return commandBuilder("intake.scoreAmpPosition()")
-            .onExecute(() -> setValidPosition(IntakeConstants.SCORE_AMP_POSITION))
-            .isFinished(() -> Math2.epsilonEquals(armEncoder.getPosition(), IntakeConstants.SCORE_AMP_POSITION))
-            .onEnd(interrupted -> {
-                if (interrupted) {
-                    targetAngle = armEncoder.getPosition();
-                }
-            });
+        return useState(IntakeConstants.SCORE_AMP_POSITION, 0, 0, true).withName("intake.scoreAmpPosition()");
     }
 
     /**
@@ -183,47 +167,61 @@ public class Intake extends GRRSubsystem {
     public Command scoreAmp() {
         return scoreAmpPosition()
             .andThen(
-                commandBuilder("intake.scoreAmp().scoring")
-                    .onInitialize(() -> rollerUpperMotor.set(IntakeConstants.SCORE_AMP_ROLLER_SPEED))
-                    .onEnd(() -> rollerUpperMotor.stopMotor())
-                    .withTimeout(IntakeConstants.AMP_SCORING_TIMEOUT)
-            );
+                useState(
+                    IntakeConstants.SCORE_AMP_POSITION,
+                    IntakeConstants.SCORE_AMP_ROLLER_SPEED,
+                    IntakeConstants.SCORE_AMP_ROLLER_SPEED,
+                    false
+                )
+            )
+            .withName("intake.scoreAmp()");
     }
 
     /**
-     * This command maintains the position stored in {@link #targetAngle} unless it's null.
+     * This command spits using the {@link IntakeConstants#FROM_SHOOTER_ROLLER_SPEED slow roller speed}.
+     * @return This command.
+     */
+    public Command receiveFromShooter() {
+        return useState(
+            IntakeConstants.DEPLOY_POSITION,
+            IntakeConstants.FROM_SHOOTER_ROLLER_SPEED,
+            IntakeConstants.FROM_SHOOTER_ROLLER_SPEED,
+            false
+        )
+            .withName("intake.receiveFromShooter()");
+    }
+
+    /**
+     * This command maintains the position stored in {@link #maintainAngle} unless it's null.
      * It should only be null if the position hasn't been set yet.
      * @return This command.
      */
-    public CommandBuilder maintainPosition() {
+    public Command maintainPosition() {
         return commandBuilder("intake.maintainPosition()")
+            .onInitialize(() -> {
+                if (MathUtil.angleModulus(maintainAngle) < 0.0) maintainAngle = 0.0;
+            })
             .onExecute(() -> {
-                if (targetAngle != null && targetAngle < IntakeConstants.MINIMUM_PID_ANGLE) {
+                if (maintainAngle < IntakeConstants.MINIMUM_PID_ANGLE) {
                     armLeftMotor.stopMotor();
                 } else {
-                    setValidPosition(targetAngle);
+                    setValidPosition(maintainAngle);
                 }
             });
     }
 
-    /**
-     * Spits the note out of the intake in case it is stuck.
-     */
-    public Command spit() {
-        return maintainPosition()
-            .onInitialize(() -> rollerUpperMotor.set(IntakeConstants.SPIT_ROLLER_SPEED))
-            .onEnd(() -> rollerUpperMotor.stopMotor())
-            .withName("intake.spit()");
-    }
-
-    /**
-     * This command spits using the {@link IntakeConstants#SPIT_SLOW_ROLLER_SPEED slow roller speed}.
-     * @return This command.
-     */
-    public Command spitSlow() {
-        return maintainPosition()
-            .onInitialize(() -> rollerUpperMotor.set(IntakeConstants.SPIT_SLOW_ROLLER_SPEED))
-            .onEnd(() -> rollerUpperMotor.stopMotor())
-            .withName("intake.spitSlow()");
+    public Command onDisable() {
+        return commandBuilder()
+            .onInitialize(() -> {
+                armLeftMotor.setIdleMode(IdleMode.kCoast);
+                armRightMotor.setIdleMode(IdleMode.kCoast);
+            })
+            .onExecute(() -> maintainAngle = armEncoder.getPosition())
+            .onEnd(() -> {
+                armLeftMotor.setIdleMode(IdleMode.kBrake);
+                armRightMotor.setIdleMode(IdleMode.kBrake);
+            })
+            .ignoringDisable(true)
+            .withName("intake.onDisable()");
     }
 }

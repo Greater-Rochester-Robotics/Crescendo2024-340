@@ -6,6 +6,7 @@ import com.revrobotics.CANSparkFlex;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkPIDController;
+import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -40,12 +41,10 @@ public class Pivot extends GRRSubsystem {
         PivotConstants.Configs.ENCODER.apply(pivotMotor, pivotEncoder);
     }
 
-    /**
-     * Set idle mode of pivot motor to brake or coast.
-     * @param brakeOn If idle mode should be set to brake.
-     */
-    public void setBrakeMode(boolean brakeOn) {
-        pivotMotor.setIdleMode(brakeOn ? IdleMode.kBrake : IdleMode.kCoast);
+    @Override
+    public void initSendable(SendableBuilder builder) {
+        super.initSendable(builder);
+        builder.addDoubleProperty("target", () -> currentTarget, null);
     }
 
     /**
@@ -105,6 +104,7 @@ public class Pivot extends GRRSubsystem {
                         pivotEncoder.setPosition(PivotConstants.MINIMUM_ANGLE);
                         hasBeenHomed = true;
                     }
+                    currentTarget = pivotEncoder.getPosition();
                 }),
             Commands.none().withName("pivot.home().fallthrough"),
             () -> !hasBeenHomed || withOverride
@@ -140,10 +140,10 @@ public class Pivot extends GRRSubsystem {
                         double angleValue = angle.get();
                         if (isAngleValid(angleValue)) {
                             currentTarget = angleValue;
-                            pivotPID.setReference(angleValue, ControlType.kSmartMotion);
+                            pivotPID.setReference(angleValue, ControlType.kPosition);
                         }
                     })
-                    .isFinished(() -> getLowerLimit() || isOnTarget())
+                    .isFinished(() -> (getLowerLimit() && pivotMotor.getAppliedOutput() < 0.0) || (willFinish && isOnTarget()))
                     .onEnd(interrupted -> {
                         if (interrupted || getLowerLimit()) {
                             currentTarget = pivotEncoder.getPosition();
@@ -151,18 +151,6 @@ public class Pivot extends GRRSubsystem {
                             currentTarget = angle.get();
                         }
                     })
-            )
-            .andThen(
-                willFinish
-                    ? runOnce(() -> pivotMotor.stopMotor())
-                    : commandBuilder("pivot.goToAngle().PID")
-                        .onExecute(() -> {
-                            double angleValue = angle.get();
-                            if (isAngleValid(angleValue)) {
-                                currentTarget = angleValue;
-                                pivotPID.setReference(angleValue, ControlType.kPosition);
-                            }
-                        })
             );
     }
 
@@ -179,5 +167,13 @@ public class Pivot extends GRRSubsystem {
                     pivotMotor.stopMotor();
                 }
             });
+    }
+
+    public Command onDisable() {
+        return commandBuilder()
+            .onInitialize(() -> pivotMotor.setIdleMode(IdleMode.kCoast))
+            .onEnd(() -> pivotMotor.setIdleMode(IdleMode.kBrake))
+            .ignoringDisable(true)
+            .withName("pivot.onDisable()");
     }
 }

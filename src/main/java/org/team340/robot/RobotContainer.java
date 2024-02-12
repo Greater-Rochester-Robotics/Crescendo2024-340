@@ -2,12 +2,12 @@ package org.team340.robot;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
+import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import org.team340.lib.GRRDashboard;
 import org.team340.lib.controller.Controller2;
-import org.team340.lib.util.Math2;
 import org.team340.lib.util.config.rev.RevConfigRegistry;
 import org.team340.robot.Constants.ControllerConstants;
+import org.team340.robot.commands.Routines;
 import org.team340.robot.subsystems.Climber;
 import org.team340.robot.subsystems.Feeder;
 import org.team340.robot.subsystems.Intake;
@@ -48,19 +48,19 @@ public final class RobotContainer {
 
         // Initialize subsystems.
         // climber = new Climber();
-        // feeder = new Feeder();
-        // intake = new Intake();
-        // pivot = new Pivot();
-        // shooter = new Shooter();
-        swerve = new Swerve();
+        feeder = new Feeder();
+        intake = new Intake();
+        pivot = new Pivot();
+        shooter = new Shooter();
+        // swerve = new Swerve();
 
         // Add subsystems to the dashboard.
         // climber.addToDashboard();
-        // feeder.addToDashboard();
-        // intake.addToDashboard();
-        // pivot.addToDashboard();
-        // shooter.addToDashboard();
-        swerve.addToDashboard();
+        feeder.addToDashboard();
+        intake.addToDashboard();
+        pivot.addToDashboard();
+        shooter.addToDashboard();
+        // swerve.addToDashboard();
 
         // Set systems check command.
         // GRRDashboard.setSystemsCheck(SystemsCheck.command());
@@ -80,21 +80,35 @@ public final class RobotContainer {
      */
     private static void configBindings() {
         // Set default commands.
-        // pivot.setDefaultCommand(pivot.maintainPosition());
-        // intake.setDefaultCommand(intake.maintainPosition());
-        swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
+        pivot.setDefaultCommand(pivot.maintainPosition());
+        intake.setDefaultCommand(intake.maintainPosition());
+        // swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
+
+        Routines.onDisable().schedule();
+        RobotModeTriggers.disabled().whileTrue(waitSeconds(6.0).andThen(Routines.onDisable()));
 
         /**
          * Driver bindings.
          */
 
         // POV Left => Zero swerve
-        driver.povLeft().onTrue(swerve.zeroIMU(Math2.ROTATION2D_0));
+        // driver.povLeft().onTrue(swerve.zeroIMU(Math2.ROTATION2D_0));
 
-        driver.a().whileTrue(swerve.sysIdQuasistatic(Direction.kForward));
-        driver.x().whileTrue(swerve.sysIdQuasistatic(Direction.kReverse));
-        driver.b().whileTrue(swerve.sysIdDynamic(Direction.kForward));
-        driver.y().whileTrue(swerve.sysIdDynamic(Direction.kReverse));
+        driver.rightBumper().whileTrue(pivot.goToAngle(() -> Math.toRadians(16.5)));
+        driver.leftBumper().whileTrue(pivot.home(true));
+
+        driver.a().whileTrue(Routines.intake()).onFalse(feeder.seatNote());
+        driver.b().whileTrue(intake.retract());
+
+        driver.x().whileTrue(feeder.shootNote());
+        driver.y().toggleOnTrue(shooter.setSpeed(8000.0));
+
+        driver.povUp().onTrue(feeder.seatNote());
+
+        // driver.a().whileTrue(swerve.sysIdQuasistatic(Direction.kForward));
+        // driver.x().whileTrue(swerve.sysIdQuasistatic(Direction.kReverse));
+        // driver.b().whileTrue(swerve.sysIdDynamic(Direction.kForward));
+        // driver.y().whileTrue(swerve.sysIdDynamic(Direction.kReverse));
 
         /**
          * Co-driver bindings.
@@ -109,16 +123,6 @@ public final class RobotContainer {
      * added to {@link GRRDashboard}.
      */
     private static void configAutos() {}
-
-    /**
-     * Set idle mode of pivot, intake arm, and climber motors to brake or coast.
-     * @param brakeOn If idle mode should be set to brake.
-     */
-    public static void setBrakeModes(boolean brakeOn) {
-        // pivot.setBrakeMode(brakeOn);
-        // intake.setBrakeMode(brakeOn);
-        // climber.setBrakeMode(brakeOn);
-    }
 
     /**
      * Gets the X axis drive speed from the driver's controller.

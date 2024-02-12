@@ -3,10 +3,10 @@ package org.team340.robot;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.livewindow.LiveWindow;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import org.team340.lib.GRRDashboard;
+import org.team340.lib.util.config.rev.RevConfigRegistry;
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -15,8 +15,6 @@ import org.team340.lib.GRRDashboard;
  * project.
  */
 public final class Robot extends TimedRobot {
-
-    Timer disabledBrakeTimer = new Timer();
 
     public Robot() {
         super(Constants.PERIOD);
@@ -31,7 +29,7 @@ public final class Robot extends TimedRobot {
 
         DataLogManager.logNetworkTables(true);
         GRRDashboard.initAsync(this, Constants.TELEMETRY_PERIOD, Constants.POWER_USAGE_PERIOD);
-        // RevConfigRegistry.init(this);
+        RevConfigRegistry.init(this);
         RobotContainer.init();
     }
 
@@ -41,22 +39,13 @@ public final class Robot extends TimedRobot {
     }
 
     @Override
-    public void disabledInit() {
-        disabledBrakeTimer.restart();
-    }
+    public void disabledInit() {}
 
     @Override
-    public void disabledPeriodic() {
-        if (disabledBrakeTimer.hasElapsed(6.0)) {
-            RobotContainer.setBrakeModes(false);
-            disabledBrakeTimer.stop();
-            disabledBrakeTimer.reset();
-        }
-    }
+    public void disabledPeriodic() {}
 
     @Override
     public void autonomousInit() {
-        RobotContainer.setBrakeModes(true);
         GRRDashboard.getAutoCommand().schedule();
     }
 
@@ -64,9 +53,7 @@ public final class Robot extends TimedRobot {
     public void autonomousPeriodic() {}
 
     @Override
-    public void teleopInit() {
-        RobotContainer.setBrakeModes(true);
-    }
+    public void teleopInit() {}
 
     @Override
     public void teleopPeriodic() {}

@@ -26,7 +26,7 @@ public class Routines {
         return sequence(swerve.drive(() -> 0.1, () -> 0.0, () -> 0.0, true).withTimeout(1.0));
     }
 
-    public Command intakeToBehindBumper() {
+    public static Command intakeToBehindBumper() {
         return sequence(
             either(
                 none().withName("pivot.isSafeFallthrough"),
@@ -37,7 +37,7 @@ public class Routines {
         );
     }
 
-    public Command prepScoreAmp() {
+    public static Command prepScoreAmp() {
         return sequence(
             either(
                 none(),
@@ -54,18 +54,19 @@ public class Routines {
         );
     }
 
-    public Command scoreAmp() {
+    public static Command scoreAmp() {
         return prepScoreAmp().andThen(intake.scoreAmp());
     }
 
-    public Command intake() {
+    public static Command intake() {
         return sequence(
             deadline(
+                sequence(waitUntil(intake::hasNote), waitUntil(() -> !intake.hasNote())),
                 feeder.receiveNote(),
-                pivot.goToAngle(Constants.PivotConstants.OPTIMAL_RECEIVE_NOTE_ANGLE),
+                // pivot.goToAngle(Constants.PivotConstants.OPTIMAL_RECEIVE_NOTE_ANGLE),
                 sequence(waitUntil(pivot::isSafeForIntake), intake.intake())
             ),
-            feeder.reseatNote()
+            feeder.seatNote()
         );
     }
 
@@ -75,7 +76,7 @@ public class Routines {
      * @param robotPosition This is a supplier of the robots position.
      * @return This command.
      */
-    public Command prepShootSpeaker(Supplier<Pose2d> robotPosition) {
+    public static Command prepShootSpeaker(Supplier<Pose2d> robotPosition) {
         return parallel(
             shooter.setSpeed(Constants.ShooterConstants.interpolateSpeed(robotPosition.get())),
             pivot.goToAngle(Constants.PivotConstants.interpolateAngle(robotPosition.get()))
@@ -88,7 +89,7 @@ public class Routines {
      * @param robotPosition This is the position used for the math, note that it must be a supplier.
      * @return This command.
      */
-    public Command shootSpeaker(Supplier<Pose2d> robotPosition) {
+    public static Command shootSpeaker(Supplier<Pose2d> robotPosition) {
         return parallel(
             prepShootSpeaker(robotPosition),
             sequence(waitUntil(() -> shooter.hasReachedSpeed() && pivot.isOnTarget()), feeder.shootNote())
@@ -99,11 +100,14 @@ public class Routines {
      * This command moves the note from the feeders to the intake.
      * @return This command.
      */
-    private Command noteBackToIntake() {
-        return deadline(
-            sequence(waitUntil(() -> intake.hasNote() && !feeder.getNoteDetector()), waitSeconds(0.0001)),
-            shooterFeederSpit(),
-            intake.spitSlow()
+    private static Command noteBackToIntake() {
+        return sequence(
+            intake.intakeDown(),
+            deadline(
+                sequence(waitUntil(() -> intake.hasNote() && !feeder.getNoteDetector()), waitSeconds(0.0001)),
+                shooterFeederSpit(),
+                intake.receiveFromShooter()
+            )
         );
     }
 
@@ -111,7 +115,16 @@ public class Routines {
      * Designed to fully barf and designed for handoff back to intake.
      * @return This command.
      */
-    public Command shooterFeederSpit() {
+    public static Command shooterFeederSpit() {
         return parallel(shooter.spit(), feeder.spit());
+    }
+
+    public static Command onDisable() {
+        return parallel(
+            feeder.onDisable(),
+            intake.onDisable(),
+            pivot.onDisable()
+            // climber.onDisable();
+        );
     }
 }
