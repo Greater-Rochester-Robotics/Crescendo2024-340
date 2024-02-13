@@ -86,11 +86,12 @@ public class Feeder extends GRRSubsystem {
      * Feeds the note into the shooters. Ends after the note is no longer detected.
      */
     public Command shootNote() {
-        return commandBuilder("feeder.shootNote()")
+        return commandBuilder()
             .onInitialize(() -> feedMotor.set(FeederConstants.SHOOT_SPEED))
             .isFinished(() -> !getNoteDetector())
             .andThen(waitSeconds(FeederConstants.SHOOT_DELAY))
-            .andThen(runOnce(() -> feedMotor.stopMotor()));
+            .finallyDo(() -> feedMotor.stopMotor())
+            .withName("feeder.shootNote()");
     }
 
     /**

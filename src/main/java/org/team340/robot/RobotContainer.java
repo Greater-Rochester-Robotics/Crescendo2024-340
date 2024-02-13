@@ -5,6 +5,7 @@ import static edu.wpi.first.wpilibj2.command.Commands.*;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import org.team340.lib.GRRDashboard;
 import org.team340.lib.controller.Controller2;
+import org.team340.lib.util.Math2;
 import org.team340.lib.util.config.rev.RevConfigRegistry;
 import org.team340.robot.Constants.ControllerConstants;
 import org.team340.robot.commands.Routines;
@@ -52,7 +53,7 @@ public final class RobotContainer {
         intake = new Intake();
         pivot = new Pivot();
         shooter = new Shooter();
-        // swerve = new Swerve();
+        swerve = new Swerve();
 
         // Add subsystems to the dashboard.
         // climber.addToDashboard();
@@ -60,7 +61,7 @@ public final class RobotContainer {
         intake.addToDashboard();
         pivot.addToDashboard();
         shooter.addToDashboard();
-        // swerve.addToDashboard();
+        swerve.addToDashboard();
 
         // Set systems check command.
         // GRRDashboard.setSystemsCheck(SystemsCheck.command());
@@ -82,7 +83,7 @@ public final class RobotContainer {
         // Set default commands.
         pivot.setDefaultCommand(pivot.maintainPosition());
         intake.setDefaultCommand(intake.maintainPosition());
-        // swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
+        swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
 
         Routines.onDisable().schedule();
         RobotModeTriggers.disabled().whileTrue(waitSeconds(6.0).andThen(Routines.onDisable()));
@@ -92,23 +93,18 @@ public final class RobotContainer {
          */
 
         // POV Left => Zero swerve
-        // driver.povLeft().onTrue(swerve.zeroIMU(Math2.ROTATION2D_0));
+        driver.povLeft().onTrue(swerve.zeroIMU(Math2.ROTATION2D_0));
 
         driver.rightBumper().whileTrue(pivot.goToAngle(() -> Math.toRadians(16.5)));
         driver.leftBumper().whileTrue(pivot.home(true));
 
-        driver.a().whileTrue(Routines.intake()).onFalse(feeder.seatNote());
-        driver.b().whileTrue(intake.retract());
+        driver.a().whileTrue(Routines.intake()).whileFalse(parallel(feeder.seatNote(), intake.intakeDown()));
+        driver.b().toggleOnTrue(intake.toSafePosition());
 
-        driver.x().whileTrue(feeder.shootNote());
-        driver.y().toggleOnTrue(shooter.setSpeed(8000.0));
+        driver.y().whileTrue(feeder.shootNote());
+        driver.x().toggleOnTrue(shooter.setSpeed(8000.0));
 
         driver.povUp().onTrue(feeder.seatNote());
-
-        // driver.a().whileTrue(swerve.sysIdQuasistatic(Direction.kForward));
-        // driver.x().whileTrue(swerve.sysIdQuasistatic(Direction.kReverse));
-        // driver.b().whileTrue(swerve.sysIdDynamic(Direction.kForward));
-        // driver.y().whileTrue(swerve.sysIdDynamic(Direction.kReverse));
 
         /**
          * Co-driver bindings.

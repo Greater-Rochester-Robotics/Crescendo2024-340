@@ -63,7 +63,6 @@ public class Routines {
             deadline(
                 sequence(waitUntil(intake::hasNote), waitUntil(() -> !intake.hasNote())),
                 feeder.receiveNote(),
-                // pivot.goToAngle(Constants.PivotConstants.OPTIMAL_RECEIVE_NOTE_ANGLE),
                 sequence(waitUntil(pivot::isSafeForIntake), intake.intake())
             ),
             feeder.seatNote()
