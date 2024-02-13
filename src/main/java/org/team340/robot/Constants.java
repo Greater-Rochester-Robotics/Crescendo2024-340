@@ -48,7 +48,7 @@ public final class Constants {
     public static final class ControllerConstants {
 
         public static final double DRIVE_EXP = 1.0;
-        public static final double DRIVE_MULTIPLIER = 0.75;
+        public static final double DRIVE_MULTIPLIER = 0.85;
         public static final double DRIVE_MULTIPLIER_MODIFIED = 0.95;
 
         public static final double DRIVE_ROT_EXP = 2.0;
@@ -123,7 +123,7 @@ public final class Constants {
         public static final double SAFE_POSITION = Math.toRadians(65.0);
 
         public static final double SCORE_AMP_ROLLER_SPEED = 0.25;
-        public static final double INTAKE_ROLLER_SPEED = 0.75;
+        public static final double INTAKE_ROLLER_SPEED = 0.40;
         public static final double SPIT_ROLLER_SPEED = -0.5;
         public static final double FROM_SHOOTER_ROLLER_SPEED = -0.25;
 
@@ -225,7 +225,7 @@ public final class Constants {
 
         public static final double SHOOT_DELAY = 0.5;
 
-        public static final double INTAKE_SPEED = 0.25;
+        public static final double INTAKE_SPEED = 1.0;
         public static final double IN_SLOW_SPEED = 0.05;
         public static final double POSITION_OFFSET = 2.357;
         public static final double CLOSED_LOOP_ERR = 0.125;
@@ -341,28 +341,28 @@ public final class Constants {
 
         private static final SwerveModuleConfig FRONT_LEFT = new SwerveModuleConfig()
             .setLabel("Front Left")
-            .useSparkAttachedEncoder(1.714, true)
+            .useSparkAttachedEncoder(2.389, true)
             .setPosition(0.288925, 0.288925)
             .setMoveMotor(RobotMap.FRONT_LEFT_MOVE, true, true)
             .setTurnMotor(RobotMap.FRONT_LEFT_TURN, false, true);
 
         private static final SwerveModuleConfig BACK_LEFT = new SwerveModuleConfig()
             .setLabel("Back Left")
-            .useSparkAttachedEncoder(1.865, true)
+            .useSparkAttachedEncoder(1.999, true)
             .setPosition(-0.288925, 0.288925)
             .setMoveMotor(RobotMap.BACK_LEFT_MOVE, true, true)
             .setTurnMotor(RobotMap.BACK_LEFT_TURN, false, true);
 
         private static final SwerveModuleConfig BACK_RIGHT = new SwerveModuleConfig()
             .setLabel("Back Right")
-            .useSparkAttachedEncoder(2.622, true)
+            .useSparkAttachedEncoder(4.194, true)
             .setPosition(-0.288925, -0.288925)
             .setMoveMotor(RobotMap.BACK_RIGHT_MOVE, true, true)
             .setTurnMotor(RobotMap.BACK_RIGHT_TURN, false, true);
 
         private static final SwerveModuleConfig FRONT_RIGHT = new SwerveModuleConfig()
             .setLabel("Front Right")
-            .useSparkAttachedEncoder(2.287, true)
+            .useSparkAttachedEncoder(5.566, true)
             .setPosition(0.288925, -0.288925)
             .setMoveMotor(RobotMap.FRONT_RIGHT_MOVE, true, true)
             .setTurnMotor(RobotMap.FRONT_RIGHT_TURN, false, true);
@@ -371,13 +371,13 @@ public final class Constants {
             .useADIS16470(IMUAxis.kZ, IMUAxis.kX, IMUAxis.kY, Port.kOnboardCS0, CalibrationTime._4s)
             .setPeriod(PERIOD)
             .setMovePID(0.001, 0.0, 0.0, 0.0)
-            .setMoveFF(0.0, 2.84, 0.0)
+            .setMoveFF(0.13312, 2.3443, 0.3159)
             .setTurnPID(2.0, 0.0, 1.0, 0.0)
             .setRampRate(0.03, 0.03)
             .setMotorTypes(SwerveMotor.Type.SPARK_FLEX_BRUSHLESS, SwerveMotor.Type.SPARK_FLEX_BRUSHLESS)
-            .setMaxSpeeds(5.0, 10.0)
-            .setRatelimits(17.5, 30.0)
-            .setPowerProperties(VOLTAGE, 60.0, 40.0)
+            .setMaxSpeeds(4.9, 11.8)
+            .setRatelimits(8.0, 28.75)
+            .setPowerProperties(VOLTAGE, 80.0, 40.0)
             .setMechanicalProperties(6.75, 150.0 / 7.0, 4.0)
             .setDiscretizationLookahead(0.020)
             .setOdometryPeriod(0.02)
