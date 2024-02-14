@@ -7,8 +7,9 @@ import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
+import com.revrobotics.SparkLimitSwitch;
+import com.revrobotics.SparkLimitSwitch.Type;
 import com.revrobotics.SparkPIDController;
-import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import org.team340.lib.GRRSubsystem;
@@ -27,8 +28,8 @@ public class Climber extends GRRSubsystem {
     private final CANSparkMax rightMotor;
     private final RelativeEncoder leftEncoder;
     private final RelativeEncoder rightEncoder;
-    private final DigitalInput leftLimit;
-    private final DigitalInput rightLimit;
+    private final SparkLimitSwitch leftLimit;
+    private final SparkLimitSwitch rightLimit;
     private final SparkPIDController leftPID;
     private final SparkPIDController rightPID;
     private boolean isZeroedLeft = false;
@@ -40,8 +41,8 @@ public class Climber extends GRRSubsystem {
         rightMotor = createSparkMax("Right Motor", RobotMap.CLIMBER_RIGHT_MOTOR, MotorType.kBrushless);
         leftEncoder = leftMotor.getEncoder();
         rightEncoder = rightMotor.getEncoder();
-        leftLimit = createDigitalInput("Left Limit", RobotMap.CLIMBER_LEFT_LIMIT);
-        rightLimit = createDigitalInput("Right Limit", RobotMap.CLIMBER_RIGHT_LIMIT);
+        leftLimit = leftMotor.getReverseLimitSwitch(Type.kNormallyOpen);
+        rightLimit = leftMotor.getReverseLimitSwitch(Type.kNormallyOpen);
         leftPID = leftMotor.getPIDController();
         rightPID = rightMotor.getPIDController();
 
@@ -51,6 +52,8 @@ public class Climber extends GRRSubsystem {
         ClimberConstants.Configs.ENCODER.apply(rightMotor, rightEncoder);
         ClimberConstants.Configs.PID.apply(leftMotor, leftPID);
         ClimberConstants.Configs.PID.apply(rightMotor, rightPID);
+        ClimberConstants.Configs.LIMIT.apply(leftMotor, leftLimit);
+        ClimberConstants.Configs.LIMIT.apply(rightMotor, rightLimit);
     }
 
     /**
@@ -63,13 +66,16 @@ public class Climber extends GRRSubsystem {
     }
 
     public boolean getLeftLimit() {
-        return !leftLimit.get();
+        return leftLimit.isPressed();
     }
 
     public boolean getRightLimit() {
-        return !rightLimit.get();
+        return rightLimit.isPressed();
     }
 
+    /**
+     * Zeroes arms checking each limit switch and if not pressed setting respective arm motor to a set homing speed until they are both pressed.
+     */
     public Command zeroArms() {
         return commandBuilder("climber.zeroArms()")
             .onExecute(() -> {
@@ -100,19 +106,23 @@ public class Climber extends GRRSubsystem {
 
     public Command toPosition(double position) {
         return either(
-            commandBuilder("climber.toPosition(" + position + ")")
-                .onExecute(() -> {
-                    double difference = rightEncoder.getPosition() - leftEncoder.getPosition();
-
-                    leftPID.setReference(position, ControlType.kPosition);
-                    rightPID.setReference(position, ControlType.kPosition);
-                })
-                .onEnd(() -> {
-                    leftMotor.stopMotor();
-                    rightMotor.stopMotor();
-                }),
-            commandBuilder().onInitialize(() -> DriverStation.reportWarning("The climber has not been homed.", false)),
-            () -> isZeroedLeft && isZeroedRight
+            either(
+                commandBuilder("climber.toPosition(" + position + ")")
+                    .onExecute(() -> {
+                        double difference = rightEncoder.getPosition() - leftEncoder.getPosition();
+                        //TODO: compensate for difference between climbers
+                        leftPID.setReference(position, ControlType.kPosition);
+                        rightPID.setReference(position, ControlType.kPosition);
+                    })
+                    .onEnd(() -> {
+                        leftMotor.stopMotor();
+                        rightMotor.stopMotor();
+                    }),
+                zeroArms(),
+                () -> isZeroedLeft && isZeroedRight
+            ),
+            runOnce(() -> DriverStation.reportWarning("The climber cannot be set to " + position + " (out of range).", false)),
+            () -> position >= ClimberConstants.MIN_POS && position <= ClimberConstants.MAX_POS
         );
     }
 }
