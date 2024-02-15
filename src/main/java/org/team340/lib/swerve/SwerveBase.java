@@ -180,21 +180,21 @@ public abstract class SwerveBase extends GRRSubsystem {
     public void initSendable(SendableBuilder builder) {
         super.initSendable(builder);
 
-        builder.addDoubleProperty("velocityX", () -> Math2.toFixed(getVelocity(true).vxMetersPerSecond), null);
-        builder.addDoubleProperty("velocityY", () -> Math2.toFixed(getVelocity(true).vyMetersPerSecond), null);
-        builder.addDoubleProperty("velocityRot", () -> Math2.toFixed(getVelocity(true).omegaRadiansPerSecond), null);
-        builder.addDoubleProperty("velocityNorm", () -> SwerveSerializer.chassisSpeedsNorm(getVelocity(true), true), null);
+        builder.addDoubleProperty("velocityX", () -> getVelocity(true).vxMetersPerSecond, null);
+        builder.addDoubleProperty("velocityY", () -> getVelocity(true).vyMetersPerSecond, null);
+        builder.addDoubleProperty("velocityRot", () -> getVelocity(true).omegaRadiansPerSecond, null);
+        builder.addDoubleProperty("velocityNorm", () -> SwerveSerializer.chassisSpeedsNorm(getVelocity(true)), null);
 
-        builder.addDoubleProperty("odometryX", () -> Math2.toFixed(getPosition().getX()), null);
-        builder.addDoubleProperty("odometryY", () -> Math2.toFixed(getPosition().getY()), null);
-        builder.addDoubleProperty("odometryRot", () -> Math2.toFixed(getPosition().getRotation().getRadians()), null);
+        builder.addDoubleProperty("odometryX", () -> getPosition().getX(), null);
+        builder.addDoubleProperty("odometryY", () -> getPosition().getY(), null);
+        builder.addDoubleProperty("odometryRot", () -> getPosition().getRotation().getRadians(), null);
 
         builder.addDoubleArrayProperty(
             "desiredModuleStates",
-            () -> SwerveSerializer.moduleStatesDoubleArray(getDesiredModuleStates(), true),
+            () -> SwerveSerializer.moduleStatesDoubleArray(getDesiredModuleStates()),
             null
         );
-        builder.addDoubleArrayProperty("moduleStates", () -> SwerveSerializer.moduleStatesDoubleArray(getModuleStates(), true), null);
+        builder.addDoubleArrayProperty("moduleStates", () -> SwerveSerializer.moduleStatesDoubleArray(getModuleStates()), null);
 
         for (SwerveModule module : modules) {
             GRRDashboard.addSubsystemSendable(
@@ -202,9 +202,9 @@ public abstract class SwerveBase extends GRRSubsystem {
                 this,
                 SendableFactory.create(moduleBuilder -> {
                     moduleBuilder.publishConstString(".label", module.getLabel());
-                    moduleBuilder.addDoubleProperty("velocity", () -> Math2.toFixed(module.getVelocity()), null);
-                    moduleBuilder.addDoubleProperty("distance", () -> Math2.toFixed(module.getDistance()), null);
-                    moduleBuilder.addDoubleProperty("angle", () -> Math2.toFixed(module.getHeading()), null);
+                    moduleBuilder.addDoubleProperty("velocity", module::getVelocity, null);
+                    moduleBuilder.addDoubleProperty("distance", module::getDistance, null);
+                    moduleBuilder.addDoubleProperty("angle", module::getHeading, null);
                 })
             );
         }
