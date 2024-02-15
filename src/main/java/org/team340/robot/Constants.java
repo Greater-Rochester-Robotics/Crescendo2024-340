@@ -117,12 +117,12 @@ public final class Constants {
 
         public static final double CLOSED_LOOP_ERROR = Math.toRadians(5.0);
 
-        public static final double SCORE_AMP_POSITION = Math.toRadians(100.0);
+        public static final double SCORE_AMP_POSITION = Math.toRadians(55.0);
         public static final double DEPLOY_POSITION = 0.0;
         public static final double STRAIGHT_UP_POSITION = Math2.HALF_PI;
         public static final double SAFE_POSITION = Math.toRadians(65.0);
 
-        public static final double SCORE_AMP_ROLLER_SPEED = 0.25;
+        public static final double SCORE_AMP_ROLLER_SPEED = -0.80;
         public static final double INTAKE_ROLLER_SPEED = 0.40;
         public static final double SPIT_ROLLER_SPEED = -0.5;
         public static final double FROM_SHOOTER_ROLLER_SPEED = -0.25;
@@ -137,8 +137,8 @@ public final class Constants {
                 .enableVoltageCompensation(VOLTAGE)
                 .setSmartCurrentLimit(60, 30)
                 .setIdleMode(IdleMode.kBrake)
-                .setClosedLoopRampRate(0.5)
-                .setOpenLoopRampRate(0.5);
+                .setClosedLoopRampRate(0.3)
+                .setOpenLoopRampRate(0.3);
             public static final SparkFlexConfig LEFT_MOTOR = MOTOR_BASE.clone().setInverted(true);
             public static final SparkFlexConfig RIGHT_MOTOR = MOTOR_BASE
                 .clone()
@@ -150,7 +150,8 @@ public final class Constants {
                 .setZeroOffset(2.832); // TODO: put in this angle before running
 
             public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
-                .setPID(0.35, 0.0, 0.3)
+                .setPID(0.425, 0.0013, 0.32)
+                .setIZone(Math.toRadians(5.25))
                 .setPositionPIDWrappingEnabled(true)
                 .setPositionPIDWrappingInputLimits(0.0, Math2.TWO_PI);
         }
@@ -256,7 +257,7 @@ public final class Constants {
 
     public static final class PivotConstants {
 
-        public static final double CLOSED_LOOP_ERR = Math.toRadians(0.25);
+        public static final double CLOSED_LOOP_ERR = Math.toRadians(0.015);
 
         public static final double MINIMUM_ANGLE = 0.0;
         public static final double MAXIMUM_ANGLE = Math.toRadians(89.0);
@@ -279,7 +280,9 @@ public final class Constants {
                 .setClosedLoopRampRate(0.25)
                 .setOpenLoopRampRate(0.25);
 
-            public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig().setPID(2.5, 0.0, 1.2, 0);
+            public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
+                .setPID(2.3, 0.004, 2.7)
+                .setIZone(Math.toRadians(2.0));
 
             public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
                 .setPositionConversionFactor(REL_ENC_CONVERSION)
@@ -372,12 +375,12 @@ public final class Constants {
             .setPeriod(PERIOD)
             .setMovePID(0.001, 0.0, 0.0, 0.0)
             .setMoveFF(0.13312, 2.3443, 0.3159)
-            .setTurnPID(2.0, 0.0, 1.0, 0.0)
+            .setTurnPID(0.5, 0.0, 3.0, 0.0)
             .setRampRate(0.03, 0.03)
             .setMotorTypes(SwerveMotor.Type.SPARK_FLEX_BRUSHLESS, SwerveMotor.Type.SPARK_FLEX_BRUSHLESS)
             .setMaxSpeeds(4.9, 11.8)
-            .setRatelimits(8.0, 28.75)
-            .setPowerProperties(VOLTAGE, 80.0, 40.0)
+            .setRatelimits(7.9, 8.75)
+            .setPowerProperties(VOLTAGE, 60.0, 40.0)
             .setMechanicalProperties(6.75, 150.0 / 7.0, 4.0)
             .setDiscretizationLookahead(0.020)
             .setOdometryPeriod(0.02)
