@@ -22,6 +22,7 @@ import org.team340.lib.util.config.PIDConfig;
 import org.team340.lib.util.config.rev.RelativeEncoderConfig;
 import org.team340.lib.util.config.rev.SparkAbsoluteEncoderConfig;
 import org.team340.lib.util.config.rev.SparkFlexConfig;
+import org.team340.lib.util.config.rev.SparkLimitSwitchConfig;
 import org.team340.lib.util.config.rev.SparkMaxConfig;
 import org.team340.lib.util.config.rev.SparkPIDControllerConfig;
 
@@ -312,7 +313,10 @@ public final class Constants {
 
         public static final double REL_ENC_CONVERSION = 1 / (125 * 12 * 0.25); // 1 / (gear ratio * sprocket teeth * inches/tooth)
         public static final double CLOSED_LOOP_ERR = 0.125;
-        public static final double ZEROING_SPEED = 0.25;
+        public static final double ZEROING_SPEED = -0.25;
+
+        public static final double MAX_POS = 1.0;
+        public static final double MIN_POS = 0.0;
 
         public static final class Configs {
 
@@ -337,6 +341,8 @@ public final class Constants {
             public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
                 .setPositionConversionFactor(REL_ENC_CONVERSION)
                 .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
+
+            public static final SparkLimitSwitchConfig LIMIT = new SparkLimitSwitchConfig().enableLimitSwitch(true);
         }
     }
 
