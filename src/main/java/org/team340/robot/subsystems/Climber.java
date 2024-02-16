@@ -44,12 +44,12 @@ public class Climber extends GRRSubsystem {
         rightMotor = createSparkMax("Right Motor", RobotMap.CLIMBER_RIGHT_MOTOR, MotorType.kBrushless);
         leftEncoder = leftMotor.getEncoder();
         rightEncoder = rightMotor.getEncoder();
-        leftLimit = leftMotor.getReverseLimitSwitch(Type.kNormallyOpen);
-        rightLimit = leftMotor.getReverseLimitSwitch(Type.kNormallyOpen);
-        leftMotor.setSoftLimit(SoftLimitDirection.kForward, (float) ClimberConstants.MAX_POS);
-        rightMotor.setSoftLimit(SoftLimitDirection.kForward, (float) ClimberConstants.MAX_POS);
-        leftMotor.enableSoftLimit(SoftLimitDirection.kForward, true);
-        rightMotor.enableSoftLimit(SoftLimitDirection.kForward, true);
+        leftLimit = leftMotor.getForwardLimitSwitch(Type.kNormallyOpen);
+        rightLimit = leftMotor.getForwardLimitSwitch(Type.kNormallyOpen);
+        leftMotor.setSoftLimit(SoftLimitDirection.kReverse, (float) ClimberConstants.MAX_POS);
+        rightMotor.setSoftLimit(SoftLimitDirection.kReverse, (float) ClimberConstants.MAX_POS);
+        leftMotor.enableSoftLimit(SoftLimitDirection.kReverse, true);
+        rightMotor.enableSoftLimit(SoftLimitDirection.kReverse, true);
         leftPID = leftMotor.getPIDController();
         rightPID = rightMotor.getPIDController();
 
@@ -101,8 +101,8 @@ public class Climber extends GRRSubsystem {
             .isFinished(() -> getRightLimit() && getLeftLimit())
             .onEnd(interrupted -> {
                 if (!interrupted) {
-                    rightEncoder.setPosition(0.0);
-                    leftEncoder.setPosition(0.0);
+                    rightEncoder.setPosition(ClimberConstants.MAX_POS);
+                    leftEncoder.setPosition(ClimberConstants.MAX_POS);
                     isZeroedRight = true;
                     isZeroedLeft = true;
                 }

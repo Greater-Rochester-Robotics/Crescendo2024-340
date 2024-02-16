@@ -313,7 +313,7 @@ public final class Constants {
 
         public static final double REL_ENC_CONVERSION = 1 / (125 * 12 * 0.25); // 1 / (gear ratio * sprocket teeth * inches/tooth)
         public static final double CLOSED_LOOP_ERR = 0.125;
-        public static final double ZEROING_SPEED = -0.25;
+        public static final double ZEROING_SPEED = 0.25;
 
         public static final double MAX_POS = 1.0;
         public static final double MIN_POS = 0.0;
