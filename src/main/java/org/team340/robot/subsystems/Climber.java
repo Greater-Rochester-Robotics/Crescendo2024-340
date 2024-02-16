@@ -1,9 +1,12 @@
 package org.team340.robot.subsystems;
 
 import static edu.wpi.first.wpilibj2.command.Commands.either;
+import static edu.wpi.first.wpilibj2.command.Commands.none;
+import static edu.wpi.first.wpilibj2.command.Commands.sequence;
 
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
+import com.revrobotics.CANSparkBase.SoftLimitDirection;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
@@ -43,6 +46,10 @@ public class Climber extends GRRSubsystem {
         rightEncoder = rightMotor.getEncoder();
         leftLimit = leftMotor.getReverseLimitSwitch(Type.kNormallyOpen);
         rightLimit = leftMotor.getReverseLimitSwitch(Type.kNormallyOpen);
+        leftMotor.setSoftLimit(SoftLimitDirection.kForward, (float) ClimberConstants.MAX_POS);
+        rightMotor.setSoftLimit(SoftLimitDirection.kForward, (float) ClimberConstants.MAX_POS);
+        leftMotor.enableSoftLimit(SoftLimitDirection.kForward, true);
+        rightMotor.enableSoftLimit(SoftLimitDirection.kForward, true);
         leftPID = leftMotor.getPIDController();
         rightPID = rightMotor.getPIDController();
 
@@ -104,25 +111,32 @@ public class Climber extends GRRSubsystem {
             });
     }
 
+    /**
+     * This command is used to move the climbers to a position, while keeping them lined up with each other.
+     * This command will zero the arms if they aren't zeroed already.
+     * @param position This is the position the arms will be set to, must be between the
+     * {@link ClimberConstants#MIN_POS minimum} and {@link ClimberConstants#MAX_POS maximum} positions.
+     * @return This command.
+     */
     public Command toPosition(double position) {
         return either(
-            either(
-                commandBuilder("climber.toPosition(" + position + ")")
+            sequence(
+                either(none(), zeroArms(), () -> isZeroedLeft && isZeroedRight),
+                commandBuilder()
                     .onExecute(() -> {
                         double difference = rightEncoder.getPosition() - leftEncoder.getPosition();
                         //TODO: compensate for difference between climbers
                         leftPID.setReference(position, ControlType.kPosition);
                         rightPID.setReference(position, ControlType.kPosition);
                     })
-                    .onEnd(() -> {
-                        leftMotor.stopMotor();
-                        rightMotor.stopMotor();
-                    }),
-                zeroArms(),
-                () -> isZeroedLeft && isZeroedRight
             ),
             runOnce(() -> DriverStation.reportWarning("The climber cannot be set to " + position + " (out of range).", false)),
             () -> position >= ClimberConstants.MIN_POS && position <= ClimberConstants.MAX_POS
-        );
+        )
+            .finallyDo(() -> {
+                leftMotor.stopMotor();
+                rightMotor.stopMotor();
+            })
+            .withName("climber.toPosition(" + position + ")");
     }
 }
