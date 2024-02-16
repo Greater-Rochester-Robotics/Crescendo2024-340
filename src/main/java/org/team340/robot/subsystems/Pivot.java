@@ -143,7 +143,10 @@ public class Pivot extends GRRSubsystem {
                             pivotPID.setReference(angleValue, ControlType.kPosition);
                         }
                     })
-                    .isFinished(() -> (getLowerLimit() && pivotMotor.getAppliedOutput() < 0.0) || (willFinish && isOnTarget()))
+                    .isFinished(() ->
+                        (getLowerLimit() && pivotMotor.getAppliedOutput() - PivotConstants.AT_LIMIT_SPEED_ALLOWANCE <= 0.0) ||
+                        (willFinish && isOnTarget())
+                    )
                     .onEnd(interrupted -> {
                         if (interrupted || getLowerLimit()) {
                             currentTarget = pivotEncoder.getPosition();

@@ -60,13 +60,11 @@ public class Routines {
 
     public static Command intake() {
         return sequence(
-            deadline(
-                sequence(waitUntil(intake::hasNote), waitUntil(() -> !intake.hasNote())),
-                feeder.receiveNote(),
-                sequence(waitUntil(pivot::isSafeForIntake), intake.intake())
-            ),
+            sequence(waitUntil(pivot::isSafeForIntake), intake.intakeDown()),
+            deadline(sequence(waitUntil(intake::hasNote), waitUntil(() -> !intake.hasNote())), feeder.receiveNote(), intake.intake()),
             feeder.seatNote()
-        );
+        )
+            .withName("Routines.intake()");
     }
 
     /**

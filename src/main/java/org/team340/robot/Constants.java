@@ -18,6 +18,7 @@ import org.team340.lib.swerve.config.SwerveConfig;
 import org.team340.lib.swerve.config.SwerveModuleConfig;
 import org.team340.lib.swerve.hardware.motors.SwerveMotor;
 import org.team340.lib.util.Math2;
+import org.team340.lib.util.config.FeedForwardConfig;
 import org.team340.lib.util.config.PIDConfig;
 import org.team340.lib.util.config.rev.RelativeEncoderConfig;
 import org.team340.lib.util.config.rev.SparkAbsoluteEncoderConfig;
@@ -173,12 +174,14 @@ public final class Constants {
 
     public static final class ShooterConstants {
 
-        public static final double SPEED_TOLERANCE = 300.0;
+        public static final double SPEED_TOLERANCE = 40.0;
 
         public static final double LEFT_SPIT_SPEED = -0.25;
         public static final double RIGHT_SPIT_SPEED = -0.25;
 
         public static final double RIGHT_TO_LEFT_RATIO = 0.55;
+        public static final double PID_RANGE = 750.0;
+        public static final double RAMP_SPEED = 0.95;
 
         public static final double REL_ENC_CONVERSION = 2.0; // gear ratio
 
@@ -188,18 +191,22 @@ public final class Constants {
                 .clearFaults()
                 .restoreFactoryDefaults()
                 .enableVoltageCompensation(VOLTAGE)
-                .setSmartCurrentLimit(60, 30)
+                .setSmartCurrentLimit(60, 40)
                 .setIdleMode(IdleMode.kCoast)
                 .setClosedLoopRampRate(0.0)
                 .setOpenLoopRampRate(0.0);
             public static final SparkFlexConfig LEFT_MOTOR = MOTOR_BASE.clone().setInverted(true);
             public static final SparkFlexConfig RIGHT_MOTOR = MOTOR_BASE.clone().setInverted(false);
 
-            public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig().setPIDF(65.0, 0.0, 15.0, 1.0 / 9200.0, 0);
+            public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig().setPID(0.001, 0.0, 0.0);
+
+            public static final FeedForwardConfig FEED_FORWARD = new FeedForwardConfig(0.11331 / 60.0, 0.061643 / 60.0, 0.053296 / 60.0);
 
             public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
                 .setPositionConversionFactor(REL_ENC_CONVERSION)
                 .setVelocityConversionFactor(REL_ENC_CONVERSION);
+
+            public static final SysIdRoutine.Config SYSID = new SysIdRoutine.Config();
         }
 
         private static final InterpolatingDoubleTreeMap DISTANCE_TO_SPEED_MAP = new InterpolatingDoubleTreeMap();
@@ -266,6 +273,7 @@ public final class Constants {
         public static final double OPTIMAL_RECEIVE_NOTE_ANGLE = Math.toRadians(0.0);
 
         public static final double HOMING_SPEED = -0.2;
+        public static final double AT_LIMIT_SPEED_ALLOWANCE = -0.01;
 
         public static final double REL_ENC_CONVERSION = Math.toRadians(1.02432); // 1 / (25 * 1.1 * Math.PI / 7.568); // 1 / (gear ratio * circ output pinion / radius of arc)
 

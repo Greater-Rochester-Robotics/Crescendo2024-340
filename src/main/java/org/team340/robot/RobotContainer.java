@@ -2,7 +2,6 @@ package org.team340.robot;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import org.team340.lib.GRRDashboard;
 import org.team340.lib.controller.Controller2;
@@ -96,21 +95,16 @@ public final class RobotContainer {
         // POV Left => Zero swerve
         driver.povLeft().onTrue(swerve.zeroIMU(Math2.ROTATION2D_0));
 
-        driver.rightBumper().whileTrue(pivot.goToAngle(() -> Math.toRadians(30.0)));
-        Timer pivotTimer = new Timer();
-        pivotTimer.start();
-        driver
-            .leftBumper()
-            .whileTrue(pivot.goToAngle(() -> Math.toRadians((15.0 * (Math.cos((pivotTimer.get() * Math2.TWO_PI) / 3.0) + 1.0)) + 5.0)));
+        driver.rightBumper().whileTrue(pivot.goToAngle(() -> Math.toRadians(55.0)));
 
-        // driver.a().whileTrue(Routines.intake()).whileFalse(parallel(feeder.seatNote(), intake.intakeDown()));
-        driver.a().onTrue(intake.intakeDown());
-        driver.b().onTrue(intake.toSafePosition());
-        driver.x().onTrue(intake.retract());
-
+        driver.a().whileTrue(Routines.intake()).whileFalse(parallel(feeder.seatNote(), intake.intakeDown()));
         driver.y().whileTrue(feeder.shootNote());
+        driver.x().toggleOnTrue(shooter.setSpeed(6000.0));
 
-        driver.povUp().onTrue(feeder.seatNote());
+        // driver.a().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
+        // driver.b().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kForward));
+        // driver.x().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
+        // driver.y().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kReverse));
 
         /**
          * Co-driver bindings.
