@@ -128,6 +128,16 @@ public class Pivot extends GRRSubsystem {
     }
 
     /**
+     * This uses the {@link PivotConstants#DISTANCE_TO_ANGLE_MAP angle map} in constants to find
+     * the angle to put the pivot at based on the distance.
+     * @param distance This is used to find the angle.
+     * @return The angle the pivot should be at to shoot from that distance.
+     */
+    public Command goToAngleWithDist(Supplier<Double> distance) {
+        return goToAngle(() -> PivotConstants.DISTANCE_TO_ANGLE_MAP.get(distance.get()));
+    }
+
+    /**
      * Moves to an angle.
      * @param angle The angle that the arm pivots to.
      * @param willFinish If {@code true}, the command will end after the target angle is reached.
@@ -172,6 +182,10 @@ public class Pivot extends GRRSubsystem {
             });
     }
 
+    /**
+     * This command sets the pivot motors to coast mode, and then back to break mode after it ends,
+     * it should be called when the robot is disabled.
+     */
     public Command onDisable() {
         return commandBuilder()
             .onInitialize(() -> pivotMotor.setIdleMode(IdleMode.kCoast))

@@ -2,11 +2,14 @@ package org.team340.robot.subsystems;
 
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import java.util.function.Supplier;
 import org.team340.lib.swerve.SwerveBase;
 import org.team340.lib.util.Math2;
+import org.team340.robot.Constants;
 import org.team340.robot.Constants.SwerveConstants;
 
 /**
@@ -33,6 +36,15 @@ public class Swerve extends SwerveBase {
     @Override
     public void periodic() {
         updateOdometry();
+    }
+
+    /**
+     * This command gets the distance to the speaker of the current alliance.
+     * @return The distance.
+     */
+    public double getDistanceToSpeaker() {
+        boolean isBlueAlliance = DriverStation.getAlliance().orElse(Alliance.Blue).equals(Alliance.Blue);
+        return getPosition().getTranslation().getDistance(isBlueAlliance ? Constants.BLUE_TARGET : Constants.RED_TARGET);
     }
 
     /**
@@ -63,6 +75,39 @@ public class Swerve extends SwerveBase {
         return commandBuilder("swerve.driveAngle(" + Math2.toFixed(angle) + ")")
             .onInitialize(() -> rotController.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
             .onExecute(() -> driveAngle(x.get(), y.get(), angle, rotController));
+    }
+
+    /**
+     * This command allows the driver to keep driving, but forces the robot to face the speaker.
+     * @param x The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
+     * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
+     */
+    public Command driveOnTarget(Supplier<Double> x, Supplier<Double> y) {
+        return commandBuilder()
+            .onInitialize(() -> rotController.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
+            .onExecute(() -> {
+                boolean isBlueAlliance = DriverStation.getAlliance().orElse(Alliance.Blue).equals(Alliance.Blue);
+                driveAroundPoint(x.get(), y.get(), Math.PI, isBlueAlliance ? Constants.BLUE_TARGET : Constants.RED_TARGET, rotController);
+            });
+    }
+
+    /**
+     * This command aligns the robot with the respective side of their stage.
+     * @param x The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
+     * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
+     */
+    public Command alignWithStage(Supplier<Double> x, Supplier<Double> y) {
+        return commandBuilder("swerve.alignWithStage")
+            .onInitialize(() -> rotController.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
+            .onExecute(() -> {
+                double angleBetweenRobotAndStage = Constants.STAGE.minus(getPosition().getTranslation()).getAngle().getRadians();
+                double angleToFaceStage;
+                if (angleBetweenRobotAndStage <= Math.PI / 3 && angleBetweenRobotAndStage >= -Math.PI / 3) angleToFaceStage =
+                    Math.PI; else if (angleBetweenRobotAndStage >= Math.PI / 3 && angleBetweenRobotAndStage <= Math.PI) angleToFaceStage =
+                    -Math.PI / 3; else angleToFaceStage = Math.PI / 3;
+
+                driveAngle(x, y, angleToFaceStage);
+            });
     }
 
     /**

@@ -8,6 +8,7 @@ import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkPIDController;
+import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj2.command.Command;
 import org.team340.lib.GRRSubsystem;
@@ -41,10 +42,15 @@ public class Feeder extends GRRSubsystem {
         FeederConstants.Configs.PID.apply(feedMotor, feedPID);
     }
 
+    public void initSendable(SendableBuilder builder) {
+        super.initSendable(builder);
+        builder.addBooleanProperty("hasNote", this::hasNote, null);
+    }
+
     /**
      * Returns {@code true} when the note detector is detecting a note.
      */
-    public boolean getNoteDetector() {
+    public boolean hasNote() {
         return noteDetector.get();
     }
 
@@ -54,7 +60,7 @@ public class Feeder extends GRRSubsystem {
     public Command receiveNote() {
         return commandBuilder("feeder.receiveNote()")
             .onInitialize(() -> feedMotor.set(FeederConstants.INTAKE_SPEED))
-            .isFinished(() -> getNoteDetector())
+            .isFinished(() -> hasNote())
             .onEnd(() -> feedMotor.stopMotor());
     }
 
@@ -67,7 +73,7 @@ public class Feeder extends GRRSubsystem {
             sequence(
                 commandBuilder("feeder.seatNote().slowIn")
                     .onInitialize(() -> feedMotor.set(FeederConstants.IN_SLOW_SPEED))
-                    .isFinished(() -> getNoteDetector())
+                    .isFinished(() -> hasNote())
                     .onEnd(() -> feedEncoder.setPosition(0.0)),
                 commandBuilder("feeder.seatNote().inToPos")
                     .onInitialize(() -> feedPID.setReference(FeederConstants.POSITION_OFFSET, ControlType.kPosition))
@@ -78,7 +84,7 @@ public class Feeder extends GRRSubsystem {
             )
                 .withTimeout(2.0),
             none(),
-            () -> !getNoteDetector()
+            () -> !hasNote()
         );
     }
 
@@ -88,7 +94,7 @@ public class Feeder extends GRRSubsystem {
     public Command shootNote() {
         return commandBuilder()
             .onInitialize(() -> feedMotor.set(FeederConstants.SHOOT_SPEED))
-            .isFinished(() -> !getNoteDetector())
+            .isFinished(() -> !hasNote())
             .andThen(waitSeconds(FeederConstants.SHOOT_DELAY))
             .finallyDo(() -> feedMotor.stopMotor())
             .withName("feeder.shootNote()");

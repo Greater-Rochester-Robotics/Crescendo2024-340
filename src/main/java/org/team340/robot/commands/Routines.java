@@ -3,8 +3,8 @@ package org.team340.robot.commands;
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 import static org.team340.robot.RobotContainer.*;
 
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.PrintCommand;
 import java.util.function.Supplier;
 import org.team340.robot.Constants;
 
@@ -20,13 +20,28 @@ public class Routines {
     }
 
     /**
-     * An example routine.
+     * Deploys and runs the intake. After a note is collected, it is seated by the feeder.
      */
-    public static Command example() {
-        return sequence(swerve.drive(() -> 0.1, () -> 0.0, () -> 0.0, true).withTimeout(1.0));
+    public static Command intake() {
+        return sequence(
+            waitUntil(pivot::isSafeForIntake),
+            new PrintCommand("intakeSafe passed"),
+            intake.intakeDown(),
+            new PrintCommand("intakeHas gone down"),
+            race(
+                // sequence(waitUntil(intake::hasNote), waitUntil(() -> !intake.hasNote())),
+                feeder.receiveNote(),
+                intake.intake()
+            ),
+            feeder.seatNote()
+        )
+            .withName("Routines.intake()");
     }
 
-    public static Command intakeToBehindBumper() {
+    /**
+     * Moves the intake to its safe position inside the bumpers. Moves the pivot if needed.
+     */
+    public static Command protectIntake() {
         return sequence(
             either(
                 none().withName("pivot.isSafeFallthrough"),
@@ -37,6 +52,16 @@ public class Routines {
         );
     }
 
+    /**
+     * Scores in the amp.
+     */
+    public static Command scoreAmp() {
+        return prepScoreAmp().andThen(intake.scoreAmp());
+    }
+
+    /**
+     * This raises the intake in preparation for scoring in the amp.
+     */
     public static Command prepScoreAmp() {
         return sequence(
             either(
@@ -46,7 +71,14 @@ public class Routines {
                         pivot.goToAngle(Constants.PivotConstants.OPTIMAL_RECEIVE_NOTE_ANGLE),
                         sequence(waitUntil(pivot::isSafeForIntake), intake.intakeDown())
                     ),
-                    noteBackToIntake()
+                    sequence(
+                        intake.intakeDown(),
+                        deadline(
+                            sequence(waitUntil(() -> intake.hasNote() && !feeder.hasNote()), waitSeconds(0.0001)),
+                            shooterFeederSpit(),
+                            intake.receiveFromShooter()
+                        )
+                    )
                 ),
                 intake::hasNote
             ),
@@ -54,57 +86,38 @@ public class Routines {
         );
     }
 
-    public static Command scoreAmp() {
-        return prepScoreAmp().andThen(intake.scoreAmp());
-    }
-
-    public static Command intake() {
-        return sequence(
-            sequence(waitUntil(pivot::isSafeForIntake), intake.intakeDown()),
-            deadline(sequence(waitUntil(intake::hasNote), waitUntil(() -> !intake.hasNote())), feeder.receiveNote(), intake.intake()),
-            feeder.seatNote()
-        )
-            .withName("Routines.intake()");
-    }
-
     /**
      * This starts the shooter and adjusts pivot angle in preparation for shooting.
      * This command does not end of it's own accord.
-     * @param robotPosition This is a supplier of the robots position.
+     * @param distance This is a supplier of the robots position.
      * @return This command.
      */
-    public static Command prepShootSpeaker(Supplier<Pose2d> robotPosition) {
-        return parallel(
-            shooter.setSpeed(Constants.ShooterConstants.interpolateSpeed(robotPosition.get())),
-            pivot.goToAngle(Constants.PivotConstants.interpolateAngle(robotPosition.get()))
-        );
+    public static Command prepShootSpeaker(Supplier<Double> distance) {
+        return parallel(shooter.setSpeedWithDist(distance), pivot.goToAngleWithDist(distance));
     }
 
     /**
      * This command takes the current position, uses it to decide the angle to shoot at, then shoots the note.
      * Note that this will not correct the robot's yaw or position.
-     * @param robotPosition This is the position used for the math, note that it must be a supplier.
+     * @param distance This is the position used for the math, note that it must be a supplier.
      * @return This command.
      */
-    public static Command shootSpeaker(Supplier<Pose2d> robotPosition) {
+    public static Command shootSpeaker(Supplier<Double> distance) {
         return parallel(
-            prepShootSpeaker(robotPosition),
+            prepShootSpeaker(distance),
+            //TODO: add drive on target condition to move forward
             sequence(waitUntil(() -> shooter.hasReachedSpeed() && pivot.isOnTarget()), feeder.shootNote())
         );
     }
 
     /**
-     * This command moves the note from the feeders to the intake.
+     * This command spits the note regardless of if it's in the shooter or intake.
      * @return This command.
      */
-    private static Command noteBackToIntake() {
+    public static Command spit() {
         return sequence(
-            intake.intakeDown(),
-            deadline(
-                sequence(waitUntil(() -> intake.hasNote() && !feeder.getNoteDetector()), waitSeconds(0.0001)),
-                shooterFeederSpit(),
-                intake.receiveFromShooter()
-            )
+            parallel(pivot.goToAngle(Constants.PivotConstants.SPIT_ANGLE), intake.intakeDown()),
+            parallel(shooterFeederSpit(), intake.spit())
         );
     }
 
@@ -116,6 +129,10 @@ public class Routines {
         return parallel(shooter.spit(), feeder.spit());
     }
 
+    /**
+     * This command sets the pivot motors to coast mode, and then back to break mode after it ends,
+     * it should be called when the robot is disabled.
+     */
     public static Command onDisable() {
         return parallel(
             feeder.onDisable(),

@@ -336,23 +336,31 @@ public abstract class SwerveBase extends GRRSubsystem {
      * Drives the robot using percents of its calculated max velocity while locked pointing at a position on the field.
      * @param x The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
      * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
+     * @param angleOffset The offset to use when determining which side of the robot should face the point. (value in radians)
      * @param point The desired field relative position to point at (axis values in meters).
      * @param controller A profiled PID controller to use for translating to and maintaining the angle to the desired point.
      */
-    protected void driveAroundPoint(double x, double y, Translation2d point, ProfiledPIDController controller) {
-        driveAroundPointVelocity(x * config.getVelocity(), y * config.getVelocity(), point, controller);
+    protected void driveAroundPoint(double x, double y, double angleOffset, Translation2d point, ProfiledPIDController controller) {
+        driveAroundPointVelocity(x * config.getVelocity(), y * config.getVelocity(), angleOffset, point, controller);
     }
 
     /**
      * Drives the robot using velocity while locked pointing at a position on the field.
      * @param xV The desired {@code x} velocity in meters/second.
      * @param yV The desired {@code y} velocity in meters/second.
+     * @param angleOffset The offset to use when determining which side of the robot should face the point. (value in radians)
      * @param point The desired field relative position to point at (axis values in meters).
      * @param controller A profiled PID controller to use for translating to and maintaining the angle to the desired point.
      */
-    protected void driveAroundPointVelocity(double xV, double yV, Translation2d point, ProfiledPIDController controller) {
+    protected void driveAroundPointVelocity(
+        double xV,
+        double yV,
+        double angleOffset,
+        Translation2d point,
+        ProfiledPIDController controller
+    ) {
         Translation2d robotPoint = getPosition().getTranslation();
-        double angle = MathUtil.angleModulus(point.minus(robotPoint).getAngle().getRadians());
+        double angle = MathUtil.angleModulus(point.minus(robotPoint).getAngle().getRadians() + angleOffset);
         driveAngleVelocity(xV, yV, angle, controller);
     }
 

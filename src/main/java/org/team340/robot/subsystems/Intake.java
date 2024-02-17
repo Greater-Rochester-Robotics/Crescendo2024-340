@@ -117,7 +117,6 @@ public class Intake extends GRRSubsystem {
 
     /**
      * This moves the intake down to the intake position, but doesn't start the rollers.
-     * @return This command.
      */
     public Command intakeDown() {
         return useState(IntakeConstants.DEPLOY_POSITION, 0, 0, true).withName("intake.intakeDown()");
@@ -138,7 +137,6 @@ public class Intake extends GRRSubsystem {
 
     /**
      * This moves the intake arm to point straight up.
-     * @return This command.
      */
     public Command retract() {
         return useState(IntakeConstants.STRAIGHT_UP_POSITION, 0, 0, true).withName("intake.retract()");
@@ -154,7 +152,6 @@ public class Intake extends GRRSubsystem {
     /**
      * This command moves the intake to the {@link IntakeConstants#SCORE_AMP_POSITION SCORE_AMP_POSITION}
      * and ends once the position has been reached.
-     * @return This command.
      */
     public Command scoreAmpPosition() {
         return useState(IntakeConstants.SCORE_AMP_POSITION, 0, 0, true).withName("intake.scoreAmpPosition()");
@@ -162,7 +159,6 @@ public class Intake extends GRRSubsystem {
 
     /**
      * This command moves the intake up, and then scores it with a delay. This doesn't bring it back down.
-     * @return This command.
      */
     public Command scoreAmp() {
         return scoreAmpPosition()
@@ -179,7 +175,6 @@ public class Intake extends GRRSubsystem {
 
     /**
      * This command spits using the {@link IntakeConstants#FROM_SHOOTER_ROLLER_SPEED slow roller speed}.
-     * @return This command.
      */
     public Command receiveFromShooter() {
         return useState(
@@ -192,9 +187,16 @@ public class Intake extends GRRSubsystem {
     }
 
     /**
+     * This spits the note out of the intake, this doesn't end of it's own accord.
+     */
+    public Command spit() {
+        return useState(IntakeConstants.DEPLOY_POSITION, IntakeConstants.SPIT_ROLLER_SPEED, IntakeConstants.SPIT_ROLLER_SPEED, false)
+            .withName("intake.spit()");
+    }
+
+    /**
      * This command maintains the position stored in {@link #maintainAngle} unless it's null.
      * It should only be null if the position hasn't been set yet.
-     * @return This command.
      */
     public Command maintainPosition() {
         return commandBuilder("intake.maintainPosition()")
@@ -210,6 +212,10 @@ public class Intake extends GRRSubsystem {
             });
     }
 
+    /**
+     * This command sets the pivot motors to coast mode, and then back to break mode after it ends,
+     * it should be called when the robot is disabled.
+     */
     public Command onDisable() {
         return commandBuilder()
             .onInitialize(() -> {

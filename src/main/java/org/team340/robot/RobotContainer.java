@@ -92,26 +92,70 @@ public final class RobotContainer {
          * Driver bindings.
          */
 
+        // A => Intake (Tap = Down, Hold = Run roller)
+        driver.a().whileTrue(Routines.intake()).onFalse(parallel(feeder.seatNote(), intake.intakeDown()));
+
+        // B => Intake Safe Position (Tap)
+        driver.b().onTrue(Routines.protectIntake());
+
+        // X => Amp Score (Hold)
+        driver.x().onTrue(Routines.scoreAmp());
+
+        // Y => Shoot (Tap)
+        driver
+            .y()
+            .whileTrue(Routines.shootSpeaker(swerve::getDistanceToSpeaker))
+            .onFalse(Routines.prepShootSpeaker(swerve::getDistanceToSpeaker));
+
+        // Right Bumper => Target Speaker (Hold)
+        driver.rightBumper().whileTrue(swerve.driveOnTarget(RobotContainer::getDriveX, RobotContainer::getDriveY));
+
+        // Left Bumper => Face Stage (Toggle)
+        driver.leftBumper().whileTrue(swerve.alignWithStage(RobotContainer::getDriveX, RobotContainer::getDriveY));
+
+        // POV Up => Barf Forward
+        driver.povUp().whileTrue(Routines.spit());
+
+        // POV Down => Barf Backwards
+        driver.povDown().onTrue(none());
+
         // POV Left => Zero swerve
         driver.povLeft().onTrue(swerve.zeroIMU(Math2.ROTATION2D_0));
-
-        driver.rightBumper().whileTrue(pivot.goToAngle(() -> Math.toRadians(55.0)));
-
-        driver.a().whileTrue(Routines.intake()).whileFalse(parallel(feeder.seatNote(), intake.intakeDown()));
-        driver.y().whileTrue(feeder.shootNote());
-        driver.x().toggleOnTrue(shooter.setSpeed(6000.0));
-
-        // driver.a().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
-        // driver.b().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kForward));
-        // driver.x().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
-        // driver.y().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+        driver.povRight().whileTrue(pivot.goToAngle(() -> Math.toRadians(15.0)));
+        driver.start().toggleOnTrue(shooter.setSpeed(8000));
+        driver.back().whileTrue(feeder.shootNote());
+        // driver.rightBumper().whileTrue(pivot.goToAngle(() -> Math.toRadians(55.0)));
+        // driver.a().whileTrue(Routines.intake()).whileFalse(parallel(feeder.seatNote(), intake.intakeDown()));
+        // driver.y().whileTrue(feeder.shootNote());
+        // driver.x().toggleOnTrue(shooter.setSpeed(6000.0));
 
         /**
          * Co-driver bindings.
          */
 
-        // A => Do nothing
+        // A => Prepare Amp (Tap)
         coDriver.a().onTrue(none());
+
+        // B => Overrides
+
+        // X => Reserved For Climb
+        coDriver.x().onTrue(none());
+
+        // Y => Reserved For Climb
+        coDriver.x().onTrue(none());
+        /**
+         * SysId Routines
+         */
+
+        // driver.a().whileTrue(swerve.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
+        // driver.b().whileTrue(swerve.sysIdDynamic(SysIdRoutine.Direction.kForward));
+        // driver.x().whileTrue(swerve.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
+        // driver.y().whileTrue(swerve.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+
+        // driver.a().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
+        // driver.b().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kForward));
+        // driver.x().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
+        // driver.y().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kReverse));
     }
 
     /**
