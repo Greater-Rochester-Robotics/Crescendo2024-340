@@ -1,5 +1,8 @@
 package org.team340.robot;
 
+import static edu.wpi.first.units.Units.Seconds;
+import static edu.wpi.first.units.Units.Volts;
+
 import com.revrobotics.CANSparkBase.ExternalFollower;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.SparkPIDController.AccelStrategy;
@@ -58,7 +61,7 @@ public final class Constants {
         public static final Controller2Config DRIVER = new Controller2Config()
             .setLabel("Driver")
             .setPort(0)
-            .setJoystickDeadband(0.1)
+            .setJoystickDeadband(0.15)
             .setJoystickThreshold(0.7)
             .setTriggerDeadband(0.1)
             .setTriggerThreshold(0.1)
@@ -199,7 +202,7 @@ public final class Constants {
 
             public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig().setPID(0.001, 0.0, 0.0);
 
-            public static final FeedForwardConfig FEED_FORWARD = new FeedForwardConfig(0.11331 / 60.0, 0.061643 / 60.0, 0.053296 / 60.0);
+            public static final FeedForwardConfig FEED_FORWARD = new FeedForwardConfig(0.11331 / 60.0, 0.060404 / 60.0, 0.064897 / 60.0);
 
             public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
                 .setPositionConversionFactor(REL_ENC_CONVERSION)
@@ -366,19 +369,19 @@ public final class Constants {
         public static final SwerveConfig CONFIG = new SwerveConfig()
             .useADIS16470(IMUAxis.kZ, IMUAxis.kX, IMUAxis.kY, Port.kOnboardCS0, CalibrationTime._4s)
             .setPeriod(PERIOD)
-            .setMovePID(0.001, 0.0, 0.0, 0.0)
+            .setMovePID(0.0125, 0.001, 0.005, 0.075)
             .setMoveFF(0.13312, 2.3443, 0.3159)
-            .setTurnPID(0.5, 0.0, 3.0, 0.0)
+            .setTurnPID(0.65, 0.001, 3.0, 0.01)
             .setRampRate(0.03, 0.03)
             .setMotorTypes(SwerveMotor.Type.SPARK_FLEX_BRUSHLESS, SwerveMotor.Type.SPARK_FLEX_BRUSHLESS)
-            .setMaxSpeeds(4.9, 11.8)
-            .setRatelimits(7.9, 8.75)
+            .setMaxSpeeds(4.95, 11.8)
+            .setRatelimits(7.9, 28.75)
             .setPowerProperties(VOLTAGE, 60.0, 40.0)
             .setMechanicalProperties(6.75, 150.0 / 7.0, 4.0)
             .setDiscretizationLookahead(0.020)
             .setOdometryPeriod(0.02)
             .setOdometryStd(0.1, 0.1, 0.1)
-            .setSysIdConfig(new SysIdRoutine.Config())
+            .setSysIdConfig(new SysIdRoutine.Config(Volts.of(1.0).per(Seconds.of(0.4)), Volts.of(7.0), Seconds.of(5.5)))
             .setFieldSize(FIELD_LENGTH, FIELD_WIDTH)
             .addModule(FRONT_LEFT)
             .addModule(BACK_LEFT)
