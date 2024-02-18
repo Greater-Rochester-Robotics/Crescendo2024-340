@@ -18,7 +18,8 @@
         "svelte.svelte-vscode",
         "vscjava.vscode-java-test",
         "wpilibsuite.vscode-wpilib",
-        "asciidoctor.asciidoctor-vscode"
-        "eamodio.gitlens"
+        "asciidoctor.asciidoctor-vscode",
+        "eamodio.gitlens",
+        "GitHub.vscode-pull-request-github"
     ]
 }

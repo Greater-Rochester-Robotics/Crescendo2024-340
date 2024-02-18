@@ -156,7 +156,7 @@ public class Shooter extends GRRSubsystem {
      * @param shooterSpeed This is the speed to drive the shooter at.
      */
     public Command setSpeed(double shooterSpeed) {
-        return setSpeed(() -> shooterSpeed);
+        return setSpeed(() -> shooterSpeed).withName("shooter.setSpeed(" + shooterSpeed + ")");
     }
 
     /**
@@ -173,17 +173,29 @@ public class Shooter extends GRRSubsystem {
     }
 
     public Command setSpeedWithDist(Supplier<Double> distanceToTarget) {
-        return setSpeed(() -> ShooterConstants.DISTANCE_TO_SPEED_MAP.get(distanceToTarget.get()));
+        return setSpeed(() -> ShooterConstants.DISTANCE_TO_SPEED_MAP.get(distanceToTarget.get())).withName("shooter.setSpeed()");
     }
 
     /**
      * Spits the note out of the shooter in case it is stuck.
      */
-    public Command spit() {
-        return commandBuilder("shooter.spit()")
+    public Command spitFront() {
+        return commandBuilder("shooter.spitFront()")
             .onInitialize(() -> {
-                leftShootMotor.set(ShooterConstants.LEFT_SPIT_SPEED);
-                rightShootMotor.set(ShooterConstants.RIGHT_SPIT_SPEED);
+                leftShootMotor.set(ShooterConstants.LEFT_SPIT_SPEED_FRONT);
+                rightShootMotor.set(ShooterConstants.RIGHT_SPIT_SPEED_FRONT);
+            })
+            .onEnd(() -> {
+                leftShootMotor.stopMotor();
+                rightShootMotor.stopMotor();
+            });
+    }
+
+    public Command spitBack() {
+        return commandBuilder("shooter.spitBack()")
+            .onInitialize(() -> {
+                leftShootMotor.set(ShooterConstants.LEFT_SPIT_SPEED_BACK);
+                rightShootMotor.set(ShooterConstants.RIGHT_SPIT_SPEED_BACK);
             })
             .onEnd(() -> {
                 leftShootMotor.stopMotor();
@@ -196,7 +208,7 @@ public class Shooter extends GRRSubsystem {
      * @param direction The direction to run the test in.
      */
     public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
-        return sysIdRoutine.quasistatic(direction);
+        return sysIdRoutine.quasistatic(direction).withName("shooter.sysIdQuasistaitc(" + direction + ")");
     }
 
     /**
@@ -204,6 +216,6 @@ public class Shooter extends GRRSubsystem {
      * @param direction The direction to run the test in.
      */
     public Command sysIdDynamic(SysIdRoutine.Direction direction) {
-        return sysIdRoutine.dynamic(direction);
+        return sysIdRoutine.dynamic(direction).withName("shooter.sysIdDynamic(" + direction + ")");
     }
 }

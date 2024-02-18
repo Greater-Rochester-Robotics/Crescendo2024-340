@@ -1,7 +1,6 @@
 package org.team340.robot.subsystems;
 
 import static edu.wpi.first.wpilibj2.command.Commands.either;
-import static edu.wpi.first.wpilibj2.command.Commands.none;
 import static edu.wpi.first.wpilibj2.command.Commands.sequence;
 
 import com.revrobotics.CANSparkBase.ControlType;
@@ -13,6 +12,8 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkLimitSwitch;
 import com.revrobotics.SparkLimitSwitch.Type;
 import com.revrobotics.SparkPIDController;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import org.team340.lib.GRRSubsystem;
@@ -35,6 +36,7 @@ public class Climber extends GRRSubsystem {
     private final SparkLimitSwitch rightLimit;
     private final SparkPIDController leftPID;
     private final SparkPIDController rightPID;
+    private final SimpleMotorFeedforward posFFController;
     private boolean isZeroedLeft = false;
     private boolean isZeroedRight = false;
 
@@ -52,6 +54,8 @@ public class Climber extends GRRSubsystem {
         rightMotor.enableSoftLimit(SoftLimitDirection.kReverse, true);
         leftPID = leftMotor.getPIDController();
         rightPID = rightMotor.getPIDController();
+        posFFController =
+            new SimpleMotorFeedforward(ClimberConstants.Configs.FF.s(), ClimberConstants.Configs.FF.v(), ClimberConstants.Configs.FF.a());
 
         ClimberConstants.Configs.MOTOR.apply(leftMotor);
         ClimberConstants.Configs.MOTOR.apply(rightMotor);
@@ -61,6 +65,12 @@ public class Climber extends GRRSubsystem {
         ClimberConstants.Configs.PID.apply(rightMotor, rightPID);
         ClimberConstants.Configs.LIMIT.apply(leftMotor, leftLimit);
         ClimberConstants.Configs.LIMIT.apply(rightMotor, rightLimit);
+    }
+
+    public void initSendable(SendableBuilder builder) {
+        super.initSendable(builder);
+        builder.addBooleanProperty("Left Limit", this::getLeftLimit, null);
+        builder.addBooleanProperty("Right Limit", this::getLeftLimit, null);
     }
 
     /**
@@ -121,13 +131,13 @@ public class Climber extends GRRSubsystem {
     public Command toPosition(double position) {
         return either(
             sequence(
-                either(none(), zeroArms(), () -> isZeroedLeft && isZeroedRight),
+                zeroArms().unless(() -> isZeroedLeft && isZeroedRight),
                 commandBuilder()
                     .onExecute(() -> {
                         double difference = rightEncoder.getPosition() - leftEncoder.getPosition();
-                        //TODO: compensate for difference between climbers
-                        leftPID.setReference(position, ControlType.kPosition);
-                        rightPID.setReference(position, ControlType.kPosition);
+                        double posFF = posFFController.calculate(difference);
+                        leftPID.setReference(position + posFF, ControlType.kPosition);
+                        rightPID.setReference(position + posFF, ControlType.kPosition);
                     })
             ),
             runOnce(() -> DriverStation.reportWarning("The climber cannot be set to " + position + " (out of range).", false)),
@@ -138,5 +148,19 @@ public class Climber extends GRRSubsystem {
                 rightMotor.stopMotor();
             })
             .withName("climber.toPosition(" + position + ")");
+    }
+
+    public Command onDisable() {
+        return commandBuilder()
+            .onInitialize(() -> {
+                leftMotor.setIdleMode(IdleMode.kCoast);
+                rightMotor.setIdleMode(IdleMode.kCoast);
+            })
+            .onEnd(() -> {
+                leftMotor.setIdleMode(IdleMode.kBrake);
+                rightMotor.setIdleMode(IdleMode.kBrake);
+            })
+            .ignoringDisable(true)
+            .withName("climber.onDisable()");
     }
 }

@@ -94,21 +94,23 @@ public class Pivot extends GRRSubsystem {
      * @param withOverride If true will ignore {@code hasBeenHomed}.
      */
     public Command home(boolean withOverride) {
-        return Commands.either(
-            commandBuilder("pivot.home(withOverride = " + withOverride + ")")
-                .onExecute(() -> pivotMotor.set(PivotConstants.HOMING_SPEED))
-                .isFinished(() -> getLowerLimit())
-                .onEnd(() -> {
-                    pivotMotor.stopMotor();
-                    if (getLowerLimit()) {
-                        pivotEncoder.setPosition(PivotConstants.MINIMUM_ANGLE);
-                        hasBeenHomed = true;
-                    }
-                    currentTarget = pivotEncoder.getPosition();
-                }),
-            Commands.none().withName("pivot.home().fallthrough"),
-            () -> !hasBeenHomed || withOverride
-        );
+        return Commands
+            .either(
+                commandBuilder("pivot.home(withOverride = " + withOverride + ")")
+                    .onExecute(() -> pivotMotor.set(PivotConstants.HOMING_SPEED))
+                    .isFinished(() -> getLowerLimit())
+                    .onEnd(() -> {
+                        pivotMotor.stopMotor();
+                        if (getLowerLimit()) {
+                            pivotEncoder.setPosition(PivotConstants.MINIMUM_ANGLE);
+                            hasBeenHomed = true;
+                        }
+                        currentTarget = pivotEncoder.getPosition();
+                    }),
+                Commands.none().withName("pivot.home().fallthrough"),
+                () -> !hasBeenHomed || withOverride
+            )
+            .withName("pivot.home()");
     }
 
     /**
@@ -116,7 +118,7 @@ public class Pivot extends GRRSubsystem {
      * @param angle The angle that the arm pivots to.
      */
     public Command goToAngle(double angle) {
-        return goToAngle(() -> angle, true);
+        return goToAngle(() -> angle, true).withName("pivot.goToAngle(" + angle + ")");
     }
 
     /**
@@ -124,7 +126,7 @@ public class Pivot extends GRRSubsystem {
      * @param angle The angle supplier source that the arm pivots to.
      */
     public Command goToAngle(Supplier<Double> angle) {
-        return goToAngle(angle, false);
+        return goToAngle(angle, false).withName("pivot.goToAngle()");
     }
 
     /**
@@ -134,7 +136,7 @@ public class Pivot extends GRRSubsystem {
      * @return The angle the pivot should be at to shoot from that distance.
      */
     public Command goToAngleWithDist(Supplier<Double> distance) {
-        return goToAngle(() -> PivotConstants.DISTANCE_TO_ANGLE_MAP.get(distance.get()));
+        return goToAngle(() -> PivotConstants.DISTANCE_TO_ANGLE_MAP.get(distance.get())).withName("goToAngleWithDist()");
     }
 
     /**
@@ -164,7 +166,8 @@ public class Pivot extends GRRSubsystem {
                             currentTarget = angle.get();
                         }
                     })
-            );
+            )
+            .withName("pivot.goToAngle(," + willFinish + ")");
     }
 
     /**

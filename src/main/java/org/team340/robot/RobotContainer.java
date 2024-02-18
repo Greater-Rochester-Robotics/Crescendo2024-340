@@ -3,6 +3,7 @@ package org.team340.robot;
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import org.team340.lib.GRRDashboard;
 import org.team340.lib.controller.Controller2;
 import org.team340.lib.util.Math2;
@@ -48,7 +49,7 @@ public final class RobotContainer {
         coDriver.addToDashboard();
 
         // Initialize subsystems.
-        // climber = new Climber();
+        climber = new Climber();
         feeder = new Feeder();
         intake = new Intake();
         pivot = new Pivot();
@@ -56,7 +57,7 @@ public final class RobotContainer {
         swerve = new Swerve();
 
         // Add subsystems to the dashboard.
-        // climber.addToDashboard();
+        climber.addToDashboard();
         feeder.addToDashboard();
         intake.addToDashboard();
         pivot.addToDashboard();
@@ -86,7 +87,7 @@ public final class RobotContainer {
         swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
 
         Routines.onDisable().schedule();
-        RobotModeTriggers.disabled().whileTrue(waitSeconds(6.0).andThen(Routines.onDisable()));
+        RobotModeTriggers.disabled().whileTrue(Routines.onDisable());
 
         /**
          * Driver bindings.
@@ -96,16 +97,22 @@ public final class RobotContainer {
         driver.a().whileTrue(Routines.intake()).onFalse(parallel(feeder.seatNote(), intake.intakeDown()));
 
         // B => Intake Safe Position (Tap)
-        driver.b().onTrue(Routines.protectIntake());
+        driver.b().onTrue(Routines.retractIntake());
 
         // X => Amp Score (Hold)
-        driver.x().onTrue(Routines.scoreAmp());
+        driver
+            .x()
+            .onTrue(Routines.prepScoreAmp(RobotContainer::getDriveX, RobotContainer::getDriveY))
+            .onFalse(intake.scoreAmp().withTimeout(1.5));
 
         // Y => Shoot (Tap)
         driver
             .y()
-            .whileTrue(Routines.shootSpeaker(swerve::getDistanceToSpeaker))
-            .onFalse(Routines.prepShootSpeaker(swerve::getDistanceToSpeaker));
+            .onTrue(Routines.prepShootSpeaker(swerve::getDistanceToSpeaker))
+            .onFalse(Routines.shootSpeaker(swerve::getDistanceToSpeaker));
+
+        driver.rightJoystickUp().onTrue(Routines.protectIntake());
+        driver.rightJoystickDown().onTrue(intake.intakeDown());
 
         // Right Bumper => Target Speaker (Hold)
         driver.rightBumper().whileTrue(swerve.driveOnTarget(RobotContainer::getDriveX, RobotContainer::getDriveY));
@@ -113,30 +120,41 @@ public final class RobotContainer {
         // Left Bumper => Face Stage (Toggle)
         driver.leftBumper().whileTrue(swerve.alignWithStage(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
-        // POV Up => Barf Forward
-        driver.povUp().whileTrue(Routines.spit());
+        // POV Up => Barf Backwards
+        driver.povUp().whileTrue(Routines.spitBack());
 
-        // POV Down => Barf Backwards
-        driver.povDown().onTrue(none());
+        // POV Down => Barf Forward
+        driver.povDown().whileTrue(Routines.spitFront());
 
         // POV Left => Zero swerve
         driver.povLeft().onTrue(swerve.zeroIMU(Math2.ROTATION2D_0));
         driver.povRight().whileTrue(pivot.goToAngle(() -> Math.toRadians(15.0)));
         driver.start().toggleOnTrue(shooter.setSpeed(8000));
-        driver.back().whileTrue(feeder.shootNote());
+        driver.back().whileTrue(intake.intakeDown()); //feeder.shootNote());
         // driver.rightBumper().whileTrue(pivot.goToAngle(() -> Math.toRadians(55.0)));
         // driver.a().whileTrue(Routines.intake()).whileFalse(parallel(feeder.seatNote(), intake.intakeDown()));
         // driver.y().whileTrue(feeder.shootNote());
         // driver.x().toggleOnTrue(shooter.setSpeed(6000.0));
 
+        Trigger driverNotLock = driver
+            .a()
+            .negate()
+            .and(
+                driver
+                    .b()
+                    .negate()
+                    .and(driver.x().negate().and(driver.y().negate().and(driver.povUp().negate().and(driver.povDown().negate()))))
+            );
+
         /**
          * Co-driver bindings.
          */
 
-        // A => Prepare Amp (Tap)
+        // A => Overrides
         coDriver.a().onTrue(none());
 
-        // B => Overrides
+        // B => Reserved
+        coDriver.b().onTrue(none());
 
         // X => Reserved For Climb
         coDriver.x().onTrue(none());

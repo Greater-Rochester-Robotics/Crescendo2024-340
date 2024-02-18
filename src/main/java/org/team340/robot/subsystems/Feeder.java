@@ -61,7 +61,9 @@ public class Feeder extends GRRSubsystem {
         return commandBuilder("feeder.receiveNote()")
             .onInitialize(() -> feedMotor.set(FeederConstants.INTAKE_SPEED))
             .isFinished(() -> hasNote())
-            .onEnd(() -> feedMotor.stopMotor());
+            .onEnd(() -> feedMotor.stopMotor())
+            .onlyIf(() -> !hasNote())
+            .withName("feeder.receiveNote()");
     }
 
     /**
@@ -69,23 +71,21 @@ public class Feeder extends GRRSubsystem {
      * to try to get it as consistent as possible.
      */
     public Command seatNote() {
-        return either(
-            sequence(
-                commandBuilder("feeder.seatNote().slowIn")
-                    .onInitialize(() -> feedMotor.set(FeederConstants.IN_SLOW_SPEED))
-                    .isFinished(() -> hasNote())
-                    .onEnd(() -> feedEncoder.setPosition(0.0)),
-                commandBuilder("feeder.seatNote().inToPos")
-                    .onInitialize(() -> feedPID.setReference(FeederConstants.POSITION_OFFSET, ControlType.kPosition))
-                    .isFinished(() ->
-                        Math2.epsilonEquals(feedEncoder.getPosition(), FeederConstants.POSITION_OFFSET, FeederConstants.CLOSED_LOOP_ERR)
-                    )
-                    .onEnd(() -> feedMotor.stopMotor())
-            )
-                .withTimeout(2.0),
-            none(),
-            () -> !hasNote()
-        );
+        return sequence(
+            commandBuilder("feeder.seatNote().slowIn")
+                .onInitialize(() -> feedMotor.set(FeederConstants.IN_SLOW_SPEED))
+                .isFinished(() -> hasNote())
+                .onEnd(() -> feedEncoder.setPosition(0.0)),
+            commandBuilder("feeder.seatNote().inToPos")
+                .onInitialize(() -> feedPID.setReference(FeederConstants.POSITION_OFFSET, ControlType.kPosition))
+                .isFinished(() ->
+                    Math2.epsilonEquals(feedEncoder.getPosition(), FeederConstants.POSITION_OFFSET, FeederConstants.CLOSED_LOOP_ERR)
+                )
+                .onEnd(() -> feedMotor.stopMotor())
+        )
+            .withTimeout(2.0)
+            .onlyIf(() -> !hasNote())
+            .withName("feeder.seatNote()");
     }
 
     /**
@@ -103,9 +103,15 @@ public class Feeder extends GRRSubsystem {
     /**
      * Spits the note out of the feeder in case it is stuck.
      */
-    public Command spit() {
-        return commandBuilder("feeder.spit()")
-            .onInitialize(() -> feedMotor.set(FeederConstants.SPIT_SPEED))
+    public Command spitFront() {
+        return commandBuilder("feeder.spitFront()")
+            .onInitialize(() -> feedMotor.set(FeederConstants.SPIT_SPEED_FRONT))
+            .onEnd(() -> feedMotor.stopMotor());
+    }
+
+    public Command spitBack() {
+        return commandBuilder("feeder.spitBack()")
+            .onInitialize(() -> feedMotor.set(FeederConstants.SPIT_SPEED_BACK))
             .onEnd(() -> feedMotor.stopMotor());
     }
 

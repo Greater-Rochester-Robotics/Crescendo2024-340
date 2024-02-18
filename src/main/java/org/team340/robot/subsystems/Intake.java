@@ -71,6 +71,10 @@ public class Intake extends GRRSubsystem {
         return noteDetector.get();
     }
 
+    private boolean isAtAngle(double targetAngle) {
+        return Math2.epsilonEquals(MathUtil.angleModulus(armEncoder.getPosition()), targetAngle, IntakeConstants.CLOSED_LOOP_ERROR);
+    }
+
     /**
      * Sets the {@link #armPID} to go to the specified angle if it is valid
      * (within the intake {@link IntakeConstants#MINIMUM_ANGLE minimum} and
@@ -105,10 +109,9 @@ public class Intake extends GRRSubsystem {
                 setValidPosition(angle);
                 maintainAngle = armEncoder.getPosition();
             })
-            .isFinished(() -> willFinish && Math2.epsilonEquals(armEncoder.getPosition(), angle, IntakeConstants.CLOSED_LOOP_ERROR))
+            .isFinished(() -> willFinish && isAtAngle(angle))
             .onEnd(interrupted -> {
-                if (!interrupted || Math2.epsilonEquals(armEncoder.getPosition(), angle, IntakeConstants.CLOSED_LOOP_ERROR)) maintainAngle =
-                    angle;
+                if (!interrupted || isAtAngle(angle)) maintainAngle = angle;
                 rollerUpperMotor.stopMotor();
                 rollerLowerMotor.stopMotor();
                 armLeftMotor.stopMotor();
@@ -139,7 +142,7 @@ public class Intake extends GRRSubsystem {
      * This moves the intake arm to point straight up.
      */
     public Command retract() {
-        return useState(IntakeConstants.STRAIGHT_UP_POSITION, 0, 0, true).withName("intake.retract()");
+        return useState(IntakeConstants.RETRACT_POSITION, 0, 0, true).withName("intake.retract()");
     }
 
     /**
@@ -147,6 +150,10 @@ public class Intake extends GRRSubsystem {
      */
     public Command toSafePosition() {
         return useState(IntakeConstants.SAFE_POSITION, 0, 0, true).withName("intake.toSafePosition()");
+    }
+
+    public Command toSpitPosition() {
+        return useState(IntakeConstants.SPIT_POSITION, 0, 0, true).withName("intake.toSpitPosition()");
     }
 
     /**
@@ -165,8 +172,8 @@ public class Intake extends GRRSubsystem {
             .andThen(
                 useState(
                     IntakeConstants.SCORE_AMP_POSITION,
-                    IntakeConstants.SCORE_AMP_ROLLER_SPEED,
-                    IntakeConstants.SCORE_AMP_ROLLER_SPEED,
+                    IntakeConstants.SCORE_AMP_ROLLER_SPEED_UPPER,
+                    IntakeConstants.SCORE_AMP_ROLLER_SPEED_LOWER,
                     false
                 )
             )
@@ -190,7 +197,7 @@ public class Intake extends GRRSubsystem {
      * This spits the note out of the intake, this doesn't end of it's own accord.
      */
     public Command spit() {
-        return useState(IntakeConstants.DEPLOY_POSITION, IntakeConstants.SPIT_ROLLER_SPEED, IntakeConstants.SPIT_ROLLER_SPEED, false)
+        return useState(IntakeConstants.SPIT_POSITION, IntakeConstants.SPIT_ROLLER_SPEED, IntakeConstants.SPIT_ROLLER_SPEED, false)
             .withName("intake.spit()");
     }
 
@@ -201,7 +208,9 @@ public class Intake extends GRRSubsystem {
     public Command maintainPosition() {
         return commandBuilder("intake.maintainPosition()")
             .onInitialize(() -> {
-                if (MathUtil.angleModulus(maintainAngle) < 0.0) maintainAngle = 0.0;
+                if (maintainAngle > Math.PI && maintainAngle < 3 * Math2.HALF_PI) maintainAngle = Math.PI; else if (
+                    MathUtil.angleModulus(maintainAngle) < 0.0
+                ) maintainAngle = 0.0;
             })
             .onExecute(() -> {
                 if (maintainAngle < IntakeConstants.MINIMUM_PID_ANGLE) {

@@ -13,7 +13,6 @@ import edu.wpi.first.wpilibj.ADIS16470_IMU.CalibrationTime;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
 import edu.wpi.first.wpilibj.SPI.Port;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import java.util.function.Supplier;
 import org.team340.lib.controller.Controller2Config;
 import org.team340.lib.swerve.config.SwerveConfig;
 import org.team340.lib.swerve.config.SwerveModuleConfig;
@@ -42,9 +41,9 @@ public final class Constants {
     public static final double FIELD_LENGTH = 16.5417;
     public static final double FIELD_WIDTH = 8.0136;
 
-    public static final Translation2d BLUE_TARGET = new Translation2d();
-    public static final Translation2d RED_TARGET = new Translation2d();
-    public static final Translation2d STAGE = new Translation2d();
+    public static final Translation2d BLUE_TARGET = new Translation2d(-0.0381, 5.5477664);
+    public static final Translation2d RED_TARGET = new Translation2d(-0.0381, 2.656332);
+    public static final Translation2d STAGE = new Translation2d(4.981067, 4.105783);
 
     /**
      * Driver and co-driver controller constants.
@@ -119,15 +118,17 @@ public final class Constants {
         public static final double MINIMUM_ANGLE = 0.0;
         public static final double MINIMUM_PID_ANGLE = 0.0;
 
-        public static final double CLOSED_LOOP_ERROR = Math.toRadians(10.0);
+        public static final double CLOSED_LOOP_ERROR = Math.toRadians(5.0);
 
         public static final double SCORE_AMP_POSITION = Math.toRadians(55.0);
         public static final double DEPLOY_POSITION = 0.0;
-        public static final double STRAIGHT_UP_POSITION = Math2.HALF_PI;
-        public static final double SAFE_POSITION = Math.toRadians(65.0);
+        public static final double SAFE_POSITION = Math.toRadians(30.0);
+        public static final double RETRACT_POSITION = Math.toRadians(65.0);
+        public static final double SPIT_POSITION = Math.toRadians(10.0);
 
-        public static final double SCORE_AMP_ROLLER_SPEED = -0.80;
-        public static final double INTAKE_ROLLER_SPEED = 0.40;
+        public static final double SCORE_AMP_ROLLER_SPEED_UPPER = -0.7;
+        public static final double SCORE_AMP_ROLLER_SPEED_LOWER = -0.3;
+        public static final double INTAKE_ROLLER_SPEED = 0.9;
         public static final double SPIT_ROLLER_SPEED = -0.5;
         public static final double FROM_SHOOTER_ROLLER_SPEED = -0.25;
 
@@ -141,8 +142,8 @@ public final class Constants {
                 .enableVoltageCompensation(VOLTAGE)
                 .setSmartCurrentLimit(60, 30)
                 .setIdleMode(IdleMode.kBrake)
-                .setClosedLoopRampRate(0.3)
-                .setOpenLoopRampRate(0.3);
+                .setClosedLoopRampRate(0.15)
+                .setOpenLoopRampRate(0.15);
             public static final SparkFlexConfig LEFT_MOTOR = MOTOR_BASE.clone().setInverted(true);
             public static final SparkFlexConfig RIGHT_MOTOR = MOTOR_BASE
                 .clone()
@@ -151,10 +152,10 @@ public final class Constants {
                 .setInverted(true)
                 .setPositionConversionFactor(Math2.TWO_PI)
                 .setVelocityConversionFactor(Math2.TWO_PI / 60.0)
-                .setZeroOffset(2.832); // TODO: put in this angle before running
+                .setZeroOffset(4.8304510); // TODO: put in this angle before running
 
             public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
-                .setPID(0.425, 0.0013, 0.32)
+                .setPID(0.9, 0.0015, 0.075) //0.425, 0.0013, 0.32)
                 .setIZone(Math.toRadians(5.25))
                 .setPositionPIDWrappingEnabled(true)
                 .setPositionPIDWrappingInputLimits(0.0, Math2.TWO_PI);
@@ -178,8 +179,10 @@ public final class Constants {
 
         public static final double SPEED_TOLERANCE = 40.0;
 
-        public static final double LEFT_SPIT_SPEED = -0.25;
-        public static final double RIGHT_SPIT_SPEED = -0.25;
+        public static final double LEFT_SPIT_SPEED_BACK = 0.5;
+        public static final double RIGHT_SPIT_SPEED_BACK = 0.5;
+        public static final double LEFT_SPIT_SPEED_FRONT = -0.25;
+        public static final double RIGHT_SPIT_SPEED_FRONT = -0.25;
 
         public static final double RIGHT_TO_LEFT_RATIO = 0.55;
         public static final double PID_RANGE = 750.0;
@@ -225,12 +228,13 @@ public final class Constants {
 
         public static final double SHOOT_DELAY = 0.5;
 
-        public static final double INTAKE_SPEED = 0.75;
+        public static final double INTAKE_SPEED = 0.5;
         public static final double IN_SLOW_SPEED = 0.05;
         public static final double POSITION_OFFSET = 2.357;
         public static final double CLOSED_LOOP_ERR = 0.125;
         public static final double SHOOT_SPEED = 1.0;
-        public static final double SPIT_SPEED = -0.5;
+        public static final double SPIT_SPEED_FRONT = -0.5;
+        public static final double SPIT_SPEED_BACK = 0.5;
 
         public static final double REL_ENC_CONVERSION = 1.0; // 1 / ((30 / 64) * 1.4 * Math.PI); // 1 / (gear ratio * roller diameter * pi)
 
@@ -291,7 +295,7 @@ public final class Constants {
 
         public static final InterpolatingDoubleTreeMap DISTANCE_TO_ANGLE_MAP = new InterpolatingDoubleTreeMap();
 
-        public static final Supplier<Double> SPIT_ANGLE = null;
+        public static final double SPIT_ANGLE = 0.0;
 
         static { // TODO: find these
             DISTANCE_TO_ANGLE_MAP.put(0.0, 0.0);
@@ -316,6 +320,7 @@ public final class Constants {
                 .enableVoltageCompensation(VOLTAGE)
                 .setSmartCurrentLimit(30)
                 .setIdleMode(IdleMode.kBrake)
+                .setInverted(true)
                 .setClosedLoopRampRate(1.5)
                 .setOpenLoopRampRate(1.5);
 
@@ -327,6 +332,8 @@ public final class Constants {
                 .setSmartMotionMinOutputVelocity(0, 0)
                 .setSmartMotionMaxAccel(0, 0)
                 .setSmartMotionAllowedClosedLoopError(CLOSED_LOOP_ERR * REL_ENC_CONVERSION, 0);
+
+            public static final FeedForwardConfig FF = new FeedForwardConfig(0.0, 0.0, 0.0);
 
             public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
                 .setPositionConversionFactor(REL_ENC_CONVERSION)

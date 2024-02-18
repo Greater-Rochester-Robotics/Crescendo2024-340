@@ -1,12 +1,16 @@
 package org.team340.robot.subsystems;
 
 import edu.wpi.first.math.controller.ProfiledPIDController;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import java.util.Optional;
 import java.util.function.Supplier;
+import org.photonvision.EstimatedRobotPose;
+import org.photonvision.PhotonPoseEstimator;
 import org.team340.lib.swerve.SwerveBase;
 import org.team340.lib.util.Math2;
 import org.team340.robot.Constants;
@@ -16,6 +20,28 @@ import org.team340.robot.Constants.SwerveConstants;
  * The swerve subsystem.
  */
 public class Swerve extends SwerveBase {
+
+    private PhotonPoseEstimator[] poseEstimators = {
+        // new PhotonPoseEstimator(
+        //     AprilTagFields.k2024Crescendo.loadAprilTagLayoutField(),
+        //     PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+        //     new PhotonCamera("backLeftCam"),
+        //     new Transform3d(
+        //         new Translation3d(-0.29356304, 0.27327352, 0.23771098),
+        //         new Rotation3d(0.0, Math.toRadians(-30.0), Math.toRadians(-170.0))
+        //     )
+        // ),
+
+        // new PhotonPoseEstimator(
+        //     AprilTagFields.k2024Crescendo.loadAprilTagLayoutField(),
+        //     PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+        //     new PhotonCamera("BackRight"),
+        //     new Transform3d(
+        //         new Translation3d(-0.29356304, -0.27327352, 0.23771098),
+        //         new Rotation3d(0.0, Math.toRadians(-30.0), Math.toRadians(170.0))
+        //     )
+        // ),
+    };
 
     private final ProfiledPIDController rotController = new ProfiledPIDController(
         SwerveConstants.ROT_PID.p(),
@@ -31,11 +57,17 @@ public class Swerve extends SwerveBase {
         super("Swerve Drive", SwerveConstants.CONFIG);
         rotController.setIZone(SwerveConstants.ROT_PID.iZone());
         rotController.enableContinuousInput(-Math.PI, Math.PI);
+        resetOdometry(new Pose2d(0.5, 7.75, Math2.ROTATION2D_0));
     }
 
     @Override
     public void periodic() {
-        updateOdometry();
+        updateOdometry(poseEstimator -> {
+            for (PhotonPoseEstimator photonPoseEstimator : poseEstimators) {
+                Optional<EstimatedRobotPose> pose = photonPoseEstimator.update();
+                if (pose.isPresent()) poseEstimator.addVisionMeasurement(pose.get().estimatedPose.toPose2d(), pose.get().timestampSeconds);
+            }
+        });
     }
 
     /**
@@ -106,7 +138,16 @@ public class Swerve extends SwerveBase {
                     Math.PI; else if (angleBetweenRobotAndStage >= Math.PI / 3 && angleBetweenRobotAndStage <= Math.PI) angleToFaceStage =
                     -Math.PI / 3; else angleToFaceStage = Math.PI / 3;
 
-                driveAngle(x, y, angleToFaceStage);
+                driveAngle(x.get(), y.get(), angleToFaceStage, rotController);
+            });
+    }
+
+    public Command alignWithAmp(Supplier<Double> x, Supplier<Double> y) {
+        return commandBuilder("swerve.alignWithAmp")
+            .onInitialize(() -> rotController.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
+            .onExecute(() -> {
+                double angle = DriverStation.getAlliance().orElse(Alliance.Blue).equals(Alliance.Blue) ? Math2.HALF_PI : -Math2.HALF_PI;
+                driveAngle(x.get(), y.get(), angle, rotController);
             });
     }
 
