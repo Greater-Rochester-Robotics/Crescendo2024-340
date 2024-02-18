@@ -52,9 +52,7 @@ public class Blacklight {
     public void publishConfig() {
         String tagLayout = "";
         try {
-            Scanner layoutScanner = new Scanner(
-                new File(Filesystem.getDeployDirectory(), "blacklight/" + config.getTagLayoutFileName())
-            );
+            Scanner layoutScanner = new Scanner(new File(Filesystem.getDeployDirectory(), "blacklight/" + config.getTagLayoutFileName()));
             while (layoutScanner.hasNextLine()) tagLayout += layoutScanner.nextLine();
         } catch (Exception e) {
             DriverStation.reportError(e.getMessage(), true);

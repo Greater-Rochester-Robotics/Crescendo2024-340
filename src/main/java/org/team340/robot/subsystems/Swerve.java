@@ -8,7 +8,6 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import java.util.function.Supplier;
-
 import org.team340.blacklight.Blacklight;
 import org.team340.lib.swerve.SwerveBase;
 import org.team340.lib.util.Math2;
@@ -27,9 +26,7 @@ public class Swerve extends SwerveBase {
         SwerveConstants.ROT_CONSTRAINTS
     );
 
-    private final Blacklight[] blacklights = new Blacklight[] {
-        new Blacklight(SwerveConstants.BACK_RIGHT_BLACKLIGHT)
-    };
+    private final Blacklight[] blacklights = new Blacklight[] { new Blacklight(SwerveConstants.BACK_RIGHT_BLACKLIGHT) };
 
     /**
      * Create the swerve subsystem.
