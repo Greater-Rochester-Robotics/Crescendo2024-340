@@ -313,11 +313,11 @@ public final class Constants {
 
     public static final class ClimberConstants {
 
-        public static final double REL_ENC_CONVERSION = 1 / (125 * 12 * 0.25); // 1 / (gear ratio * sprocket teeth * inches/tooth)
+        public static final double REL_ENC_CONVERSION = 1; // (125 * 12 * 0.25); // 1 / (gear ratio * sprocket teeth * inches/tooth)
         public static final double CLOSED_LOOP_ERR = 0.125;
-        public static final double ZEROING_SPEED = 0.25;
+        public static final double ZEROING_SPEED = 0.5;
 
-        public static final double MAX_POS = 1.0;
+        public static final double MAX_POS = 120.0;
         public static final double MIN_POS = 0.0;
 
         public static final class Configs {
@@ -333,7 +333,7 @@ public final class Constants {
                 .setOpenLoopRampRate(1.5);
 
             public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
-                .setPID(0.0, 0.0, 0.0, 0)
+                .setPID(1.0, 0.0, 0.0, 0)
                 .setOutputRange(-.5, .5)
                 .setSmartMotionAccelStrategy(AccelStrategy.kTrapezoidal, 0)
                 .setSmartMotionMaxVelocity(0, 0)
