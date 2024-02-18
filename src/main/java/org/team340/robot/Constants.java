@@ -116,7 +116,7 @@ public final class Constants {
 
         public static final double MAXIMUM_ANGLE = Math.toRadians(135.0);
         public static final double MINIMUM_ANGLE = 0.0;
-        public static final double MINIMUM_PID_ANGLE = 0.0;
+        public static final double MINIMUM_PID_ANGLE = Math.toRadians(2.0); //at angles less than this the motor will not be maintained
 
         public static final double CLOSED_LOOP_ERROR = Math.toRadians(5.0);
 
@@ -126,8 +126,8 @@ public final class Constants {
         public static final double RETRACT_POSITION = Math.toRadians(65.0);
         public static final double SPIT_POSITION = Math.toRadians(10.0);
 
-        public static final double SCORE_AMP_ROLLER_SPEED_UPPER = -0.7;
-        public static final double SCORE_AMP_ROLLER_SPEED_LOWER = -0.3;
+        public static final double SCORE_AMP_ROLLER_SPEED_UPPER = -0.5;
+        public static final double SCORE_AMP_ROLLER_SPEED_LOWER = -0.1;
         public static final double INTAKE_ROLLER_SPEED = 0.9;
         public static final double SPIT_ROLLER_SPEED = -0.5;
         public static final double FROM_SHOOTER_ROLLER_SPEED = -0.25;
