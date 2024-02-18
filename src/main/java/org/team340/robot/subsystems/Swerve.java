@@ -7,10 +7,9 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import java.util.Optional;
 import java.util.function.Supplier;
-import org.photonvision.EstimatedRobotPose;
-import org.photonvision.PhotonPoseEstimator;
+
+import org.team340.blacklight.Blacklight;
 import org.team340.lib.swerve.SwerveBase;
 import org.team340.lib.util.Math2;
 import org.team340.robot.Constants;
@@ -21,34 +20,16 @@ import org.team340.robot.Constants.SwerveConstants;
  */
 public class Swerve extends SwerveBase {
 
-    private PhotonPoseEstimator[] poseEstimators = {
-        // new PhotonPoseEstimator(
-        //     AprilTagFields.k2024Crescendo.loadAprilTagLayoutField(),
-        //     PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-        //     new PhotonCamera("backLeftCam"),
-        //     new Transform3d(
-        //         new Translation3d(-0.29356304, 0.27327352, 0.23771098),
-        //         new Rotation3d(0.0, Math.toRadians(-30.0), Math.toRadians(-170.0))
-        //     )
-        // ),
-
-        // new PhotonPoseEstimator(
-        //     AprilTagFields.k2024Crescendo.loadAprilTagLayoutField(),
-        //     PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-        //     new PhotonCamera("BackRight"),
-        //     new Transform3d(
-        //         new Translation3d(-0.29356304, -0.27327352, 0.23771098),
-        //         new Rotation3d(0.0, Math.toRadians(-30.0), Math.toRadians(170.0))
-        //     )
-        // ),
-    };
-
     private final ProfiledPIDController rotController = new ProfiledPIDController(
         SwerveConstants.ROT_PID.p(),
         SwerveConstants.ROT_PID.i(),
         SwerveConstants.ROT_PID.d(),
         SwerveConstants.ROT_CONSTRAINTS
     );
+
+    private final Blacklight[] blacklights = new Blacklight[] {
+        new Blacklight(SwerveConstants.BACK_RIGHT_BLACKLIGHT)
+    };
 
     /**
      * Create the swerve subsystem.
@@ -58,14 +39,17 @@ public class Swerve extends SwerveBase {
         rotController.setIZone(SwerveConstants.ROT_PID.iZone());
         rotController.enableContinuousInput(-Math.PI, Math.PI);
         resetOdometry(new Pose2d(0.5, 7.75, Math2.ROTATION2D_0));
+
+        for (Blacklight blacklight : blacklights) {
+            blacklight.startListeners();
+        }
     }
 
     @Override
     public void periodic() {
         updateOdometry(poseEstimator -> {
-            for (PhotonPoseEstimator photonPoseEstimator : poseEstimators) {
-                Optional<EstimatedRobotPose> pose = photonPoseEstimator.update();
-                if (pose.isPresent()) poseEstimator.addVisionMeasurement(pose.get().estimatedPose.toPose2d(), pose.get().timestampSeconds);
+            for (Blacklight blacklight : blacklights) {
+                blacklight.update(poseEstimator);
             }
         });
     }
