@@ -106,16 +106,20 @@ public final class RobotContainer {
             .onFalse(intake.scoreAmp().withTimeout(1.5));
 
         // Y => Shoot (Tap)
-        driver
-            .y()
-            .onTrue(Routines.prepShootSpeaker(swerve::getDistanceToSpeaker))
-            .onFalse(Routines.shootSpeaker(swerve::getDistanceToSpeaker));
+        driver.y().whileTrue(feeder.shootNote());
 
         driver.rightJoystickUp().onTrue(Routines.protectIntake());
         driver.rightJoystickDown().onTrue(intake.intakeDown());
 
         // Right Bumper => Target Speaker (Hold)
-        driver.rightBumper().whileTrue(swerve.driveOnTarget(RobotContainer::getDriveX, RobotContainer::getDriveY));
+        driver
+            .rightBumper()
+            .whileTrue(
+                parallel(
+                    swerve.driveOnTarget(RobotContainer::getDriveX, RobotContainer::getDriveY),
+                    Routines.prepShootSpeaker(swerve::getDistanceToSpeaker)
+                )
+            );
 
         // Left Bumper => Face Stage (Toggle)
         driver.leftBumper().whileTrue(swerve.alignWithStage(RobotContainer::getDriveX, RobotContainer::getDriveY));

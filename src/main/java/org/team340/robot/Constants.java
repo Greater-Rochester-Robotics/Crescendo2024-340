@@ -217,10 +217,8 @@ public final class Constants {
         public static final InterpolatingDoubleTreeMap DISTANCE_TO_SPEED_MAP = new InterpolatingDoubleTreeMap();
 
         static { // TODO: find these
-            DISTANCE_TO_SPEED_MAP.put(0.0, 0.1);
-            DISTANCE_TO_SPEED_MAP.put(1.499, 0.25);
-            DISTANCE_TO_SPEED_MAP.put(1.5, 0.8);
-            DISTANCE_TO_SPEED_MAP.put(25.0, 0.9);
+            DISTANCE_TO_SPEED_MAP.put(0.0, 6000.0);
+            DISTANCE_TO_SPEED_MAP.put(1.0, 6000.0);
         }
     }
 
@@ -298,8 +296,8 @@ public final class Constants {
         public static final double SPIT_ANGLE = 0.0;
 
         static { // TODO: find these
-            DISTANCE_TO_ANGLE_MAP.put(0.0, 0.0);
-            DISTANCE_TO_ANGLE_MAP.put(5.6, 1.2);
+            DISTANCE_TO_ANGLE_MAP.put(0.0, Math.toRadians(60.0));
+            DISTANCE_TO_ANGLE_MAP.put(5.6, Math.toRadians(19.9));
         }
     }
 

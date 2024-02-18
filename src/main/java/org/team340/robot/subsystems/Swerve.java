@@ -57,7 +57,7 @@ public class Swerve extends SwerveBase {
         super("Swerve Drive", SwerveConstants.CONFIG);
         rotController.setIZone(SwerveConstants.ROT_PID.iZone());
         rotController.enableContinuousInput(-Math.PI, Math.PI);
-        resetOdometry(new Pose2d(0.5, 7.75, Math2.ROTATION2D_0));
+        resetOdometry(new Pose2d(0.5, 7.9, Math2.ROTATION2D_0));
     }
 
     @Override
@@ -83,7 +83,10 @@ public class Swerve extends SwerveBase {
      * Zeroes the IMU to a specified yaw.
      */
     public Command zeroIMU(Rotation2d yaw) {
-        return runOnce(() -> imu.setZero(yaw)).withName("swerve.zero(" + yaw.toString() + ")");
+        // TODO Temp
+        return runOnce(() -> imu.setZero(yaw))
+            .andThen(runOnce(() -> resetOdometry(new Pose2d(0.5, 7.9, Math2.ROTATION2D_0))))
+            .withName("swerve.zero(" + yaw.toString() + ")");
     }
 
     /**
