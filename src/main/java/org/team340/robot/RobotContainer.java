@@ -122,7 +122,8 @@ public final class RobotContainer {
             );
 
         // Left Bumper => Face Stage (Toggle)
-        driver.leftBumper().whileTrue(swerve.alignWithStage(RobotContainer::getDriveX, RobotContainer::getDriveY));
+        driver.leftBumper().whileTrue(pivot.home(true));
+        // driver.leftBumper().whileTrue(swerve.alignWithStage(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
         // POV Up => Barf Backwards
         driver.povUp().whileTrue(Routines.spitBack());

@@ -128,15 +128,16 @@ public abstract class SwerveBase extends GRRSubsystem {
         ratelimiter = new SwerveRatelimiter(config, kinematics, getModuleStates());
         field = new SwerveField2d(config);
 
-        double[] std = config.getOdometryStd();
+        double[] odometryStd = config.getOdometryStd();
+        double[] visionStd = config.getVisionStd();
         poseEstimator =
             new SwerveDrivePoseEstimator(
                 kinematics,
                 imu.getYaw(),
                 getModulePositions(),
                 new Pose2d(),
-                VecBuilder.fill(std[0], std[1], std[2]),
-                VecBuilder.fill(0.0, 0.0, 0.0)
+                VecBuilder.fill(odometryStd[0], odometryStd[1], odometryStd[2]),
+                VecBuilder.fill(visionStd[0], visionStd[1], visionStd[2])
             );
 
         sysIdRoutine =

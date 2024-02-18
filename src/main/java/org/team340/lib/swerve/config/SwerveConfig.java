@@ -41,6 +41,7 @@ public class SwerveConfig {
     private double discretizationLookahead = -1.0;
     private double odometryPeriod = -1.0;
     private double[] odometryStd;
+    private double[] visionStd;
     private Config sysIdConfig = null;
     private double fieldLength = -1.0;
     private double fieldWidth = -1.0;
@@ -427,6 +428,25 @@ public class SwerveConfig {
     }
 
     /**
+     * Sets the standard deviations for pose estimation from vision.
+     * A good starting configuration is all axis with a magnitude of {@code 0.1}.
+     * @param x The X axis standard deviation in meters.
+     * @param y The Y axis standard deviation in meters.
+     * @param rot The rotational standard deviation in radians.
+     */
+    public SwerveConfig setVisionStd(double x, double y, double rot) {
+        this.visionStd = new double[] { x, y, rot };
+        return this;
+    }
+
+    /**
+     * Gets the configured standard deviations for vision, as an array of {@code [x, y, rot]}.
+     */
+    public double[] getVisionStd() {
+        return visionStd;
+    }
+
+    /**
      * Sets config for SysId.
      */
     public SwerveConfig setSysIdConfig(Config sysIdConfig) {
@@ -523,6 +543,7 @@ public class SwerveConfig {
         if (discretizationLookahead == -1) throwMissing("Discretization Lookahead");
         if (odometryPeriod == -1) throwMissing("Odometry Period");
         if (odometryStd == null) throwMissing("Odometry Standard Deviations");
+        if (visionStd == null) throwMissing("Vision Standard Deviations");
         if (sysIdConfig == null) throwMissing("SysId Config");
         if (fieldLength == -1) throwMissing("Field Length");
         if (fieldWidth == -1) throwMissing("Field Width");

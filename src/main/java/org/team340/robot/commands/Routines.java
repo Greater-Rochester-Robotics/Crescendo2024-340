@@ -100,6 +100,7 @@ public class Routines {
      * @param distance This is a supplier of the robots position.
      */
     public static Command prepShootSpeaker(Supplier<Double> distance) {
+        // return parallel(shooter.setSpeedWithDist(distance)).withName("Routines.prepShootSpeaker()");
         return parallel(shooter.setSpeedWithDist(distance), pivot.goToAngleWithDist(distance)).withName("Routines.prepShootSpeaker()");
     }
 

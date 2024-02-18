@@ -13,7 +13,6 @@ import edu.wpi.first.wpilibj.ADIS16470_IMU.CalibrationTime;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
 import edu.wpi.first.wpilibj.SPI.Port;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import org.team340.blacklight.BlacklightConfig;
 import org.team340.lib.controller.Controller2Config;
 import org.team340.lib.swerve.config.SwerveConfig;
 import org.team340.lib.swerve.config.SwerveModuleConfig;
@@ -42,8 +41,8 @@ public final class Constants {
     public static final double FIELD_LENGTH = 16.5417;
     public static final double FIELD_WIDTH = 8.0136;
 
-    public static final Translation2d BLUE_TARGET = new Translation2d(0.0381, 5.5477664);
-    public static final Translation2d RED_TARGET = new Translation2d(0.0381, 2.656332);
+    public static final Translation2d BLUE_SPEAKER = new Translation2d(0.0381, 5.4477664);
+    public static final Translation2d RED_SPEAKER = new Translation2d(0.0381, 2.756332);
     public static final Translation2d STAGE = new Translation2d(4.981067, 4.105783);
 
     /**
@@ -218,8 +217,9 @@ public final class Constants {
         public static final InterpolatingDoubleTreeMap DISTANCE_TO_SPEED_MAP = new InterpolatingDoubleTreeMap();
 
         static { // TODO: find these
-            DISTANCE_TO_SPEED_MAP.put(0.0, 6000.0);
-            DISTANCE_TO_SPEED_MAP.put(1.0, 6000.0);
+            DISTANCE_TO_SPEED_MAP.put(0.0, 4000.0);
+            DISTANCE_TO_SPEED_MAP.put(6.0, 6500.0);
+            DISTANCE_TO_SPEED_MAP.put(10.0, 8000.0);
         }
     }
 
@@ -278,7 +278,7 @@ public final class Constants {
                 .restoreFactoryDefaults()
                 .enableVoltageCompensation(VOLTAGE)
                 .setSmartCurrentLimit(60, 30)
-                .setIdleMode(IdleMode.kBrake)
+                .setIdleMode(IdleMode.kCoast)
                 .setInverted(true)
                 .setClosedLoopRampRate(0.25)
                 .setOpenLoopRampRate(0.25);
@@ -296,9 +296,18 @@ public final class Constants {
 
         public static final double SPIT_ANGLE = 0.0;
 
-        static { // TODO: find these
-            DISTANCE_TO_ANGLE_MAP.put(0.0, Math.toRadians(60.0));
-            DISTANCE_TO_ANGLE_MAP.put(5.6, Math.toRadians(19.9));
+        static {
+            DISTANCE_TO_ANGLE_MAP.put(1.37, Math.toRadians(59.0));
+            DISTANCE_TO_ANGLE_MAP.put(1.65, Math.toRadians(52.0));
+            DISTANCE_TO_ANGLE_MAP.put(1.97, Math.toRadians(45.0));
+            DISTANCE_TO_ANGLE_MAP.put(2.29, Math.toRadians(39.0));
+            DISTANCE_TO_ANGLE_MAP.put(2.72, Math.toRadians(35.0));
+            DISTANCE_TO_ANGLE_MAP.put(3.17, Math.toRadians(32.0));
+            DISTANCE_TO_ANGLE_MAP.put(4.07, Math.toRadians(29.0));
+            DISTANCE_TO_ANGLE_MAP.put(4.95, Math.toRadians(25.0));
+            DISTANCE_TO_ANGLE_MAP.put(6.46, Math.toRadians(21.0));
+            DISTANCE_TO_ANGLE_MAP.put(7.38, Math.toRadians(18.75));
+            DISTANCE_TO_ANGLE_MAP.put(8.28, Math.toRadians(17.25));
         }
     }
 
@@ -386,7 +395,8 @@ public final class Constants {
             .setMechanicalProperties(6.75, 150.0 / 7.0, 4.0)
             .setDiscretizationLookahead(0.020)
             .setOdometryPeriod(0.02)
-            .setOdometryStd(0.1, 0.1, 0.1)
+            .setOdometryStd(0.03, 0.03, 0.03)
+            .setVisionStd(0.1, 0.1, 0.1)
             .setSysIdConfig(new SysIdRoutine.Config(Volts.of(1.0).per(Seconds.of(0.4)), Volts.of(7.0), Seconds.of(5.5)))
             .setFieldSize(FIELD_LENGTH, FIELD_WIDTH)
             .addModule(FRONT_LEFT)
@@ -394,19 +404,7 @@ public final class Constants {
             .addModule(BACK_RIGHT)
             .addModule(FRONT_RIGHT);
 
-        public static final PIDConfig ROT_PID = new PIDConfig(7.0, 0.0, 0.5, 0.0);
-        public static final Constraints ROT_CONSTRAINTS = new Constraints(6.0, 12.5);
-
-        public static final BlacklightConfig BACK_RIGHT_BLACKLIGHT = new BlacklightConfig()
-            .withName("BackRight")
-            .setDevicePath("dev/video0")
-            .setResolution(1200, 1600)
-            .setSensorSettings(1, 10, 25)
-            .setCameraPosition(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-            .setErrorAmbiguity(0.15)
-            .setTagProperties(0.1651, "36h11", "layout.json")
-            .setDebugTag(20)
-            .setFieldSize(FIELD_LENGTH, FIELD_WIDTH, 0.0)
-            .setFieldMargin(0.5, 0.5, 0.75);
+        public static final PIDConfig ROT_PID = new PIDConfig(6.0, 0.0, 0.5, 0.0);
+        public static final Constraints ROT_CONSTRAINTS = new Constraints(7.0, 10.0);
     }
 }

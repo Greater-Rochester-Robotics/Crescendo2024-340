@@ -44,7 +44,7 @@ public class Pivot extends GRRSubsystem {
     @Override
     public void initSendable(SendableBuilder builder) {
         super.initSendable(builder);
-        builder.addDoubleProperty("target", () -> currentTarget, null);
+        builder.addDoubleProperty("target", () -> Math.toDegrees(currentTarget), angle -> currentTarget = Math.toRadians(angle));
     }
 
     /**
@@ -176,8 +176,8 @@ public class Pivot extends GRRSubsystem {
      */
     public Command maintainPosition() {
         return commandBuilder("pivot.maintainPosition()")
-            .onInitialize(() -> {
-                if (hasBeenHomed) {
+            .onExecute(() -> {
+                if (hasBeenHomed && isAngleValid(currentTarget)) {
                     pivotPID.setReference(currentTarget, ControlType.kPosition);
                 } else {
                     pivotMotor.stopMotor();
