@@ -13,6 +13,7 @@ import edu.wpi.first.wpilibj.ADIS16470_IMU.CalibrationTime;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
 import edu.wpi.first.wpilibj.SPI.Port;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import org.team340.blacklight.BlacklightConfig;
 import org.team340.lib.controller.Controller2Config;
 import org.team340.lib.swerve.config.SwerveConfig;
 import org.team340.lib.swerve.config.SwerveModuleConfig;
@@ -41,8 +42,8 @@ public final class Constants {
     public static final double FIELD_LENGTH = 16.5417;
     public static final double FIELD_WIDTH = 8.0136;
 
-    public static final Translation2d BLUE_TARGET = new Translation2d(-0.0381, 5.5477664);
-    public static final Translation2d RED_TARGET = new Translation2d(-0.0381, 2.656332);
+    public static final Translation2d BLUE_TARGET = new Translation2d(0.0381, 5.5477664);
+    public static final Translation2d RED_TARGET = new Translation2d(0.0381, 2.656332);
     public static final Translation2d STAGE = new Translation2d(4.981067, 4.105783);
 
     /**
@@ -395,5 +396,17 @@ public final class Constants {
 
         public static final PIDConfig ROT_PID = new PIDConfig(7.0, 0.0, 0.5, 0.0);
         public static final Constraints ROT_CONSTRAINTS = new Constraints(6.0, 12.5);
+
+        public static final BlacklightConfig BACK_RIGHT_BLACKLIGHT = new BlacklightConfig()
+            .withName("BackRight")
+            .setDevicePath("dev/video0")
+            .setResolution(1200, 1600)
+            .setSensorSettings(1, 10, 25)
+            .setCameraPosition(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+            .setErrorAmbiguity(0.15)
+            .setTagProperties(0.1651, "36h11", "layout.json")
+            .setDebugTag(20)
+            .setFieldSize(FIELD_LENGTH, FIELD_WIDTH, 0.0)
+            .setFieldMargin(0.5, 0.5, 0.75);
     }
 }
