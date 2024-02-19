@@ -65,6 +65,24 @@ public class Routines {
             .withName("Routines.retractIntake()");
     }
 
+    public static Command intakeFromHuman() {
+        return parallel(
+            sequence(
+                deadline(
+                    sequence(waitUntil(feeder::hasNote), waitUntil(() -> !feeder.hasNote())),
+                    parallel(shooter.intakeFromHuman(), feeder.intakeFromHuman())
+                ),
+                feeder.seatNote()
+            ),
+            sequence(
+                pivot.goToAngle(Constants.PivotConstants.SAFE_FOR_INTAKE_ANGLE).unless(pivot::isSafeForIntake),
+                intake.toUprightPosition(),
+                pivot.goToAngle(Constants.PivotConstants.MAXIMUM_ANGLE)
+            )
+        )
+            .withName("Routines.intakeFromHuman()");
+    }
+
     /**
      * This raises the intake in preparation for scoring in the amp.
      */

@@ -1,12 +1,17 @@
 package org.team340.robot.subsystems;
 
+import com.choreo.lib.Choreo;
+import com.choreo.lib.ChoreoTrajectory;
 import edu.wpi.first.apriltag.AprilTagFields;
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
@@ -27,6 +32,22 @@ import org.team340.robot.Constants.SwerveConstants;
  * The swerve subsystem.
  */
 public class Swerve extends SwerveBase {
+
+    private final PIDController autoXPID = new PIDController(
+        SwerveConstants.AUTO_XY_PID.p(),
+        SwerveConstants.AUTO_XY_PID.i(),
+        SwerveConstants.AUTO_XY_PID.d()
+    );
+    private final PIDController autoYPID = new PIDController(
+        SwerveConstants.AUTO_XY_PID.p(),
+        SwerveConstants.AUTO_XY_PID.i(),
+        SwerveConstants.AUTO_XY_PID.d()
+    );
+    private final PIDController autoRotPID = new PIDController(
+        SwerveConstants.AUTO_ROT_PID.p(),
+        SwerveConstants.AUTO_ROT_PID.i(),
+        SwerveConstants.AUTO_ROT_PID.d()
+    );
 
     private final ProfiledPIDController rotController = new ProfiledPIDController(
         SwerveConstants.ROT_PID.p(),
@@ -56,6 +77,8 @@ public class Swerve extends SwerveBase {
         ),
     };
 
+    private double NOTE_VELOCITY = 20.0;
+
     /**
      * Create the swerve subsystem.
      */
@@ -68,6 +91,9 @@ public class Swerve extends SwerveBase {
 
     public void initSendable(SendableBuilder builder) {
         super.initSendable(builder);
+        builder.addDoubleProperty("note velocity", () -> NOTE_VELOCITY, velocity -> NOTE_VELOCITY = velocity);
+        builder.addDoubleProperty("Shot X", () -> getShotPosition().getX(), null);
+        builder.addDoubleProperty("Shot Y", () -> getShotPosition().getY(), null);
         builder.addDoubleProperty("speakerDistance", this::getDistanceToSpeaker, null);
     }
 
@@ -86,8 +112,7 @@ public class Swerve extends SwerveBase {
      * @return The distance.
      */
     public double getDistanceToSpeaker() {
-        boolean isBlueAlliance = DriverStation.getAlliance().orElse(Alliance.Blue).equals(Alliance.Blue);
-        return getPosition().getTranslation().getDistance(isBlueAlliance ? Constants.BLUE_SPEAKER : Constants.RED_SPEAKER);
+        return getPosition().getTranslation().getDistance(getShotPosition());
     }
 
     /**
@@ -128,10 +153,17 @@ public class Swerve extends SwerveBase {
     public Command driveOnTarget(Supplier<Double> x, Supplier<Double> y) {
         return commandBuilder()
             .onInitialize(() -> rotController.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
-            .onExecute(() -> {
-                boolean isBlueAlliance = DriverStation.getAlliance().orElse(Alliance.Blue).equals(Alliance.Blue);
-                driveAroundPoint(x.get(), y.get(), Math.PI, isBlueAlliance ? Constants.BLUE_SPEAKER : Constants.RED_SPEAKER, rotController);
-            });
+            .onExecute(() -> driveAroundPoint(x.get(), y.get(), Math.PI, getShotPosition(), rotController));
+    }
+
+    public Translation2d getShotPosition() {
+        boolean isBlueAlliance = DriverStation.getAlliance().orElse(Alliance.Blue).equals(Alliance.Blue);
+        Translation2d goalPose = isBlueAlliance ? Constants.BLUE_SPEAKER : Constants.RED_SPEAKER;
+        ChassisSpeeds robotVel = getVelocity(true);
+        double distanceToSpeaker = getPosition().getTranslation().getDistance(goalPose);
+        double x = goalPose.getX() - (robotVel.vxMetersPerSecond * (distanceToSpeaker / NOTE_VELOCITY));
+        double y = goalPose.getY() - (robotVel.vyMetersPerSecond * (distanceToSpeaker / NOTE_VELOCITY));
+        return new Translation2d(x, y);
     }
 
     /**
@@ -159,6 +191,31 @@ public class Swerve extends SwerveBase {
             .onExecute(() -> {
                 double angle = DriverStation.getAlliance().orElse(Alliance.Blue).equals(Alliance.Blue) ? Math2.HALF_PI : -Math2.HALF_PI;
                 driveAngle(x.get(), y.get(), angle, rotController);
+            });
+    }
+
+    public Command followTrajectory(ChoreoTrajectory traj) {
+        return followTrajectory(traj, false);
+    }
+
+    public Command followTrajectory(ChoreoTrajectory traj, boolean isFirst) {
+        return Choreo
+            .choreoSwerveCommand(
+                traj,
+                this::getPosition,
+                autoXPID,
+                autoYPID,
+                autoRotPID,
+                speeds -> driveSpeeds(speeds, false, false),
+                () -> DriverStation.getAlliance().orElse(Alliance.Blue).equals(Alliance.Red),
+                this
+            )
+            .beforeStarting(() -> {
+                if (isFirst) {
+                    Pose2d initialPose = traj.getInitialPose();
+                    resetOdometry(initialPose);
+                    zeroIMU(initialPose.getRotation());
+                }
             });
     }
 

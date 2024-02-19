@@ -115,6 +115,12 @@ public class Feeder extends GRRSubsystem {
             .onEnd(() -> feedMotor.stopMotor());
     }
 
+    public Command intakeFromHuman() {
+        return commandBuilder("feeder.intakeFromHuman()")
+            .onInitialize(() -> feedMotor.set(FeederConstants.INTAKE_HUMAN_SPEED))
+            .onEnd(() -> feedMotor.stopMotor());
+    }
+
     public Command onDisable() {
         return commandBuilder()
             .onInitialize(() -> feedMotor.setIdleMode(IdleMode.kCoast))

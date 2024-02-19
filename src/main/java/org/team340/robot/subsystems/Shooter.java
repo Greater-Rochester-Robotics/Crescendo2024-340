@@ -203,6 +203,18 @@ public class Shooter extends GRRSubsystem {
             });
     }
 
+    public Command intakeFromHuman() {
+        return commandBuilder("shooter.intakeFromHuman()")
+            .onInitialize(() -> {
+                leftShootMotor.set(ShooterConstants.LEFT_INTAKE_HUMAN_SPEED);
+                rightShootMotor.set(ShooterConstants.RIGHT_INTAKE_HUMAN_SPEED);
+            })
+            .onEnd(() -> {
+                leftShootMotor.stopMotor();
+                rightShootMotor.stopMotor();
+            });
+    }
+
     /**
      * Runs a SysId quasistatic test.
      * @param direction The direction to run the test in.

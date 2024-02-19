@@ -1,5 +1,7 @@
 package org.team340.robot.subsystems;
 
+import static edu.wpi.first.wpilibj2.command.Commands.waitSeconds;
+
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkFlex;
@@ -146,6 +148,7 @@ public class Pivot extends GRRSubsystem {
      */
     public Command goToAngle(Supplier<Double> angle, boolean willFinish) {
         return home(false)
+            .andThen(waitSeconds(0.1))
             .andThen(
                 commandBuilder("pivot.goToAngle().SmartMotion")
                     .onExecute(() -> {

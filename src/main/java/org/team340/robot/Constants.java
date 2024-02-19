@@ -41,6 +41,8 @@ public final class Constants {
     public static final double FIELD_LENGTH = 16.5417;
     public static final double FIELD_WIDTH = 8.0136;
 
+    public static final double NOTE_VELOCITY = 20.0;
+
     public static final Translation2d BLUE_SPEAKER = new Translation2d(0.0381, 5.4477664);
     public static final Translation2d RED_SPEAKER = new Translation2d(0.0381, 2.756332);
     public static final Translation2d STAGE = new Translation2d(4.981067, 4.105783);
@@ -124,6 +126,7 @@ public final class Constants {
         public static final double DEPLOY_POSITION = 0.0;
         public static final double SAFE_POSITION = Math.toRadians(30.0);
         public static final double RETRACT_POSITION = Math.toRadians(65.0);
+        public static final double UPRIGHT_POSITION = Math.toRadians(90.0);
         public static final double SPIT_POSITION = Math.toRadians(10.0);
 
         public static final double SCORE_AMP_ROLLER_SPEED_UPPER = -0.5;
@@ -183,6 +186,8 @@ public final class Constants {
         public static final double RIGHT_SPIT_SPEED_BACK = 0.5;
         public static final double LEFT_SPIT_SPEED_FRONT = -0.25;
         public static final double RIGHT_SPIT_SPEED_FRONT = -0.25;
+        public static final double LEFT_INTAKE_HUMAN_SPEED = -0.3;
+        public static final double RIGHT_INTAKE_HUMAN_SPEED = -0.3;
 
         public static final double RIGHT_TO_LEFT_RATIO = 0.55;
         public static final double PID_RANGE = 750.0;
@@ -232,6 +237,7 @@ public final class Constants {
         public static final double POSITION_OFFSET = 2.357;
         public static final double CLOSED_LOOP_ERR = 0.125;
         public static final double SHOOT_SPEED = 1.0;
+        public static final double INTAKE_HUMAN_SPEED = -0.25;
         public static final double SPIT_SPEED_FRONT = -0.5;
         public static final double SPIT_SPEED_BACK = 0.5;
 
@@ -263,11 +269,11 @@ public final class Constants {
 
         public static final double MINIMUM_ANGLE = 0.0;
         public static final double MAXIMUM_ANGLE = Math.toRadians(89.0);
-        public static final double SAFE_FOR_INTAKE_ANGLE = Math.toRadians(65.0);
+        public static final double SAFE_FOR_INTAKE_ANGLE = Math.toRadians(60.0);
         public static final double OPTIMAL_RECEIVE_NOTE_ANGLE = Math.toRadians(0.0);
 
         public static final double HOMING_SPEED = -0.2;
-        public static final double AT_LIMIT_SPEED_ALLOWANCE = -0.01;
+        public static final double AT_LIMIT_SPEED_ALLOWANCE = -0.025;
 
         public static final double REL_ENC_CONVERSION = Math.toRadians(1.02432); // 1 / (25 * 1.1 * Math.PI / 7.568); // 1 / (gear ratio * circ output pinion / radius of arc)
 
@@ -404,6 +410,8 @@ public final class Constants {
             .addModule(BACK_RIGHT)
             .addModule(FRONT_RIGHT);
 
+        public static final PIDConfig AUTO_XY_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
+        public static final PIDConfig AUTO_ROT_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
         public static final PIDConfig ROT_PID = new PIDConfig(6.0, 0.0, 0.5, 0.0);
         public static final Constraints ROT_CONSTRAINTS = new Constraints(7.0, 10.0);
     }

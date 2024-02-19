@@ -106,7 +106,10 @@ public class Intake extends GRRSubsystem {
                 rollerLowerMotor.set(lowerSpeed);
             })
             .onExecute(() -> {
-                if (MathUtil.angleModulus(armEncoder.getPosition()) < IntakeConstants.MINIMUM_PID_ANGLE) {
+                if (
+                    angle < IntakeConstants.MINIMUM_PID_ANGLE &&
+                    MathUtil.angleModulus(armEncoder.getPosition()) < IntakeConstants.MINIMUM_PID_ANGLE
+                ) {
                     armLeftMotor.stopMotor();
                 } else {
                     setValidPosition(angle);
@@ -147,6 +150,10 @@ public class Intake extends GRRSubsystem {
      */
     public Command retract() {
         return useState(IntakeConstants.RETRACT_POSITION, 0, 0, true).withName("intake.retract()");
+    }
+
+    public Command toUprightPosition() {
+        return useState(IntakeConstants.UPRIGHT_POSITION, 0.0, 0.0, true);
     }
 
     /**

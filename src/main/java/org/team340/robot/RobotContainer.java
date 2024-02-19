@@ -2,6 +2,7 @@ package org.team340.robot;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
+import com.choreo.lib.Choreo;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import org.team340.lib.GRRDashboard;
@@ -9,6 +10,7 @@ import org.team340.lib.controller.Controller2;
 import org.team340.lib.util.Math2;
 import org.team340.lib.util.config.rev.RevConfigRegistry;
 import org.team340.robot.Constants.ControllerConstants;
+import org.team340.robot.commands.Autos;
 import org.team340.robot.commands.Routines;
 import org.team340.robot.subsystems.Climber;
 import org.team340.robot.subsystems.Feeder;
@@ -82,6 +84,7 @@ public final class RobotContainer {
      */
     private static void configBindings() {
         // Set default commands.
+        // shooter.setDefaultCommand(shooter.setSpeed(3000));
         pivot.setDefaultCommand(pivot.maintainPosition());
         intake.setDefaultCommand(intake.maintainPosition());
         swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
@@ -97,7 +100,15 @@ public final class RobotContainer {
         driver.a().whileTrue(Routines.intake()).onFalse(parallel(feeder.seatNote(), intake.intakeDown()));
 
         // B => Intake Safe Position (Tap)
-        driver.b().onTrue(Routines.retractIntake());
+        driver
+            .b()
+            .onTrue(Routines.intakeFromHuman())
+            .onFalse(
+                parallel(
+                    shooter.setSpeed(0).withTimeout(2.0),
+                    parallel(pivot.goToAngle(0.0), waitUntil(pivot::isSafeForIntake)).andThen(intake.intakeDown())
+                )
+            );
 
         // X => Amp Score (Hold)
         driver
@@ -134,8 +145,8 @@ public final class RobotContainer {
         // POV Left => Zero swerve
         driver.povLeft().onTrue(swerve.zeroIMU(Math2.ROTATION2D_0));
         driver.povRight().whileTrue(pivot.goToAngle(() -> Math.toRadians(15.0)));
-        driver.start().toggleOnTrue(shooter.setSpeed(8000));
-        driver.back().whileTrue(intake.intakeDown()); //feeder.shootNote());
+        driver.start().whileTrue(climber.zeroArms());
+        driver.back().whileTrue(climber.toPosition(0.0)); //feeder.shootNote());
         // driver.rightBumper().whileTrue(pivot.goToAngle(() -> Math.toRadians(55.0)));
         // driver.a().whileTrue(Routines.intake()).whileFalse(parallel(feeder.seatNote(), intake.intakeDown()));
         // driver.y().whileTrue(feeder.shootNote());
@@ -185,7 +196,10 @@ public final class RobotContainer {
      * Autonomous commands should be declared here and
      * added to {@link GRRDashboard}.
      */
-    private static void configAutos() {}
+    private static void configAutos() {
+        var fourPiece = Choreo.getTrajectoryGroup("FourPiece");
+        GRRDashboard.addAutoCommand("Four Piece", fourPiece, Autos.fourPiece(fourPiece));
+    }
 
     /**
      * Gets the X axis drive speed from the driver's controller.
