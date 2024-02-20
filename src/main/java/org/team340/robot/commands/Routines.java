@@ -86,7 +86,7 @@ public class Routines {
     /**
      * This raises the intake in preparation for scoring in the amp.
      */
-    public static Command prepScoreAmp(Supplier<Double> x, Supplier<Double> y) {
+    public static Command prepScoreAmp() {
         return parallel(
             sequence(
                 sequence(
@@ -107,7 +107,7 @@ public class Routines {
                 intake.scoreAmpPosition(),
                 intake.maintainPosition()
             ),
-            swerve.alignWithAmp(x, y)
+            swerve.driveAmp()
         )
             .withName("prepScoreAmp()");
     }

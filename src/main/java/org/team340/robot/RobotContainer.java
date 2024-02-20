@@ -8,6 +8,7 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import org.team340.lib.GRRDashboard;
 import org.team340.lib.controller.Controller2;
 import org.team340.lib.util.Math2;
+import org.team340.lib.util.TriggerLockout;
 import org.team340.lib.util.config.rev.RevConfigRegistry;
 import org.team340.robot.Constants.ControllerConstants;
 import org.team340.robot.commands.Autos;
@@ -84,7 +85,7 @@ public final class RobotContainer {
      */
     private static void configBindings() {
         // Set default commands.
-        // shooter.setDefaultCommand(shooter.setSpeed(3000));
+        shooter.setDefaultCommand(shooter.setSpeed(2000));
         pivot.setDefaultCommand(pivot.maintainPosition());
         intake.setDefaultCommand(intake.maintainPosition());
         swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
@@ -99,7 +100,7 @@ public final class RobotContainer {
         // A => Intake (Tap = Down, Hold = Run roller)
         driver.a().whileTrue(Routines.intake()).onFalse(parallel(feeder.seatNote(), intake.intakeDown()));
 
-        // B => Intake Safe Position (Tap)
+        // B => Intake from Human Player (Hold)
         driver
             .b()
             .onTrue(Routines.intakeFromHuman())
@@ -111,15 +112,15 @@ public final class RobotContainer {
             );
 
         // X => Amp Score (Hold)
-        driver
-            .x()
-            .onTrue(Routines.prepScoreAmp(RobotContainer::getDriveX, RobotContainer::getDriveY))
-            .onFalse(intake.scoreAmp().withTimeout(1.5));
+        driver.x().onTrue(Routines.prepScoreAmp()).onFalse(intake.scoreAmp().withTimeout(1.5));
 
         // Y => Shoot (Tap)
         driver.y().whileTrue(feeder.shootNote());
 
+        // Right Joystick Up => Protect intake
         driver.rightJoystickUp().onTrue(Routines.protectIntake());
+
+        // Right Joystick Down => Intake down
         driver.rightJoystickDown().onTrue(intake.intakeDown());
 
         // Right Bumper => Target Speaker (Hold)
@@ -127,14 +128,13 @@ public final class RobotContainer {
             .rightBumper()
             .whileTrue(
                 parallel(
-                    swerve.driveOnTarget(RobotContainer::getDriveX, RobotContainer::getDriveY),
-                    Routines.prepShootSpeaker(swerve::getDistanceToSpeaker)
+                    swerve.driveSpeaker(RobotContainer::getDriveX, RobotContainer::getDriveY),
+                    Routines.prepShootSpeaker(swerve::getSpeakerDistance)
                 )
             );
 
-        // Left Bumper => Face Stage (Toggle)
-        driver.leftBumper().whileTrue(pivot.home(true));
-        // driver.leftBumper().whileTrue(swerve.alignWithStage(RobotContainer::getDriveX, RobotContainer::getDriveY));
+        // Left Bumper => Face Stage (Hold)
+        driver.leftBumper().whileTrue(swerve.driveStage(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
         // POV Up => Barf Backwards
         driver.povUp().whileTrue(Routines.spitBack());
@@ -144,23 +144,23 @@ public final class RobotContainer {
 
         // POV Left => Zero swerve
         driver.povLeft().onTrue(swerve.zeroIMU(Math2.ROTATION2D_0));
-        driver.povRight().whileTrue(pivot.goToAngle(() -> Math.toRadians(15.0)));
-        driver.start().whileTrue(climber.zeroArms());
-        driver.back().whileTrue(climber.toPosition(0.0)); //feeder.shootNote());
-        // driver.rightBumper().whileTrue(pivot.goToAngle(() -> Math.toRadians(55.0)));
-        // driver.a().whileTrue(Routines.intake()).whileFalse(parallel(feeder.seatNote(), intake.intakeDown()));
-        // driver.y().whileTrue(feeder.shootNote());
-        // driver.x().toggleOnTrue(shooter.setSpeed(6000.0));
 
-        Trigger driverNotLock = driver
-            .a()
-            .negate()
-            .and(
-                driver
-                    .b()
-                    .negate()
-                    .and(driver.x().negate().and(driver.y().negate().and(driver.povUp().negate().and(driver.povDown().negate()))))
-            );
+        // POV Right => Zero pivot
+        driver.povRight().whileTrue(pivot.home(true));
+
+        Trigger driverLockout = TriggerLockout.of(
+            driver.a(),
+            driver.b(),
+            driver.x(),
+            driver.y(),
+            driver.rightJoystickUp(),
+            driver.rightJoystickDown(),
+            driver.povUp(),
+            driver.povDown(),
+            driver.povLeft(),
+            driver.povRight(),
+            driver.rightBumper()
+        );
 
         /**
          * Co-driver bindings.

@@ -11,7 +11,6 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.SparkAbsoluteEncoder;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
-import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -340,9 +339,17 @@ public abstract class SwerveBase extends GRRSubsystem {
      * @param angleOffset The offset to use when determining which side of the robot should face the point. (value in radians)
      * @param point The desired field relative position to point at (axis values in meters).
      * @param controller A profiled PID controller to use for translating to and maintaining the angle to the desired point.
+     * @param useIMU If the IMU should be used for determining the robot's angle. If {@code false}, the pose estimator is used.
      */
-    protected void driveAroundPoint(double x, double y, double angleOffset, Translation2d point, ProfiledPIDController controller) {
-        driveAroundPointVelocity(x * config.getVelocity(), y * config.getVelocity(), angleOffset, point, controller);
+    protected void driveAroundPoint(
+        double x,
+        double y,
+        double angleOffset,
+        Translation2d point,
+        ProfiledPIDController controller,
+        boolean useIMU
+    ) {
+        driveAroundPointVelocity(x * config.getVelocity(), y * config.getVelocity(), angleOffset, point, controller, useIMU);
     }
 
     /**
@@ -352,17 +359,19 @@ public abstract class SwerveBase extends GRRSubsystem {
      * @param angleOffset The offset to use when determining which side of the robot should face the point. (value in radians)
      * @param point The desired field relative position to point at (axis values in meters).
      * @param controller A profiled PID controller to use for translating to and maintaining the angle to the desired point.
+     * @param useIMU If the IMU should be used for determining the robot's angle. If {@code false}, the pose estimator is used.
      */
     protected void driveAroundPointVelocity(
         double xV,
         double yV,
         double angleOffset,
         Translation2d point,
-        ProfiledPIDController controller
+        ProfiledPIDController controller,
+        boolean useIMU
     ) {
         Translation2d robotPoint = getPosition().getTranslation();
         double angle = MathUtil.angleModulus(point.minus(robotPoint).getAngle().getRadians() + angleOffset);
-        driveAngleVelocity(xV, yV, angle, controller);
+        driveAngleVelocity(xV, yV, angle, controller, useIMU);
     }
 
     /**
@@ -371,9 +380,10 @@ public abstract class SwerveBase extends GRRSubsystem {
      * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
      * @param angle The desired field relative angle to point at in radians.
      * @param controller A profiled PID controller to use for translating to and maintaining the angle.
+     * @param useIMU If the IMU should be used for determining the robot's angle. If {@code false}, the pose estimator is used.
      */
-    protected void driveAngle(double x, double y, double angle, ProfiledPIDController controller) {
-        driveAngleVelocity(x * config.getVelocity(), y * config.getVelocity(), angle, controller);
+    protected void driveAngle(double x, double y, double angle, ProfiledPIDController controller, boolean useIMU) {
+        driveAngleVelocity(x * config.getVelocity(), y * config.getVelocity(), angle, controller, useIMU);
     }
 
     /**
@@ -382,9 +392,10 @@ public abstract class SwerveBase extends GRRSubsystem {
      * @param yV The desired {@code y} velocity in meters/second.
      * @param angle The desired field relative angle to point at in radians.
      * @param controller A profiled PID controller to use for translating to and maintaining the angle.
+     * @param useIMU If the IMU should be used for determining the robot's angle. If {@code false}, the pose estimator is used.
      */
-    protected void driveAngleVelocity(double xV, double yV, double angle, ProfiledPIDController controller) {
-        Rotation2d yaw = imu.getYaw();
+    protected void driveAngleVelocity(double xV, double yV, double angle, ProfiledPIDController controller, boolean useIMU) {
+        Rotation2d yaw = useIMU ? imu.getYaw() : getPosition().getRotation();
         ChassisSpeeds chassisSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(
             xV,
             yV,
@@ -401,9 +412,16 @@ public abstract class SwerveBase extends GRRSubsystem {
      * @param xController A PID controller to use for translating to and maintaining pose's {@code x} position.
      * @param yController The PID controller to use for translating to and maintaining pose's {@code y} position.
      * @param rotController The profiled PID controller to use for translating to and maintaining the pose's angle.
+     * @param useIMU If the IMU should be used for determining the robot's angle. If {@code false}, the pose estimator is used.
      */
-    protected void driveToPose(Pose2d pose, PIDController xController, PIDController yController, ProfiledPIDController rotController) {
-        Rotation2d yaw = imu.getYaw();
+    protected void driveToPose(
+        Pose2d pose,
+        ProfiledPIDController xController,
+        ProfiledPIDController yController,
+        ProfiledPIDController rotController,
+        boolean useIMU
+    ) {
+        Rotation2d yaw = useIMU ? imu.getYaw() : getPosition().getRotation();
         Pose2d position = getPosition();
         ChassisSpeeds chassisSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(
             xController.calculate(position.getX(), pose.getX()),

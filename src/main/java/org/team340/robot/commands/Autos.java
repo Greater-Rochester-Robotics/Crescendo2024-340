@@ -25,7 +25,7 @@ public class Autos {
 
     public static Command fourPiece(List<ChoreoTrajectory> traj) {
         return parallel(
-            Routines.prepShootSpeaker(swerve::getDistanceToSpeaker),
+            Routines.prepShootSpeaker(swerve::getSpeakerDistance),
             sequence(
                 deadline(swerve.followTrajectory(traj.get(0), true), intake.intakeDown()),
                 waitSeconds(1.0),

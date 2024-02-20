@@ -1,5 +1,8 @@
 package org.team340.robot.subsystems;
 
+import static edu.wpi.first.wpilibj2.command.Commands.either;
+import static edu.wpi.first.wpilibj2.command.Commands.sequence;
+
 import com.choreo.lib.Choreo;
 import com.choreo.lib.ChoreoTrajectory;
 import edu.wpi.first.apriltag.AprilTagFields;
@@ -7,10 +10,7 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Rotation3d;
-import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -28,28 +28,40 @@ import org.team340.lib.util.Math2;
 import org.team340.robot.Constants;
 import org.team340.robot.Constants.SwerveConstants;
 
-/**
+/**\[]
  * The swerve subsystem.
  */
 public class Swerve extends SwerveBase {
 
-    private final PIDController autoXPID = new PIDController(
+    private final PIDController xPIDAuto = new PIDController(
         SwerveConstants.AUTO_XY_PID.p(),
         SwerveConstants.AUTO_XY_PID.i(),
         SwerveConstants.AUTO_XY_PID.d()
     );
-    private final PIDController autoYPID = new PIDController(
+    private final PIDController yPIDAuto = new PIDController(
         SwerveConstants.AUTO_XY_PID.p(),
         SwerveConstants.AUTO_XY_PID.i(),
         SwerveConstants.AUTO_XY_PID.d()
     );
-    private final PIDController autoRotPID = new PIDController(
+    private final PIDController rotPIDAuto = new PIDController(
         SwerveConstants.AUTO_ROT_PID.p(),
         SwerveConstants.AUTO_ROT_PID.i(),
         SwerveConstants.AUTO_ROT_PID.d()
     );
 
-    private final ProfiledPIDController rotController = new ProfiledPIDController(
+    private final ProfiledPIDController xPID = new ProfiledPIDController(
+        SwerveConstants.XY_PID.p(),
+        SwerveConstants.XY_PID.i(),
+        SwerveConstants.XY_PID.d(),
+        SwerveConstants.XY_CONSTRAINTS
+    );
+    private final ProfiledPIDController yPID = new ProfiledPIDController(
+        SwerveConstants.XY_PID.p(),
+        SwerveConstants.XY_PID.i(),
+        SwerveConstants.XY_PID.d(),
+        SwerveConstants.XY_CONSTRAINTS
+    );
+    private final ProfiledPIDController rotPID = new ProfiledPIDController(
         SwerveConstants.ROT_PID.p(),
         SwerveConstants.ROT_PID.i(),
         SwerveConstants.ROT_PID.d(),
@@ -61,40 +73,35 @@ public class Swerve extends SwerveBase {
             AprilTagFields.k2024Crescendo.loadAprilTagLayoutField(),
             PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
             new PhotonCamera("BackLeft"),
-            new Transform3d(
-                new Translation3d(-0.29356304, 0.27327352, 0.23771098),
-                new Rotation3d(0.0, Math.toRadians(-30.0), Math.toRadians(-170.0))
-            )
+            SwerveConstants.BACK_LEFT_CAMERA
         ),
         new PhotonPoseEstimator(
             AprilTagFields.k2024Crescendo.loadAprilTagLayoutField(),
             PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
             new PhotonCamera("BackRight"),
-            new Transform3d(
-                new Translation3d(-0.29356304, -0.27327352, 0.23771098),
-                new Rotation3d(0.0, Math.toRadians(-30.0), Math.toRadians(170.0))
-            )
+            SwerveConstants.BACK_RIGHT_CAMERA
         ),
     };
 
-    private double NOTE_VELOCITY = 20.0;
+    private double NOTE_VELOCITY = Constants.NOTE_VELOCITY;
 
     /**
      * Create the swerve subsystem.
      */
     public Swerve() {
         super("Swerve Drive", SwerveConstants.CONFIG);
-        rotController.setIZone(SwerveConstants.ROT_PID.iZone());
-        rotController.enableContinuousInput(-Math.PI, Math.PI);
+        rotPID.setIZone(SwerveConstants.ROT_PID.iZone());
+        rotPID.enableContinuousInput(-Math.PI, Math.PI);
         resetOdometry(new Pose2d(0.5, 7.9, Math2.ROTATION2D_0));
     }
 
+    @Override
     public void initSendable(SendableBuilder builder) {
         super.initSendable(builder);
-        builder.addDoubleProperty("note velocity", () -> NOTE_VELOCITY, velocity -> NOTE_VELOCITY = velocity);
-        builder.addDoubleProperty("Shot X", () -> getShotPosition().getX(), null);
-        builder.addDoubleProperty("Shot Y", () -> getShotPosition().getY(), null);
-        builder.addDoubleProperty("speakerDistance", this::getDistanceToSpeaker, null);
+        builder.addDoubleProperty("speakerX", () -> getSpeakerPosition().getX(), null);
+        builder.addDoubleProperty("speakerY", () -> getSpeakerPosition().getY(), null);
+        builder.addDoubleProperty("speakerDistance", this::getSpeakerDistance, null);
+        builder.addDoubleProperty("tunableNoteVelocity", () -> NOTE_VELOCITY, velocity -> NOTE_VELOCITY = velocity);
     }
 
     @Override
@@ -108,11 +115,25 @@ public class Swerve extends SwerveBase {
     }
 
     /**
-     * This command gets the distance to the speaker of the current alliance.
-     * @return The distance.
+     * This command gets the distance of the current shot to the speaker.
+     * @return The distance in meters.
      */
-    public double getDistanceToSpeaker() {
-        return getPosition().getTranslation().getDistance(getShotPosition());
+    public double getSpeakerDistance() {
+        return getPosition().getTranslation().getDistance(getSpeakerPosition());
+    }
+
+    /**
+     * Gets a field-relative position for the shot to the speaker the robot should take.
+     * @return A {@link Translation2d} representing a field relative position in meters.
+     */
+    public Translation2d getSpeakerPosition() {
+        boolean isBlueAlliance = DriverStation.getAlliance().orElse(Alliance.Blue).equals(Alliance.Blue);
+        Translation2d goalPose = isBlueAlliance ? Constants.BLUE_SPEAKER : Constants.RED_SPEAKER;
+        ChassisSpeeds robotVel = getVelocity(true);
+        double distanceToSpeaker = getPosition().getTranslation().getDistance(goalPose);
+        double x = goalPose.getX() - (robotVel.vxMetersPerSecond * (distanceToSpeaker / NOTE_VELOCITY));
+        double y = goalPose.getY() - (robotVel.vyMetersPerSecond * (distanceToSpeaker / NOTE_VELOCITY));
+        return new Translation2d(x, y);
     }
 
     /**
@@ -134,84 +155,73 @@ public class Swerve extends SwerveBase {
     }
 
     /**
-     * Drives the robot using percents of its calculated max velocity while locked at a field relative angle.
-     * @param x X speed.
-     * @param y Y speed.
-     * @param angle The desired field relative angle to point at in radians.
-     */
-    public Command driveAngle(Supplier<Double> x, Supplier<Double> y, double angle) {
-        return commandBuilder("swerve.driveAngle(" + Math2.toFixed(angle) + ")")
-            .onInitialize(() -> rotController.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
-            .onExecute(() -> driveAngle(x.get(), y.get(), angle, rotController));
-    }
-
-    /**
-     * This command allows the driver to keep driving, but forces the robot to face the speaker.
+     * Allows the driver to keep driving, but forces the robot to face the speaker.
      * @param x The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
      * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
      */
-    public Command driveOnTarget(Supplier<Double> x, Supplier<Double> y) {
+    public Command driveSpeaker(Supplier<Double> x, Supplier<Double> y) {
         return commandBuilder()
-            .onInitialize(() -> rotController.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
-            .onExecute(() -> driveAroundPoint(x.get(), y.get(), Math.PI, getShotPosition(), rotController));
-    }
-
-    public Translation2d getShotPosition() {
-        boolean isBlueAlliance = DriverStation.getAlliance().orElse(Alliance.Blue).equals(Alliance.Blue);
-        Translation2d goalPose = isBlueAlliance ? Constants.BLUE_SPEAKER : Constants.RED_SPEAKER;
-        ChassisSpeeds robotVel = getVelocity(true);
-        double distanceToSpeaker = getPosition().getTranslation().getDistance(goalPose);
-        double x = goalPose.getX() - (robotVel.vxMetersPerSecond * (distanceToSpeaker / NOTE_VELOCITY));
-        double y = goalPose.getY() - (robotVel.vyMetersPerSecond * (distanceToSpeaker / NOTE_VELOCITY));
-        return new Translation2d(x, y);
+            .onInitialize(() -> rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
+            .onExecute(() -> driveAroundPoint(x.get(), y.get(), Math.PI, getSpeakerPosition(), rotPID, false));
     }
 
     /**
-     * This command aligns the robot with the respective side of their stage.
+     * Drives to the amp.
+     */
+    public Command driveAmp() {
+        return either(
+            sequence(driveToPose(SwerveConstants.AMP_APPROACH_BLUE, true), driveToPose(SwerveConstants.AMP_SCORE_BLUE, false)),
+            sequence(driveToPose(SwerveConstants.AMP_APPROACH_RED, true), driveToPose(SwerveConstants.AMP_SCORE_RED, false)),
+            () -> DriverStation.getAlliance().orElse(Alliance.Blue).equals(Alliance.Blue)
+        );
+    }
+
+    /**
+     * Allows the driver to keep driving, but forces the robot to face the stage.
      * @param x The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
      * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
      */
-    public Command alignWithStage(Supplier<Double> x, Supplier<Double> y) {
+    public Command driveStage(Supplier<Double> x, Supplier<Double> y) {
         return commandBuilder("swerve.alignWithStage")
-            .onInitialize(() -> rotController.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
+            .onInitialize(() -> rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
             .onExecute(() -> {
-                double angleBetweenRobotAndStage = Constants.STAGE.minus(getPosition().getTranslation()).getAngle().getRadians();
-                double angleToFaceStage;
-                if (angleBetweenRobotAndStage <= Math.PI / 3 && angleBetweenRobotAndStage >= -Math.PI / 3) angleToFaceStage =
-                    Math.PI; else if (angleBetweenRobotAndStage >= Math.PI / 3 && angleBetweenRobotAndStage <= Math.PI) angleToFaceStage =
-                    -Math.PI / 3; else angleToFaceStage = Math.PI / 3;
+                double stageAngle = Constants.STAGE.minus(getPosition().getTranslation()).getAngle().getRadians();
+                double faceStageAngle;
+                if (stageAngle <= Math.PI / 3 && stageAngle >= -Math.PI / 3) faceStageAngle = Math.PI; else if (
+                    stageAngle >= Math.PI / 3 && stageAngle <= Math.PI
+                ) faceStageAngle = -Math.PI / 3; else faceStageAngle = Math.PI / 3;
 
-                driveAngle(x.get(), y.get(), angleToFaceStage, rotController);
+                driveAngle(x.get(), y.get(), faceStageAngle, rotPID, false);
             });
     }
 
-    public Command alignWithAmp(Supplier<Double> x, Supplier<Double> y) {
-        return commandBuilder("swerve.alignWithAmp")
-            .onInitialize(() -> rotController.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
-            .onExecute(() -> {
-                double angle = DriverStation.getAlliance().orElse(Alliance.Blue).equals(Alliance.Blue) ? Math2.HALF_PI : -Math2.HALF_PI;
-                driveAngle(x.get(), y.get(), angle, rotController);
-            });
-    }
-
+    /**
+     * Follows a trajectory.
+     * @param traj The trajectory to follow.
+     */
     public Command followTrajectory(ChoreoTrajectory traj) {
         return followTrajectory(traj, false);
     }
 
-    public Command followTrajectory(ChoreoTrajectory traj, boolean isFirst) {
+    /**
+     * Follows a trajectory.
+     * @param traj The trajectory to follow.
+     * @param resetOdometry If the odometry should be reset to the first pose in the trajectory.
+     */
+    public Command followTrajectory(ChoreoTrajectory traj, boolean resetOdometry) {
         return Choreo
             .choreoSwerveCommand(
                 traj,
                 this::getPosition,
-                autoXPID,
-                autoYPID,
-                autoRotPID,
+                xPIDAuto,
+                yPIDAuto,
+                rotPIDAuto,
                 speeds -> driveSpeeds(speeds, false, false),
                 () -> DriverStation.getAlliance().orElse(Alliance.Blue).equals(Alliance.Red),
                 this
             )
             .beforeStarting(() -> {
-                if (isFirst) {
+                if (resetOdometry) {
                     Pose2d initialPose = traj.getInitialPose();
                     resetOdometry(initialPose);
                     zeroIMU(initialPose.getRotation());
@@ -233,5 +243,31 @@ public class Swerve extends SwerveBase {
      */
     public Command sysIdDynamic(SysIdRoutine.Direction direction) {
         return sysIdRoutine.dynamic(direction);
+    }
+
+    private Command driveToPose(Pose2d pose, boolean willFinish) {
+        return commandBuilder("swerve.alignWithAmp")
+            .onInitialize(() -> {
+                Pose2d robotPose = getPosition();
+                ChassisSpeeds velocity = getVelocity(true);
+                xPID.reset(robotPose.getX(), velocity.vxMetersPerSecond);
+                yPID.reset(robotPose.getY(), velocity.vyMetersPerSecond);
+                rotPID.reset(robotPose.getRotation().getRadians(), velocity.omegaRadiansPerSecond);
+            })
+            .onExecute(() -> {
+                driveToPose(pose, xPID, yPID, rotPID, true);
+            })
+            .isFinished(() -> {
+                Pose2d robotPose = getPosition();
+                return (
+                    willFinish &&
+                    Math2.epsilonEquals(
+                        0.0,
+                        robotPose.getTranslation().getDistance(pose.getTranslation()),
+                        SwerveConstants.POSE_XY_ERROR
+                    ) &&
+                    Math2.epsilonEquals(0.0, robotPose.getRotation().minus(pose.getRotation()).getRadians(), SwerveConstants.POSE_ROT_ERROR)
+                );
+            });
     }
 }

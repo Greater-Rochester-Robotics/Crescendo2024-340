@@ -6,7 +6,12 @@ import static edu.wpi.first.units.Units.Volts;
 import com.revrobotics.CANSparkBase.ExternalFollower;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.SparkPIDController.AccelStrategy;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.CalibrationTime;
@@ -43,9 +48,10 @@ public final class Constants {
 
     public static final double NOTE_VELOCITY = 20.0;
 
-    public static final Translation2d BLUE_SPEAKER = new Translation2d(0.0381, 5.4477664);
-    public static final Translation2d RED_SPEAKER = new Translation2d(0.0381, 2.756332);
+    public static final Translation2d BLUE_SPEAKER = new Translation2d(0.0241, 5.65);
+    public static final Translation2d RED_SPEAKER = new Translation2d(BLUE_SPEAKER.getX(), FIELD_WIDTH - BLUE_SPEAKER.getY());
     public static final Translation2d STAGE = new Translation2d(4.981067, 4.105783);
+    public static final double AMP_X = 1.9526;
 
     /**
      * Driver and co-driver controller constants.
@@ -116,14 +122,14 @@ public final class Constants {
 
     public static final class IntakeConstants {
 
-        public static final double MAXIMUM_ANGLE = Math.toRadians(135.0);
         public static final double MINIMUM_ANGLE = 0.0;
-        public static final double MINIMUM_PID_ANGLE = Math.toRadians(2.0); //at angles less than this the motor will not be maintained
+        public static final double MAXIMUM_ANGLE = Math.toRadians(135.0);
 
+        public static final double MINIMUM_PID_ANGLE = Math.toRadians(2.0);
         public static final double CLOSED_LOOP_ERROR = Math.toRadians(5.0);
 
+        public static final double DOWN_POSITION = 0.0;
         public static final double SCORE_AMP_POSITION = Math.toRadians(55.0);
-        public static final double DEPLOY_POSITION = 0.0;
         public static final double SAFE_POSITION = Math.toRadians(30.0);
         public static final double RETRACT_POSITION = Math.toRadians(65.0);
         public static final double UPRIGHT_POSITION = Math.toRadians(90.0);
@@ -155,7 +161,7 @@ public final class Constants {
                 .setInverted(true)
                 .setPositionConversionFactor(Math2.TWO_PI)
                 .setVelocityConversionFactor(Math2.TWO_PI / 60.0)
-                .setZeroOffset(4.8304510); // TODO: put in this angle before running
+                .setZeroOffset(4.8304510);
 
             public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
                 .setPID(0.9, 0.0015, 0.075) //0.425, 0.0013, 0.32)
@@ -221,10 +227,12 @@ public final class Constants {
 
         public static final InterpolatingDoubleTreeMap DISTANCE_TO_SPEED_MAP = new InterpolatingDoubleTreeMap();
 
-        static { // TODO: find these
-            DISTANCE_TO_SPEED_MAP.put(0.0, 4000.0);
-            DISTANCE_TO_SPEED_MAP.put(6.0, 6500.0);
-            DISTANCE_TO_SPEED_MAP.put(10.0, 8000.0);
+        static {
+            DISTANCE_TO_SPEED_MAP.put(0.0, 3000.0);
+            DISTANCE_TO_SPEED_MAP.put(3.0, 4250.0);
+            DISTANCE_TO_SPEED_MAP.put(6.0, 6000.0);
+            DISTANCE_TO_SPEED_MAP.put(8.0, 6750.0);
+            DISTANCE_TO_SPEED_MAP.put(10.0, 7500.0);
         }
     }
 
@@ -275,7 +283,7 @@ public final class Constants {
         public static final double HOMING_SPEED = -0.2;
         public static final double AT_LIMIT_SPEED_ALLOWANCE = -0.025;
 
-        public static final double REL_ENC_CONVERSION = Math.toRadians(1.02432); // 1 / (25 * 1.1 * Math.PI / 7.568); // 1 / (gear ratio * circ output pinion / radius of arc)
+        public static final double REL_ENC_CONVERSION = Math.toRadians(1.02432);
 
         public static final class Configs {
 
@@ -400,9 +408,9 @@ public final class Constants {
             .setPowerProperties(VOLTAGE, 60.0, 40.0)
             .setMechanicalProperties(6.75, 150.0 / 7.0, 4.0)
             .setDiscretizationLookahead(0.020)
-            .setOdometryPeriod(0.02)
-            .setOdometryStd(0.03, 0.03, 0.03)
-            .setVisionStd(0.1, 0.1, 0.1)
+            .setOdometryPeriod(0.020)
+            .setOdometryStd(0.03, 0.03, 0.075)
+            .setVisionStd(0.1, 0.1, 0.125)
             .setSysIdConfig(new SysIdRoutine.Config(Volts.of(1.0).per(Seconds.of(0.4)), Volts.of(7.0), Seconds.of(5.5)))
             .setFieldSize(FIELD_LENGTH, FIELD_WIDTH)
             .addModule(FRONT_LEFT)
@@ -412,7 +420,31 @@ public final class Constants {
 
         public static final PIDConfig AUTO_XY_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
         public static final PIDConfig AUTO_ROT_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
-        public static final PIDConfig ROT_PID = new PIDConfig(6.0, 0.0, 0.5, 0.0);
+
+        public static final PIDConfig XY_PID = new PIDConfig(2.0, 0.0, 0.1, 0.0);
+        public static final PIDConfig ROT_PID = new PIDConfig(5.5, 0.0, 0.2, 0.0);
+        public static final Constraints XY_CONSTRAINTS = new Constraints(3.0, 6.0);
         public static final Constraints ROT_CONSTRAINTS = new Constraints(7.0, 10.0);
+
+        public static final double POSE_XY_ERROR = 0.025;
+        public static final double POSE_ROT_ERROR = Math.toRadians(5.0);
+
+        public static final Transform3d BACK_LEFT_CAMERA = new Transform3d(
+            new Translation3d(-0.29153, 0.26629, 0.24511),
+            new Rotation3d(0.0, Math.toRadians(-30.0), Math.toRadians(-160.0))
+        );
+        public static final Transform3d BACK_RIGHT_CAMERA = new Transform3d(
+            new Translation3d(-0.29153, -0.26629, 0.24511),
+            new Rotation3d(0.0, Math.toRadians(-30.0), Math.toRadians(160.0))
+        );
+
+        public static final Pose2d AMP_APPROACH_BLUE = new Pose2d(AMP_X, 6.5, new Rotation2d(Math2.HALF_PI));
+        public static final Pose2d AMP_SCORE_BLUE = new Pose2d(AMP_X, 5.5, new Rotation2d(Math2.HALF_PI));
+        public static final Pose2d AMP_APPROACH_RED = new Pose2d(
+            AMP_X,
+            FIELD_WIDTH - AMP_APPROACH_BLUE.getY(),
+            new Rotation2d(-Math2.HALF_PI)
+        );
+        public static final Pose2d AMP_SCORE_RED = new Pose2d(AMP_X, FIELD_WIDTH - AMP_SCORE_BLUE.getY(), new Rotation2d(-Math2.HALF_PI));
     }
 }

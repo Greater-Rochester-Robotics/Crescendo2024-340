@@ -129,19 +129,14 @@ public class Intake extends GRRSubsystem {
      * This moves the intake down to the intake position, but doesn't start the rollers.
      */
     public Command intakeDown() {
-        return useState(IntakeConstants.DEPLOY_POSITION, 0, 0, true).withName("intake.intakeDown()");
+        return useState(IntakeConstants.DOWN_POSITION, 0, 0, true).withName("intake.intakeDown()");
     }
 
     /**
      * Deploys the intake and runs the roller motors to intake a note.
      */
     public Command intake() {
-        return useState(
-            IntakeConstants.DEPLOY_POSITION,
-            IntakeConstants.INTAKE_ROLLER_SPEED,
-            IntakeConstants.INTAKE_ROLLER_SPEED * .6,
-            false
-        )
+        return useState(IntakeConstants.DOWN_POSITION, IntakeConstants.INTAKE_ROLLER_SPEED, IntakeConstants.INTAKE_ROLLER_SPEED * .6, false)
             .withName("intake.intake()");
     }
 
@@ -196,7 +191,7 @@ public class Intake extends GRRSubsystem {
      */
     public Command receiveFromShooter() {
         return useState(
-            IntakeConstants.DEPLOY_POSITION,
+            IntakeConstants.DOWN_POSITION,
             IntakeConstants.FROM_SHOOTER_ROLLER_SPEED,
             IntakeConstants.FROM_SHOOTER_ROLLER_SPEED,
             false
