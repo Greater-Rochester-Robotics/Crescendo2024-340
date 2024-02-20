@@ -38,21 +38,6 @@ public class Routines {
     /**
      * Moves the intake to its safe position inside the bumpers. Moves the pivot if needed.
      */
-    public static Command protectIntake() {
-        return sequence(
-            either(
-                none().withName("pivot.isSafeFallthrough"),
-                pivot.goToAngle(Constants.PivotConstants.SAFE_FOR_INTAKE_ANGLE),
-                pivot::isSafeForIntake
-            ),
-            intake.toSafePosition()
-        )
-            .withName("Routines.protectIntake()");
-    }
-
-    /**
-     * Moves the intake to its safe position inside the bumpers. Moves the pivot if needed.
-     */
     public static Command retractIntake() {
         return sequence(
             either(

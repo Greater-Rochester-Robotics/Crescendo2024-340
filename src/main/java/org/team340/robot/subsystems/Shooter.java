@@ -173,7 +173,12 @@ public class Shooter extends GRRSubsystem {
     }
 
     public Command setSpeedWithDist(Supplier<Double> distanceToTarget) {
-        return setSpeed(() -> ShooterConstants.DISTANCE_TO_SPEED_MAP.get(distanceToTarget.get())).withName("shooter.setSpeed()");
+        return setSpeedWithDist(distanceToTarget, 0.0, () -> false);
+    }
+
+    public Command setSpeedWithDist(Supplier<Double> distanceToTarget, double idleSpeed, Supplier<Boolean> idle) {
+        return setSpeed(() -> idle.get() ? idleSpeed : ShooterConstants.DISTANCE_TO_SPEED_MAP.get(distanceToTarget.get()))
+            .withName("shooter.setSpeed()");
     }
 
     /**

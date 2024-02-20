@@ -85,7 +85,7 @@ public final class RobotContainer {
      */
     private static void configBindings() {
         // Set default commands.
-        shooter.setDefaultCommand(shooter.setSpeed(2000));
+        shooter.setDefaultCommand(shooter.setSpeedWithDist(swerve::getSpeakerDistance, 2000.0, swerve::inOpponentWing));
         pivot.setDefaultCommand(pivot.maintainPosition());
         intake.setDefaultCommand(intake.maintainPosition());
         swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
@@ -98,7 +98,7 @@ public final class RobotContainer {
          */
 
         // A => Intake (Tap = Down, Hold = Run roller)
-        driver.a().whileTrue(Routines.intake()).onFalse(parallel(feeder.seatNote(), intake.intakeDown()));
+        driver.a().whileTrue(Routines.intake()).onFalse(parallel(feeder.seatNote(), intake.toSafePosition()));
 
         // B => Intake from Human Player (Hold)
         driver
@@ -107,7 +107,7 @@ public final class RobotContainer {
             .onFalse(
                 parallel(
                     shooter.setSpeed(0).withTimeout(2.0),
-                    parallel(pivot.goToAngle(0.0), waitUntil(pivot::isSafeForIntake)).andThen(intake.intakeDown())
+                    parallel(pivot.goToAngle(0.0), waitUntil(pivot::isSafeForIntake)).andThen(intake.toSafePosition())
                 )
             );
 
@@ -118,10 +118,10 @@ public final class RobotContainer {
         driver.y().whileTrue(feeder.shootNote());
 
         // Right Joystick Up => Protect intake
-        driver.rightJoystickUp().onTrue(Routines.protectIntake());
+        driver.rightJoystickUp().onTrue(intake.retract());
 
         // Right Joystick Down => Intake down
-        driver.rightJoystickDown().onTrue(intake.intakeDown());
+        driver.rightJoystickDown().onTrue(intake.toSafePosition());
 
         // Right Bumper => Target Speaker (Hold)
         driver
@@ -129,7 +129,7 @@ public final class RobotContainer {
             .whileTrue(
                 parallel(
                     swerve.driveSpeaker(RobotContainer::getDriveX, RobotContainer::getDriveY),
-                    Routines.prepShootSpeaker(swerve::getSpeakerDistance)
+                    pivot.goToAngleWithDist(swerve::getSpeakerDistance)
                 )
             );
 

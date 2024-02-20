@@ -51,6 +51,7 @@ public final class Constants {
     public static final Translation2d BLUE_SPEAKER = new Translation2d(0.0241, 5.65);
     public static final Translation2d RED_SPEAKER = new Translation2d(BLUE_SPEAKER.getX(), FIELD_WIDTH - BLUE_SPEAKER.getY());
     public static final Translation2d STAGE = new Translation2d(4.981067, 4.105783);
+    public static final double OPPONENT_WING_LINE = 10.66;
     public static final double AMP_X = 1.9526;
 
     /**

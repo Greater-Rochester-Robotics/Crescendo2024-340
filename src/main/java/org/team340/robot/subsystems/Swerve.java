@@ -101,6 +101,7 @@ public class Swerve extends SwerveBase {
         builder.addDoubleProperty("speakerX", () -> getSpeakerPosition().getX(), null);
         builder.addDoubleProperty("speakerY", () -> getSpeakerPosition().getY(), null);
         builder.addDoubleProperty("speakerDistance", this::getSpeakerDistance, null);
+        builder.addBooleanProperty("inOpponentWing", this::inOpponentWing, null);
         builder.addDoubleProperty("tunableNoteVelocity", () -> NOTE_VELOCITY, velocity -> NOTE_VELOCITY = velocity);
     }
 
@@ -134,6 +135,13 @@ public class Swerve extends SwerveBase {
         double x = goalPose.getX() - (robotVel.vxMetersPerSecond * (distanceToSpeaker / NOTE_VELOCITY));
         double y = goalPose.getY() - (robotVel.vyMetersPerSecond * (distanceToSpeaker / NOTE_VELOCITY));
         return new Translation2d(x, y);
+    }
+
+    /**
+     * Returns {@code true} if the robot is in the opponent's wing.
+     */
+    public boolean inOpponentWing() {
+        return getPosition().getX() > Constants.OPPONENT_WING_LINE;
     }
 
     /**
