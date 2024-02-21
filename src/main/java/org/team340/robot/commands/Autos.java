@@ -45,26 +45,34 @@ public class Autos {
         );
     }
 
+    public static Command twoPieceFront(List<ChoreoTrajectory> traj) {
+        return parallel(
+            Routines.prepShootSpeaker(swerve::getSpeakerDistance),
+            sequence(
+                deadline(swerve.followTrajectory(traj.get(0), true), intake.intakeDown()),
+                waitSeconds(1.0),
+                feeder.shootNote(),
+                parallel(intake.intake(), sequence(swerve.followTrajectory(traj.get(1)), feeder.shootNote().withTimeout(0.75)))
+            )
+        );
+    }
+
     public static Command fourPieceRight(List<ChoreoTrajectory> traj) {
         return parallel(
             Routines.prepShootSpeaker(swerve::getSpeakerDistance),
             sequence(
-                deadline(swerve.followTrajectory(traj.get(0), 0.5, true), intake.intakeDown()),
-                deadline(sequence(waitSeconds(1.0), feeder.shootNote().withTimeout(0.75)), swerve.driveSpeaker()),
-                feeder.shootNote(),
-                parallel(
-                    intake.intake(),
-                    sequence(
-                        swerve.followTrajectory(traj.get(1)),
-                        waitSeconds(0.5),
-                        swerve.followTrajectory(traj.get(2), 1.5),
-                        deadline(feeder.shootNote().withTimeout(0.75), swerve.driveSpeaker()),
-                        swerve.followTrajectory(traj.get(3)),
-                        waitSeconds(0.5),
-                        swerve.followTrajectory(traj.get(4), 1.5),
-                        deadline(feeder.shootNote().withTimeout(0.75), swerve.driveSpeaker())
-                    )
-                )
+                deadline(swerve.followTrajectory(traj.get(0), 0.25, true), intake.intakeDown()),
+                deadline(sequence(waitSeconds(0.8), feeder.shootNote().withTimeout(0.75)), swerve.driveSpeaker()),
+                deadline(sequence(swerve.followTrajectory(traj.get(1)), waitSeconds(0.5)), Routines.intake()),
+                swerve.followTrajectory(traj.get(2), 1.2),
+                deadline(sequence(waitSeconds(0.6), feeder.shootNote().withTimeout(0.75)), swerve.driveSpeaker()),
+                deadline(sequence(swerve.followTrajectory(traj.get(3)), waitSeconds(0.5)), Routines.intake()),
+                swerve.followTrajectory(traj.get(4), 1.2),
+                deadline(sequence(waitSeconds(0.6), feeder.shootNote().withTimeout(0.75)), swerve.driveSpeaker()),
+                deadline(sequence(swerve.followTrajectory(traj.get(5)), waitSeconds(0.5)), Routines.intake()),
+                swerve.followTrajectory(traj.get(6), 1.2),
+                waitSeconds(0.2),
+                deadline(sequence(waitSeconds(0.6), feeder.shootNote().withTimeout(0.75)), swerve.driveSpeaker())
             )
         );
     }

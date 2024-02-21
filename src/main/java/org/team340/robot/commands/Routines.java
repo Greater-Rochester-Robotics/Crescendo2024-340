@@ -56,7 +56,7 @@ public class Routines {
             sequence(
                 deadline(
                     sequence(waitUntil(feeder::hasNote), waitUntil(() -> !feeder.hasNote())),
-                    parallel(shooter.intakeFromHuman(), feeder.intakeFromHuman())
+                    parallel(shooter.intakeFromHuman(), feeder.intakeHuman())
                 ),
                 feeder.seatNote()
             ),
@@ -143,11 +143,11 @@ public class Routines {
      * @return This command.
      */
     private static Command shooterFeederSpitFront() {
-        return parallel(shooter.spitFront(), feeder.spitFront()).withName("Routines.shooterFeederSpitFront()");
+        return parallel(shooter.spitFront(), feeder.barfForward()).withName("Routines.shooterFeederSpitFront()");
     }
 
     public static Command spitBack() {
-        return parallel(shooter.spitBack(), sequence(waitSeconds(0.25), parallel(feeder.spitBack(), intake.intake())))
+        return parallel(shooter.spitBack(), sequence(waitSeconds(0.25), parallel(feeder.barfBackward(), intake.intake())))
             .withName("Routines.spitBack()");
     }
 

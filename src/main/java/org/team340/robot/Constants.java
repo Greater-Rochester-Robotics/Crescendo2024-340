@@ -5,7 +5,6 @@ import static edu.wpi.first.units.Units.Volts;
 
 import com.revrobotics.CANSparkBase.ExternalFollower;
 import com.revrobotics.CANSparkBase.IdleMode;
-import com.revrobotics.SparkPIDController.AccelStrategy;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -49,7 +48,7 @@ public final class Constants {
 
     public static final double NOTE_VELOCITY = 20.0;
 
-    public static final Translation2d BLUE_SPEAKER = new Translation2d(0.0241, 5.547868);
+    public static final Translation2d BLUE_SPEAKER = new Translation2d(0.0331, 5.547868);
     public static final Translation2d RED_SPEAKER = new Translation2d(BLUE_SPEAKER.getX(), FIELD_WIDTH - BLUE_SPEAKER.getY());
     public static final Translation2d STAGE = new Translation2d(4.981067, 4.105783);
 
@@ -251,8 +250,8 @@ public final class Constants {
         public static final double CLOSED_LOOP_ERR = 0.125;
         public static final double SHOOT_SPEED = 1.0;
         public static final double INTAKE_HUMAN_SPEED = -0.25;
-        public static final double SPIT_SPEED_FRONT = -0.5;
-        public static final double SPIT_SPEED_BACK = 0.5;
+        public static final double BARF_FORWARD_SPEED = -0.5;
+        public static final double BARF_BACKWARD_SPEED = 0.5;
 
         public static final double REL_ENC_CONVERSION = 1.0; // 1 / ((30 / 64) * 1.4 * Math.PI); // 1 / (gear ratio * roller diameter * pi)
 
@@ -343,28 +342,25 @@ public final class Constants {
         public static final double MAX_POS = 120.0;
         public static final double MIN_POS = 0.0;
 
+        public static final double BALANCE_COMPENSATION = 0.0;
+
         public static final class Configs {
 
             public static final SparkMaxConfig MOTOR = new SparkMaxConfig()
                 .clearFaults()
                 .restoreFactoryDefaults()
                 .enableVoltageCompensation(VOLTAGE)
-                .setSmartCurrentLimit(30)
+                .setSmartCurrentLimit(60)
                 .setIdleMode(IdleMode.kBrake)
                 .setInverted(true)
                 .setClosedLoopRampRate(1.5)
                 .setOpenLoopRampRate(1.5);
+            // .setSoftLimit(SoftLimitDirection.kForward, (float) ClimberConstants.MAX_POS)
+            // .enableSoftLimit(SoftLimitDirection.kForward, true);
 
             public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
-                .setPID(1.0, 0.0, 0.0, 0)
-                .setOutputRange(-.5, .5)
-                .setSmartMotionAccelStrategy(AccelStrategy.kTrapezoidal, 0)
-                .setSmartMotionMaxVelocity(0, 0)
-                .setSmartMotionMinOutputVelocity(0, 0)
-                .setSmartMotionMaxAccel(0, 0)
-                .setSmartMotionAllowedClosedLoopError(CLOSED_LOOP_ERR * REL_ENC_CONVERSION, 0);
-
-            public static final FeedForwardConfig FF = new FeedForwardConfig(0.0, 0.0, 0.0);
+                .setPID(0.1, 0.0, 0.04)
+                .setOutputRange(-0.5, 0.5);
 
             public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
                 .setPositionConversionFactor(REL_ENC_CONVERSION)
@@ -413,13 +409,13 @@ public final class Constants {
             .setRampRate(0.03, 0.03)
             .setMotorTypes(SwerveMotor.Type.SPARK_FLEX_BRUSHLESS, SwerveMotor.Type.SPARK_FLEX_BRUSHLESS)
             .setMaxSpeeds(4.95, 11.8)
-            .setRatelimits(7.9, 28.75)
+            .setRatelimits(8.1, 28.75)
             .setPowerProperties(VOLTAGE, 60.0, 40.0)
             .setMechanicalProperties(6.75, 150.0 / 7.0, 4.0)
             .setDiscretizationLookahead(0.020)
             .setOdometryPeriod(0.020)
             .setOdometryStd(0.01, 0.01, 0.05)
-            .setVisionStd(0.4, 0.4, 0.5)
+            .setVisionStd(0.35, 0.35, 0.5)
             .setSysIdConfig(new SysIdRoutine.Config(Volts.of(1.0).per(Seconds.of(0.4)), Volts.of(7.0), Seconds.of(5.5)))
             .setFieldSize(FIELD_LENGTH, FIELD_WIDTH)
             .addModule(FRONT_LEFT)
@@ -427,8 +423,8 @@ public final class Constants {
             .addModule(BACK_RIGHT)
             .addModule(FRONT_RIGHT);
 
-        public static final PIDConfig AUTO_XY_PID = new PIDConfig(1.0, 0.0, 0.0, 0.0);
-        public static final PIDConfig AUTO_ROT_PID = new PIDConfig(1.0, 0.0, 0.0, 0.0);
+        public static final PIDConfig AUTO_XY_PID = new PIDConfig(10.0, 0.0, 0.0, 0.0);
+        public static final PIDConfig AUTO_ROT_PID = new PIDConfig(6.0, 0.0, 0.0, 0.0);
 
         public static final PIDConfig XY_PID = new PIDConfig(2.9, 0.0, 0.6, 0.0);
         public static final PIDConfig ROT_PID = new PIDConfig(5.5, 0.0, 0.2, 0.0);
@@ -466,7 +462,7 @@ public final class Constants {
 
         public static final double VISION_REJECT_DISTANCE = 2.3;
 
-        public static final double SPIN_COMPENSATION_X = 0.0075;
+        public static final double SPIN_COMPENSATION_X = 0.03;
         public static final double SPIN_COMPENSATION_Y = 0.06;
     }
 }

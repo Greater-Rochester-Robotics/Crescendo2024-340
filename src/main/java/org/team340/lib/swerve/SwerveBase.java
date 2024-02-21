@@ -102,7 +102,7 @@ public abstract class SwerveBase extends GRRSubsystem {
     private final MutableMeasure<Velocity<Distance>> sysIdVelocity = mutable(MetersPerSecond.of(0));
 
     /**
-     * Create the GRRSwerve subsystem.
+     * Create the swerve subsystem.
      * @param label The label for the subsystem. Shown in the dashboard.
      * @param config Swerve config, use {@link SwerveConfig} as a builder for generating configs.
      */

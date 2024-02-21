@@ -131,7 +131,7 @@ public class Choreo {
             () -> {
                 Pose2d pose = poseSupplier.get();
                 ChassisSpeeds speeds = controller.apply(pose, trajectory.sample(timer.get(), mirrorTrajectory.getAsBoolean()));
-                if (targetTime >= 0 && targetTime >= timer.get()) {
+                if (targetTime >= 0 && timer.get() >= targetTime) {
                     speeds =
                         new ChassisSpeeds(
                             speeds.vxMetersPerSecond,

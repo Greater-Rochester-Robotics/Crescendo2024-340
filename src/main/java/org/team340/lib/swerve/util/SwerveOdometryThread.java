@@ -46,16 +46,22 @@ public class SwerveOdometryThread {
             moduleQueues[i] = new ModuleQueues(new ArrayDeque<>(), new ArrayDeque<>());
         }
 
-        thread = new Notifier(this::sample);
-        thread.setName("Swerve Odometry");
         period = config.getOdometryPeriod();
+        if (period != config.getPeriod()) {
+            thread = new Notifier(this::sample);
+            thread.setName("Swerve Odometry");
+        } else {
+            thread = null;
+        }
     }
 
     /**
      * Starts the thread.
      */
     public void start() {
-        thread.startPeriodic(period);
+        if (thread != null) {
+            thread.startPeriodic(period);
+        }
     }
 
     /**
@@ -63,6 +69,8 @@ public class SwerveOdometryThread {
      * @param poseEstimator The pose estimator to update.
      */
     public void update(SwerveDrivePoseEstimator poseEstimator) {
+        if (thread == null) sample();
+
         try {
             mutex.lock();
             Iterator<Double> timestampIterator = timestampQueue.iterator();

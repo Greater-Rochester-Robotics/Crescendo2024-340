@@ -16,10 +16,9 @@ import org.team340.lib.util.Math2;
 import org.team340.robot.Constants.FeederConstants;
 import org.team340.robot.Constants.RobotMap;
 
-// TODO Handoff back to intake
-
 /**
- * This subsystem controls the feeder wheels, which accept the notes from the intake, and then push them into the shooter wheels to be shot.
+ * This subsystem controls the feeder wheels, which accepts a note from the
+ * intake and pushes it to be shot or back into the intake for amp scoring.
  */
 public class Feeder extends GRRSubsystem {
 
@@ -29,7 +28,7 @@ public class Feeder extends GRRSubsystem {
     private final SparkPIDController feedPID;
 
     /**
-     * Creates a new feeder subsystem.
+     * Create the feeder subsystem.
      */
     public Feeder() {
         super("Feeder");
@@ -42,13 +41,14 @@ public class Feeder extends GRRSubsystem {
         FeederConstants.Configs.PID.apply(feedMotor, feedPID);
     }
 
+    @Override
     public void initSendable(SendableBuilder builder) {
         super.initSendable(builder);
         builder.addBooleanProperty("hasNote", this::hasNote, null);
     }
 
     /**
-     * Returns {@code true} when the note detector is detecting a note.
+     * Returns {@code true} when the beam break detects a note.
      */
     public boolean hasNote() {
         return noteDetector.get();
@@ -58,7 +58,7 @@ public class Feeder extends GRRSubsystem {
      * Receives a note from the intake.
      */
     public Command receiveNote() {
-        return commandBuilder("feeder.receiveNote()")
+        return commandBuilder()
             .onInitialize(() -> feedMotor.set(FeederConstants.INTAKE_SPEED))
             .isFinished(() -> hasNote())
             .onEnd(() -> feedMotor.stopMotor())
@@ -67,29 +67,28 @@ public class Feeder extends GRRSubsystem {
     }
 
     /**
-     * This command moves it forward until it's detected, then backwards till it's not, then forward again,
-     * to try to get it as consistent as possible.
+     * Seats the note in the shooter to a set position.
      */
     public Command seatNote() {
         return sequence(
-            commandBuilder("feeder.seatNote().slowIn")
+            commandBuilder()
                 .onInitialize(() -> feedMotor.set(FeederConstants.IN_SLOW_SPEED))
                 .isFinished(() -> hasNote())
                 .onEnd(() -> feedEncoder.setPosition(0.0)),
-            commandBuilder("feeder.seatNote().inToPos")
+            commandBuilder()
                 .onInitialize(() -> feedPID.setReference(FeederConstants.POSITION_OFFSET, ControlType.kPosition))
                 .isFinished(() ->
                     Math2.epsilonEquals(feedEncoder.getPosition(), FeederConstants.POSITION_OFFSET, FeederConstants.CLOSED_LOOP_ERR)
                 )
                 .onEnd(() -> feedMotor.stopMotor())
         )
-            .withTimeout(2.0)
             .onlyIf(() -> !hasNote())
+            .withTimeout(2.0)
             .withName("feeder.seatNote()");
     }
 
     /**
-     * Feeds the note into the shooters. Ends after the note is no longer detected.
+     * Feeds the note into the shooter wheels. Ends after the note has left the shooter.
      */
     public Command shootNote() {
         return commandBuilder()
@@ -101,26 +100,35 @@ public class Feeder extends GRRSubsystem {
     }
 
     /**
-     * Spits the note out of the feeder in case it is stuck.
+     * Spits the note out of the feeder towards the intake.
      */
-    public Command spitFront() {
-        return commandBuilder("feeder.spitFront()")
-            .onInitialize(() -> feedMotor.set(FeederConstants.SPIT_SPEED_FRONT))
+    public Command barfForward() {
+        return commandBuilder("feeder.barfForward()")
+            .onInitialize(() -> feedMotor.set(FeederConstants.BARF_FORWARD_SPEED))
             .onEnd(() -> feedMotor.stopMotor());
     }
 
-    public Command spitBack() {
-        return commandBuilder("feeder.spitBack()")
-            .onInitialize(() -> feedMotor.set(FeederConstants.SPIT_SPEED_BACK))
+    /**
+     * Spits the note out of the feeder towards the shooter.
+     */
+    public Command barfBackward() {
+        return commandBuilder("feeder.barfBackward()")
+            .onInitialize(() -> feedMotor.set(FeederConstants.BARF_BACKWARD_SPEED))
             .onEnd(() -> feedMotor.stopMotor());
     }
 
-    public Command intakeFromHuman() {
-        return commandBuilder("feeder.intakeFromHuman()")
+    /**
+     * Sets the feeder to receive a note through the shooter from the human player.
+     */
+    public Command intakeHuman() {
+        return commandBuilder("feeder.intakeHuman()")
             .onInitialize(() -> feedMotor.set(FeederConstants.INTAKE_HUMAN_SPEED))
             .onEnd(() -> feedMotor.stopMotor());
     }
 
+    /**
+     * Should be called when disabled, and cancelled when enabled.
+     */
     public Command onDisable() {
         return commandBuilder()
             .onInitialize(() -> feedMotor.setIdleMode(IdleMode.kCoast))

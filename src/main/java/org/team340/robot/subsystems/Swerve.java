@@ -339,8 +339,8 @@ public class Swerve extends SwerveBase {
             .beforeStarting(() -> {
                 if (resetOdometry) {
                     Pose2d initialPose = traj.getInitialPose();
-                    resetOdometry(initialPose);
                     zeroIMU(initialPose.getRotation());
+                    resetOdometry(initialPose);
                 }
 
                 rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond);

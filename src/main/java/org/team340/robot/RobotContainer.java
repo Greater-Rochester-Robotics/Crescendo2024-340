@@ -8,6 +8,7 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import org.team340.lib.GRRDashboard;
 import org.team340.lib.controller.Controller2;
 import org.team340.lib.util.Math2;
+// Set default commands.
 import org.team340.lib.util.TriggerLockout;
 import org.team340.lib.util.config.rev.RevConfigRegistry;
 import org.team340.robot.Constants.ControllerConstants;
@@ -84,7 +85,6 @@ public final class RobotContainer {
      * arbitrary predicate or from controllers) and their bindings.
      */
     private static void configBindings() {
-        // Set default commands.
         shooter.setDefaultCommand(shooter.setSpeedWithDist(swerve::getSpeakerDistance, 2000.0, swerve::inOpponentWing));
         pivot.setDefaultCommand(pivot.maintainPosition());
         intake.setDefaultCommand(intake.maintainPosition());
@@ -118,10 +118,14 @@ public final class RobotContainer {
         driver.y().whileTrue(feeder.shootNote());
 
         // Right Joystick Up => Protect intake
-        driver.rightJoystickUp().onTrue(intake.retract());
+        // driver.rightJoystickUp().onTrue(intake.retract());
+        driver.rightJoystickUp().whileTrue(climber.toPosition(115.0));
 
         // Right Joystick Down => Intake down
-        driver.rightJoystickDown().onTrue(intake.toSafePosition());
+        // driver.rightJoystickDown().onTrue(intake.toSafePosition());
+        driver.rightJoystickDown().whileTrue(climber.toPosition(2.0));
+
+        driver.rightJoystickRight().whileTrue(climber.home(true));
 
         // Right Bumper => Target Speaker (Hold)
         driver
@@ -204,6 +208,9 @@ public final class RobotContainer {
 
         var fourPieceRight = Choreo.getTrajectoryGroup("FourPieceRight");
         GRRDashboard.addAutoCommand("Four Piece Right", fourPieceRight, Autos.fourPieceRight(fourPieceRight));
+
+        var twoPieceFront = Choreo.getTrajectoryGroup("TwoPieceFront");
+        GRRDashboard.addAutoCommand("Two Piece Front", twoPieceFront, Autos.twoPieceFront(twoPieceFront));
     }
 
     /**

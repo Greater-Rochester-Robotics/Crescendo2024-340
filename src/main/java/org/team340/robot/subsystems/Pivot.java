@@ -1,6 +1,6 @@
 package org.team340.robot.subsystems;
 
-import static edu.wpi.first.wpilibj2.command.Commands.waitSeconds;
+import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
@@ -12,7 +12,6 @@ import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
 import java.util.function.Supplier;
 import org.team340.lib.GRRSubsystem;
 import org.team340.robot.Constants.PivotConstants;
@@ -96,22 +95,21 @@ public class Pivot extends GRRSubsystem {
      * @param withOverride If true will ignore {@code hasBeenHomed}.
      */
     public Command home(boolean withOverride) {
-        return Commands
-            .either(
-                commandBuilder("pivot.home(withOverride = " + withOverride + ")")
-                    .onExecute(() -> pivotMotor.set(PivotConstants.HOMING_SPEED))
-                    .isFinished(() -> getLowerLimit())
-                    .onEnd(() -> {
-                        pivotMotor.stopMotor();
-                        if (getLowerLimit()) {
-                            pivotEncoder.setPosition(PivotConstants.MINIMUM_ANGLE);
-                            hasBeenHomed = true;
-                        }
-                        currentTarget = pivotEncoder.getPosition();
-                    }),
-                Commands.none().withName("pivot.home().fallthrough"),
-                () -> !hasBeenHomed || withOverride
-            )
+        return either(
+            commandBuilder("pivot.home(withOverride = " + withOverride + ")")
+                .onExecute(() -> pivotMotor.set(PivotConstants.HOMING_SPEED))
+                .isFinished(() -> getLowerLimit())
+                .onEnd(() -> {
+                    pivotMotor.stopMotor();
+                    if (getLowerLimit()) {
+                        pivotEncoder.setPosition(PivotConstants.MINIMUM_ANGLE);
+                        hasBeenHomed = true;
+                    }
+                    currentTarget = pivotEncoder.getPosition();
+                }),
+            none().withName("pivot.home().fallthrough"),
+            () -> !hasBeenHomed || withOverride
+        )
             .withName("pivot.home()");
     }
 

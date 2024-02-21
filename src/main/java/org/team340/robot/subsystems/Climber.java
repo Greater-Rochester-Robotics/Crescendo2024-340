@@ -1,18 +1,15 @@
 package org.team340.robot.subsystems;
 
-import static edu.wpi.first.wpilibj2.command.Commands.either;
-import static edu.wpi.first.wpilibj2.command.Commands.sequence;
+import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
-import com.revrobotics.CANSparkBase.SoftLimitDirection;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkLimitSwitch;
 import com.revrobotics.SparkLimitSwitch.Type;
 import com.revrobotics.SparkPIDController;
-import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -20,11 +17,9 @@ import org.team340.lib.GRRSubsystem;
 import org.team340.robot.Constants.ClimberConstants;
 import org.team340.robot.Constants.RobotMap;
 
-// TODO Subject to change. Climber is not finalized mechanically
-
 /**
- * This subsystem is to pull the robot up onto the chain.
- * <br></br><em><b>The design is not finalized.</b></em>
+ * The climber subsystem. Homed using limit switches, controlled
+ * with PID to climb on the chain in two stages.
  */
 public class Climber extends GRRSubsystem {
 
@@ -36,10 +31,12 @@ public class Climber extends GRRSubsystem {
     private final SparkLimitSwitch rightLimit;
     private final SparkPIDController leftPID;
     private final SparkPIDController rightPID;
-    private final SimpleMotorFeedforward posFFController;
-    private boolean isZeroedLeft = false;
-    private boolean isZeroedRight = false;
 
+    private boolean isHomed = false;
+
+    /**
+     * Create the climber subsystem.
+     */
     public Climber() {
         super("Climber");
         leftMotor = createSparkMax("Left Motor", RobotMap.CLIMBER_LEFT_MOTOR, MotorType.kBrushless);
@@ -47,109 +44,107 @@ public class Climber extends GRRSubsystem {
         leftEncoder = leftMotor.getEncoder();
         rightEncoder = rightMotor.getEncoder();
         leftLimit = leftMotor.getForwardLimitSwitch(Type.kNormallyOpen);
-        rightLimit = leftMotor.getForwardLimitSwitch(Type.kNormallyOpen);
-        leftMotor.setSoftLimit(SoftLimitDirection.kReverse, (float) ClimberConstants.MAX_POS);
-        rightMotor.setSoftLimit(SoftLimitDirection.kReverse, (float) ClimberConstants.MAX_POS);
-        leftMotor.enableSoftLimit(SoftLimitDirection.kReverse, true);
-        rightMotor.enableSoftLimit(SoftLimitDirection.kReverse, true);
+        rightLimit = rightMotor.getForwardLimitSwitch(Type.kNormallyOpen);
         leftPID = leftMotor.getPIDController();
         rightPID = rightMotor.getPIDController();
-        posFFController =
-            new SimpleMotorFeedforward(ClimberConstants.Configs.FF.s(), ClimberConstants.Configs.FF.v(), ClimberConstants.Configs.FF.a());
 
         ClimberConstants.Configs.MOTOR.apply(leftMotor);
         ClimberConstants.Configs.MOTOR.apply(rightMotor);
         ClimberConstants.Configs.ENCODER.apply(leftMotor, leftEncoder);
         ClimberConstants.Configs.ENCODER.apply(rightMotor, rightEncoder);
-        ClimberConstants.Configs.PID.apply(leftMotor, leftPID);
-        ClimberConstants.Configs.PID.apply(rightMotor, rightPID);
         ClimberConstants.Configs.LIMIT.apply(leftMotor, leftLimit);
         ClimberConstants.Configs.LIMIT.apply(rightMotor, rightLimit);
+        ClimberConstants.Configs.PID.apply(leftMotor, leftPID);
+        ClimberConstants.Configs.PID.apply(rightMotor, rightPID);
     }
 
+    @Override
     public void initSendable(SendableBuilder builder) {
         super.initSendable(builder);
-        builder.addBooleanProperty("Left Limit", this::getLeftLimit, null);
-        builder.addBooleanProperty("Right Limit", this::getLeftLimit, null);
+        builder.addBooleanProperty("atLeftLimit", this::getLeftLimit, null);
+        builder.addBooleanProperty("atRightLimit", this::getRightLimit, null);
+        builder.addBooleanProperty("isHomed", () -> isHomed, null);
     }
 
     /**
-     * Set idle mode of motors to brake or coast.
-     * @param brakeOn If idle mode should be set to brake.
+     * Returns {@code true} if the left limit is pressed.
      */
-    public void setBrakeMode(boolean brakeOn) {
-        leftMotor.setIdleMode(brakeOn ? IdleMode.kBrake : IdleMode.kCoast);
-        rightMotor.setIdleMode(brakeOn ? IdleMode.kBrake : IdleMode.kCoast);
-    }
-
-    public boolean getLeftLimit() {
+    private boolean getLeftLimit() {
         return leftLimit.isPressed();
     }
 
-    public boolean getRightLimit() {
+    /**
+     * Returns {@code true} if the right limit is pressed.
+     */
+    private boolean getRightLimit() {
         return rightLimit.isPressed();
     }
 
     /**
-     * Zeroes arms checking each limit switch and if not pressed setting respective arm motor to a set homing speed until they are both pressed.
+     * Homes the climber arms using their limit switch.
      */
-    public Command zeroArms() {
-        return commandBuilder("climber.zeroArms()")
-            .onExecute(() -> {
-                if (!getRightLimit()) {
-                    rightMotor.set(ClimberConstants.ZEROING_SPEED);
-                } else {
-                    rightMotor.stopMotor();
-                }
+    public Command home(boolean withOverride) {
+        return either(
+            commandBuilder()
+                .onExecute(() -> {
+                    if (!getLeftLimit()) {
+                        leftMotor.set(ClimberConstants.ZEROING_SPEED);
+                    } else {
+                        leftMotor.stopMotor();
+                    }
 
-                if (!getLeftLimit()) {
-                    leftMotor.set(ClimberConstants.ZEROING_SPEED);
-                } else {
+                    if (!getRightLimit()) {
+                        rightMotor.set(ClimberConstants.ZEROING_SPEED);
+                    } else {
+                        rightMotor.stopMotor();
+                    }
+                })
+                .isFinished(() -> getLeftLimit() && getRightLimit())
+                .onEnd(interrupted -> {
+                    rightMotor.stopMotor();
                     leftMotor.stopMotor();
-                }
-            })
-            .isFinished(() -> getRightLimit() && getLeftLimit())
-            .onEnd(interrupted -> {
-                if (!interrupted) {
-                    rightEncoder.setPosition(ClimberConstants.MAX_POS);
-                    leftEncoder.setPosition(ClimberConstants.MAX_POS);
-                    isZeroedRight = true;
-                    isZeroedLeft = true;
-                }
-                rightMotor.stopMotor();
-                leftMotor.stopMotor();
-            });
+
+                    if (!interrupted) {
+                        rightEncoder.setPosition(ClimberConstants.MAX_POS);
+                        leftEncoder.setPosition(ClimberConstants.MAX_POS);
+                        isHomed = true;
+                    }
+                }),
+            none(),
+            () -> withOverride || !isHomed
+        )
+            .withName("climber.home(" + withOverride + ")");
     }
 
     /**
-     * This command is used to move the climbers to a position, while keeping them lined up with each other.
-     * This command will zero the arms if they aren't zeroed already.
+     * Moves the climber arms to a supplied position. Homes if the climber has not yet been homed.
      * @param position This is the position the arms will be set to, must be between the
      * {@link ClimberConstants#MIN_POS minimum} and {@link ClimberConstants#MAX_POS maximum} positions.
-     * @return This command.
      */
     public Command toPosition(double position) {
         return either(
             sequence(
-                zeroArms().unless(() -> isZeroedLeft && isZeroedRight),
+                home(false),
                 commandBuilder()
                     .onExecute(() -> {
-                        double difference = rightEncoder.getPosition() - leftEncoder.getPosition();
-                        double posFF = posFFController.calculate(difference);
-                        leftPID.setReference(position + posFF, ControlType.kPosition);
-                        rightPID.setReference(position + posFF, ControlType.kPosition);
+                        double difference = leftEncoder.getPosition() - rightEncoder.getPosition();
+                        leftPID.setReference(position - (difference * ClimberConstants.BALANCE_COMPENSATION), ControlType.kPosition);
+                        rightPID.setReference(position + (difference * ClimberConstants.BALANCE_COMPENSATION), ControlType.kPosition);
+                    })
+                    .onEnd(() -> {
+                        leftMotor.stopMotor();
+                        rightMotor.stopMotor();
                     })
             ),
             runOnce(() -> DriverStation.reportWarning("The climber cannot be set to " + position + " (out of range).", false)),
             () -> position >= ClimberConstants.MIN_POS && position <= ClimberConstants.MAX_POS
         )
-            .finallyDo(() -> {
-                leftMotor.stopMotor();
-                rightMotor.stopMotor();
-            })
             .withName("climber.toPosition(" + position + ")");
     }
 
+    /**
+     * Should be called when disabled, and cancelled when enabled.
+     */
     public Command onDisable() {
         return commandBuilder()
             .onInitialize(() -> {

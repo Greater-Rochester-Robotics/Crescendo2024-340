@@ -18,10 +18,9 @@ import org.team340.lib.util.Math2;
 import org.team340.robot.Constants.IntakeConstants;
 import org.team340.robot.Constants.RobotMap;
 
-// TODO Motion profiling (?)
-
 /**
- * This subsystem intakes notes from the floor and can score them in the amp, or pass them to the shooter.
+ * The intake subsystem. Intakes notes from the floor and scores
+ * them in the amp, or pass them to the shooter.
  */
 public class Intake extends GRRSubsystem {
 
@@ -30,24 +29,25 @@ public class Intake extends GRRSubsystem {
     private final CANSparkMax rollerUpperMotor;
     private final CANSparkMax rollerLowerMotor;
     private final SparkAbsoluteEncoder armEncoder;
-    private final SparkPIDController armPID;
     private final DigitalInput noteDetector;
+    private final SparkPIDController armPID;
 
-    private double maintainAngle = 0.0;
-    private double target = 0.0;
+    private double armMaintain = 0.0;
+    private double armTarget = 0.0;
 
+    /**
+     * Create the intake subsystem.
+     */
     public Intake() {
         super("Intake");
         armLeftMotor = createSparkFlex("Arm Left Motor", RobotMap.INTAKE_ARM_LEFT_MOTOR, MotorType.kBrushless);
         armRightMotor = createSparkFlex("Arm Right Motor", RobotMap.INTAKE_ARM_RIGHT_MOTOR, MotorType.kBrushless);
-        armEncoder = createSparkFlexAbsoluteEncoder("Arm Encoder", armLeftMotor, Type.kDutyCycle);
-        armPID = armLeftMotor.getPIDController();
-        armPID.setFeedbackDevice(armEncoder);
-
         rollerUpperMotor = createSparkMax("Roller Upper Motor", RobotMap.INTAKE_ROLLER_UPPER_MOTOR, MotorType.kBrushless);
         rollerLowerMotor = createSparkMax("Roller Lower Motor", RobotMap.INTAKE_ROLLER_LOWER_MOTOR, MotorType.kBrushless);
-
+        armEncoder = createSparkFlexAbsoluteEncoder("Arm Encoder", armLeftMotor, Type.kDutyCycle);
         noteDetector = createDigitalInput("Note Detector", RobotMap.INTAKE_NOTE_DETECTOR);
+        armPID = armLeftMotor.getPIDController();
+        armPID.setFeedbackDevice(armEncoder);
 
         IntakeConstants.ArmConfigs.LEFT_MOTOR.apply(armLeftMotor);
         IntakeConstants.ArmConfigs.RIGHT_MOTOR.apply(armRightMotor);
@@ -60,18 +60,23 @@ public class Intake extends GRRSubsystem {
     @Override
     public void initSendable(SendableBuilder builder) {
         super.initSendable(builder);
-        builder.addDoubleProperty("armTarget", () -> target, null);
+        builder.addDoubleProperty("armTarget", () -> armTarget, null);
         builder.addBooleanProperty("hasNote", this::hasNote, null);
     }
 
     /**
-     * Returns {@code true} when the note detector is detecting a note.
+     * RReturns {@code true} when the beam break detects a note.
      */
     public boolean hasNote() {
         return noteDetector.get();
     }
 
-    private boolean isAtAngle(double targetAngle) {
+    /**
+     * Returns {@code true} if the intake arm is on target.
+     * @param targetAngle
+     * @return
+     */
+    private boolean armOnTarget(double targetAngle) {
         return Math2.epsilonEquals(MathUtil.angleModulus(armEncoder.getPosition()), targetAngle, IntakeConstants.CLOSED_LOOP_ERROR);
     }
 
@@ -95,7 +100,7 @@ public class Intake extends GRRSubsystem {
             );
         } else {
             armPID.setReference(position, ControlType.kPosition);
-            target = position;
+            armTarget = position;
         }
     }
 
@@ -114,11 +119,11 @@ public class Intake extends GRRSubsystem {
                 } else {
                     setValidPosition(angle);
                 }
-                maintainAngle = armEncoder.getPosition();
+                armMaintain = armEncoder.getPosition();
             })
-            .isFinished(() -> willFinish && isAtAngle(angle))
+            .isFinished(() -> willFinish && armOnTarget(angle))
             .onEnd(interrupted -> {
-                if (!interrupted || isAtAngle(angle)) maintainAngle = angle;
+                if (!interrupted || armOnTarget(angle)) armMaintain = angle;
                 rollerUpperMotor.stopMotor();
                 rollerLowerMotor.stopMotor();
                 armLeftMotor.stopMotor();
@@ -208,21 +213,21 @@ public class Intake extends GRRSubsystem {
     }
 
     /**
-     * This command maintains the position stored in {@link #maintainAngle} unless it's null.
+     * This command maintains the position stored in {@link #armMaintain} unless it's null.
      * It should only be null if the position hasn't been set yet.
      */
     public Command maintainPosition() {
         return commandBuilder("intake.maintainPosition()")
             .onInitialize(() -> {
-                if (maintainAngle > Math.PI && maintainAngle < 3 * Math2.HALF_PI) maintainAngle = Math.PI; else if (
-                    MathUtil.angleModulus(maintainAngle) < 0.0
-                ) maintainAngle = 0.0;
+                if (armMaintain > Math.PI && armMaintain < 3 * Math2.HALF_PI) armMaintain = Math.PI; else if (
+                    MathUtil.angleModulus(armMaintain) < 0.0
+                ) armMaintain = 0.0;
             })
             .onExecute(() -> {
-                if (maintainAngle < IntakeConstants.MINIMUM_PID_ANGLE) {
+                if (armMaintain < IntakeConstants.MINIMUM_PID_ANGLE) {
                     armLeftMotor.stopMotor();
                 } else {
-                    setValidPosition(maintainAngle);
+                    setValidPosition(armMaintain);
                 }
             });
     }
@@ -237,7 +242,7 @@ public class Intake extends GRRSubsystem {
                 armLeftMotor.setIdleMode(IdleMode.kCoast);
                 armRightMotor.setIdleMode(IdleMode.kCoast);
             })
-            .onExecute(() -> maintainAngle = armEncoder.getPosition())
+            .onExecute(() -> armMaintain = armEncoder.getPosition())
             .onEnd(() -> {
                 armLeftMotor.setIdleMode(IdleMode.kBrake);
                 armRightMotor.setIdleMode(IdleMode.kBrake);
