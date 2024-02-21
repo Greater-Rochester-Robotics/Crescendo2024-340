@@ -27,7 +27,6 @@ public class Routines {
             waitUntil(pivot::isSafeForIntake),
             intake.intakeDown(),
             race(
-                // sequence(waitUntil(intake::hasNote), waitUntil(() -> !intake.hasNote())),
                 feeder.receiveNote(),
                 intake.intake()
             ),
@@ -51,12 +50,12 @@ public class Routines {
             .withName("Routines.retractIntake()");
     }
 
-    public static Command intakeFromHuman() {
+    public static Command intakeHuman() {
         return parallel(
             sequence(
                 deadline(
                     sequence(waitUntil(feeder::hasNote), waitUntil(() -> !feeder.hasNote())),
-                    parallel(shooter.intakeFromHuman(), feeder.intakeHuman())
+                    parallel(shooter.intakeHuman(), feeder.intakeHuman())
                 ),
                 feeder.seatNote()
             ),

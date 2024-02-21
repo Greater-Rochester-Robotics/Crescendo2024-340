@@ -103,7 +103,7 @@ public final class RobotContainer {
         // B => Intake from Human Player (Hold)
         driver
             .b()
-            .onTrue(Routines.intakeFromHuman())
+            .onTrue(Routines.intakeHuman())
             .onFalse(
                 parallel(
                     shooter.setSpeed(0).withTimeout(2.0),

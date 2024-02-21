@@ -208,7 +208,7 @@ public class Shooter extends GRRSubsystem {
             });
     }
 
-    public Command intakeFromHuman() {
+    public Command intakeHuman() {
         return commandBuilder("shooter.intakeFromHuman()")
             .onInitialize(() -> {
                 leftShootMotor.set(ShooterConstants.LEFT_INTAKE_HUMAN_SPEED);

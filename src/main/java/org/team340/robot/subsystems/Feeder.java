@@ -60,9 +60,9 @@ public class Feeder extends GRRSubsystem {
     public Command receiveNote() {
         return commandBuilder()
             .onInitialize(() -> feedMotor.set(FeederConstants.INTAKE_SPEED))
-            .isFinished(() -> hasNote())
+            // .isFinished(() -> hasNote())
             .onEnd(() -> feedMotor.stopMotor())
-            .onlyIf(() -> !hasNote())
+            // .onlyIf(() -> !hasNote())
             .withName("feeder.receiveNote()");
     }
 
