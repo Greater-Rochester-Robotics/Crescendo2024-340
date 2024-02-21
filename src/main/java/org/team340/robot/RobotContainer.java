@@ -112,7 +112,7 @@ public final class RobotContainer {
             );
 
         // X => Amp Score (Hold)
-        driver.x().onTrue(Routines.prepScoreAmp()).onFalse(intake.scoreAmp().withTimeout(1.5));
+        driver.x().whileTrue(Routines.prepScoreAmp());
 
         // Y => Shoot (Tap)
         driver.y().whileTrue(feeder.shootNote());
@@ -147,6 +147,8 @@ public final class RobotContainer {
 
         // POV Right => Zero pivot
         driver.povRight().whileTrue(pivot.home(true));
+
+        driver.start().and(driver.back()).whileTrue(swerve.visionFallThrough());
 
         Trigger driverLockout = TriggerLockout.of(
             driver.a(),
@@ -199,6 +201,9 @@ public final class RobotContainer {
     private static void configAutos() {
         var fourPiece = Choreo.getTrajectoryGroup("FourPiece");
         GRRDashboard.addAutoCommand("Four Piece", fourPiece, Autos.fourPiece(fourPiece));
+
+        var fourPieceRight = Choreo.getTrajectoryGroup("FourPieceRight");
+        GRRDashboard.addAutoCommand("Four Piece Right", fourPieceRight, Autos.fourPieceRight(fourPieceRight));
     }
 
     /**

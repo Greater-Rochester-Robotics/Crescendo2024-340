@@ -6,15 +6,15 @@ import static edu.wpi.first.wpilibj2.command.Commands.sequence;
 import com.choreo.lib.Choreo;
 import com.choreo.lib.ChoreoTrajectory;
 import edu.wpi.first.apriltag.AprilTagFields;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.util.sendable.SendableBuilder;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import java.util.Optional;
@@ -23,7 +23,9 @@ import org.photonvision.EstimatedRobotPose;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
 import org.photonvision.PhotonPoseEstimator.PoseStrategy;
+import org.team340.lib.commands.CommandBuilder;
 import org.team340.lib.swerve.SwerveBase;
+import org.team340.lib.util.Alliance;
 import org.team340.lib.util.Math2;
 import org.team340.robot.Constants;
 import org.team340.robot.Constants.SwerveConstants;
@@ -72,6 +74,12 @@ public class Swerve extends SwerveBase {
         new PhotonPoseEstimator(
             AprilTagFields.k2024Crescendo.loadAprilTagLayoutField(),
             PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+            new PhotonCamera("FrontLeft"),
+            SwerveConstants.FRONT_LEFT_CAMERA
+        ),
+        new PhotonPoseEstimator(
+            AprilTagFields.k2024Crescendo.loadAprilTagLayoutField(),
+            PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
             new PhotonCamera("BackLeft"),
             SwerveConstants.BACK_LEFT_CAMERA
         ),
@@ -81,9 +89,20 @@ public class Swerve extends SwerveBase {
             new PhotonCamera("BackRight"),
             SwerveConstants.BACK_RIGHT_CAMERA
         ),
+        new PhotonPoseEstimator(
+            AprilTagFields.k2024Crescendo.loadAprilTagLayoutField(),
+            PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+            new PhotonCamera("FrontRight"),
+            SwerveConstants.FRONT_RIGHT_CAMERA
+        ),
     };
 
+    private final Pose2d[] photonLastPoses;
+
     private double NOTE_VELOCITY = Constants.NOTE_VELOCITY;
+
+    private Pose3d speakerRotTarget = null;
+    private boolean visionFallThrough = false;
 
     /**
      * Create the swerve subsystem.
@@ -93,6 +112,11 @@ public class Swerve extends SwerveBase {
         rotPID.setIZone(SwerveConstants.ROT_PID.iZone());
         rotPID.enableContinuousInput(-Math.PI, Math.PI);
         resetOdometry(new Pose2d(0.5, 7.9, Math2.ROTATION2D_0));
+
+        photonLastPoses = new Pose2d[photonPoseEstimators.length];
+        for (int i = 0; i < photonLastPoses.length; i++) {
+            photonLastPoses[i] = new Pose2d();
+        }
     }
 
     @Override
@@ -103,14 +127,44 @@ public class Swerve extends SwerveBase {
         builder.addDoubleProperty("speakerDistance", this::getSpeakerDistance, null);
         builder.addBooleanProperty("inOpponentWing", this::inOpponentWing, null);
         builder.addDoubleProperty("tunableNoteVelocity", () -> NOTE_VELOCITY, velocity -> NOTE_VELOCITY = velocity);
+        builder.addDoubleArrayProperty(
+            "speakerRotTarget",
+            () -> {
+                Pose3d pose = speakerRotTarget != null
+                    ? speakerRotTarget
+                    : (Alliance.isBlue() ? Constants.BLUE_SPEAKER_3D : Constants.RED_SPEAKER_3D);
+                return new double[] {
+                    pose.getX(),
+                    pose.getY(),
+                    pose.getZ(),
+                    pose.getRotation().getX(),
+                    pose.getRotation().getY(),
+                    pose.getRotation().getZ(),
+                };
+            },
+            null
+        );
     }
 
     @Override
     public void periodic() {
         updateOdometry(poseEstimator -> {
-            for (PhotonPoseEstimator photonPoseEstimator : photonPoseEstimators) {
-                Optional<EstimatedRobotPose> pose = photonPoseEstimator.update();
-                if (pose.isPresent()) poseEstimator.addVisionMeasurement(pose.get().estimatedPose.toPose2d(), pose.get().timestampSeconds);
+            Pose2d currentPose = getPosition();
+            for (int i = 0; i < photonPoseEstimators.length; i++) {
+                Optional<EstimatedRobotPose> pose = photonPoseEstimators[i].update();
+                if (pose.isPresent()) {
+                    Pose2d pose2d = pose.get().estimatedPose.toPose2d();
+                    if (
+                        visionFallThrough ||
+                        currentPose.getTranslation().getDistance(pose2d.getTranslation()) < SwerveConstants.VISION_REJECT_DISTANCE
+                    ) {
+                        poseEstimator.addVisionMeasurement(pose2d, pose.get().timestampSeconds);
+                        field.getObject("PhotonVision/" + i).setPose(pose2d);
+                        return;
+                    }
+                }
+
+                field.getObject("PhotonVision/" + i).setPoses();
             }
         });
     }
@@ -128,8 +182,7 @@ public class Swerve extends SwerveBase {
      * @return A {@link Translation2d} representing a field relative position in meters.
      */
     public Translation2d getSpeakerPosition() {
-        boolean isBlueAlliance = DriverStation.getAlliance().orElse(Alliance.Blue).equals(Alliance.Blue);
-        Translation2d goalPose = isBlueAlliance ? Constants.BLUE_SPEAKER : Constants.RED_SPEAKER;
+        Translation2d goalPose = Alliance.isBlue() ? Constants.BLUE_SPEAKER : Constants.RED_SPEAKER;
         ChassisSpeeds robotVel = getVelocity(true);
         double distanceToSpeaker = getPosition().getTranslation().getDistance(goalPose);
         double x = goalPose.getX() - (robotVel.vxMetersPerSecond * (distanceToSpeaker / NOTE_VELOCITY));
@@ -138,10 +191,36 @@ public class Swerve extends SwerveBase {
     }
 
     /**
+     * Gets the angle for the robot to face to score in the speaker, in radians.
+     */
+    private double getSpeakerAngle() {
+        Translation2d speakerPosition = getSpeakerPosition();
+        double speakerDistance = getSpeakerDistance();
+        Translation2d robotPoint = getPosition().getTranslation();
+        Rotation2d shotRot = speakerPosition.minus(robotPoint).getAngle();
+        // if (Math.random() > 0.9) System.out.println(shotRot.getDegrees()); lol
+
+        Translation2d targetPosition = new Translation2d(
+            speakerPosition.getX() + shotRot.getSin() * SwerveConstants.SPIN_COMPENSATION_X * speakerDistance,
+            speakerPosition.getY() + shotRot.getCos() * SwerveConstants.SPIN_COMPENSATION_Y * speakerDistance
+        );
+
+        speakerRotTarget = new Pose3d(targetPosition.getX(), targetPosition.getY(), Constants.SPEAKER_HEIGHT, Math2.ROTATION3D_0);
+        return MathUtil.angleModulus(targetPosition.minus(robotPoint).getAngle().getRadians() + Math.PI);
+    }
+
+    /**
      * Returns {@code true} if the robot is in the opponent's wing.
      */
     public boolean inOpponentWing() {
         return getPosition().getX() > Constants.OPPONENT_WING_LINE;
+    }
+
+    public Command visionFallThrough() {
+        return new CommandBuilder("swerve.visionFallThrough()")
+            .onInitialize(() -> visionFallThrough = true)
+            .onEnd(() -> visionFallThrough = false)
+            .ignoringDisable(true);
     }
 
     /**
@@ -163,6 +242,13 @@ public class Swerve extends SwerveBase {
     }
 
     /**
+     * Faces the robot towards the speaker.
+     */
+    public Command driveSpeaker() {
+        return driveSpeaker(() -> 0.0, () -> 0.0);
+    }
+
+    /**
      * Allows the driver to keep driving, but forces the robot to face the speaker.
      * @param x The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
      * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
@@ -170,7 +256,7 @@ public class Swerve extends SwerveBase {
     public Command driveSpeaker(Supplier<Double> x, Supplier<Double> y) {
         return commandBuilder()
             .onInitialize(() -> rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
-            .onExecute(() -> driveAroundPoint(x.get(), y.get(), Math.PI, getSpeakerPosition(), rotPID, false));
+            .onExecute(() -> driveAngle(x.get(), y.get(), getSpeakerAngle(), rotPID, false));
     }
 
     /**
@@ -178,9 +264,9 @@ public class Swerve extends SwerveBase {
      */
     public Command driveAmp() {
         return either(
-            sequence(driveToPose(SwerveConstants.AMP_APPROACH_BLUE, true), driveToPose(SwerveConstants.AMP_SCORE_BLUE, false)),
-            sequence(driveToPose(SwerveConstants.AMP_APPROACH_RED, true), driveToPose(SwerveConstants.AMP_SCORE_RED, false)),
-            () -> DriverStation.getAlliance().orElse(Alliance.Blue).equals(Alliance.Blue)
+            sequence(driveToPose(SwerveConstants.AMP_APPROACH_BLUE, true), driveToPose(SwerveConstants.AMP_SCORE_BLUE, true)),
+            sequence(driveToPose(SwerveConstants.AMP_APPROACH_RED, true), driveToPose(SwerveConstants.AMP_SCORE_RED, true)),
+            Alliance::isBlue
         );
     }
 
@@ -208,7 +294,16 @@ public class Swerve extends SwerveBase {
      * @param traj The trajectory to follow.
      */
     public Command followTrajectory(ChoreoTrajectory traj) {
-        return followTrajectory(traj, false);
+        return followTrajectory(traj, -1.0, false);
+    }
+
+    /**
+     * Follows a trajectory.
+     * @param traj The trajectory to follow.
+     * @param targetTime Time in seconds after the path starts to start targeting the speaker.
+     */
+    public Command followTrajectory(ChoreoTrajectory traj, double targetTime) {
+        return followTrajectory(traj, targetTime, false);
     }
 
     /**
@@ -217,15 +312,28 @@ public class Swerve extends SwerveBase {
      * @param resetOdometry If the odometry should be reset to the first pose in the trajectory.
      */
     public Command followTrajectory(ChoreoTrajectory traj, boolean resetOdometry) {
+        return followTrajectory(traj, -1.0, resetOdometry);
+    }
+
+    /**
+     * Follows a trajectory.
+     * @param traj The trajectory to follow.
+     * @param targetTime Time in seconds after the path starts to start targeting the speaker.
+     * @param resetOdometry If the odometry should be reset to the first pose in the trajectory.
+     */
+    public Command followTrajectory(ChoreoTrajectory traj, double targetTime, boolean resetOdometry) {
         return Choreo
             .choreoSwerveCommand(
                 traj,
                 this::getPosition,
+                targetTime,
+                this::getSpeakerAngle,
+                rotPID,
                 xPIDAuto,
                 yPIDAuto,
                 rotPIDAuto,
                 speeds -> driveSpeeds(speeds, false, false),
-                () -> DriverStation.getAlliance().orElse(Alliance.Blue).equals(Alliance.Red),
+                Alliance::isRed,
                 this
             )
             .beforeStarting(() -> {
@@ -234,6 +342,11 @@ public class Swerve extends SwerveBase {
                     resetOdometry(initialPose);
                     zeroIMU(initialPose.getRotation());
                 }
+
+                rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond);
+                xPIDAuto.reset();
+                yPIDAuto.reset();
+                rotPIDAuto.reset();
             });
     }
 

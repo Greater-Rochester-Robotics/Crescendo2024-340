@@ -44,4 +44,28 @@ public class Autos {
             )
         );
     }
+
+    public static Command fourPieceRight(List<ChoreoTrajectory> traj) {
+        return parallel(
+            Routines.prepShootSpeaker(swerve::getSpeakerDistance),
+            sequence(
+                deadline(swerve.followTrajectory(traj.get(0), 0.5, true), intake.intakeDown()),
+                deadline(sequence(waitSeconds(1.0), feeder.shootNote().withTimeout(0.75)), swerve.driveSpeaker()),
+                feeder.shootNote(),
+                parallel(
+                    intake.intake(),
+                    sequence(
+                        swerve.followTrajectory(traj.get(1)),
+                        waitSeconds(0.5),
+                        swerve.followTrajectory(traj.get(2), 1.5),
+                        deadline(feeder.shootNote().withTimeout(0.75), swerve.driveSpeaker()),
+                        swerve.followTrajectory(traj.get(3)),
+                        waitSeconds(0.5),
+                        swerve.followTrajectory(traj.get(4), 1.5),
+                        deadline(feeder.shootNote().withTimeout(0.75), swerve.driveSpeaker())
+                    )
+                )
+            )
+        );
+    }
 }

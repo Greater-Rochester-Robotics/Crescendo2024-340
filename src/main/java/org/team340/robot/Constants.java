@@ -7,6 +7,7 @@ import com.revrobotics.CANSparkBase.ExternalFollower;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.SparkPIDController.AccelStrategy;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
@@ -48,11 +49,16 @@ public final class Constants {
 
     public static final double NOTE_VELOCITY = 20.0;
 
-    public static final Translation2d BLUE_SPEAKER = new Translation2d(0.0241, 5.65);
+    public static final Translation2d BLUE_SPEAKER = new Translation2d(0.0241, 5.547868);
     public static final Translation2d RED_SPEAKER = new Translation2d(BLUE_SPEAKER.getX(), FIELD_WIDTH - BLUE_SPEAKER.getY());
     public static final Translation2d STAGE = new Translation2d(4.981067, 4.105783);
+
+    public static final double SPEAKER_HEIGHT = 2.08;
+    public static final Pose3d BLUE_SPEAKER_3D = new Pose3d(BLUE_SPEAKER.getX(), BLUE_SPEAKER.getY(), SPEAKER_HEIGHT, Math2.ROTATION3D_0);
+    public static final Pose3d RED_SPEAKER_3D = new Pose3d(RED_SPEAKER.getX(), RED_SPEAKER.getY(), SPEAKER_HEIGHT, Math2.ROTATION3D_0);
+
     public static final double OPPONENT_WING_LINE = 10.66;
-    public static final double AMP_X = 1.9526;
+    public static final double AMP_X = 1.9;
 
     /**
      * Driver and co-driver controller constants.
@@ -165,7 +171,7 @@ public final class Constants {
                 .setZeroOffset(4.8304510);
 
             public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
-                .setPID(0.9, 0.0015, 0.075) //0.425, 0.0013, 0.32)
+                .setPID(1.0, 0.0015, 0.02)
                 .setIZone(Math.toRadians(5.25))
                 .setPositionPIDWrappingEnabled(true)
                 .setPositionPIDWrappingInputLimits(0.0, Math2.TWO_PI);
@@ -230,10 +236,8 @@ public final class Constants {
 
         static {
             DISTANCE_TO_SPEED_MAP.put(0.0, 3000.0);
-            DISTANCE_TO_SPEED_MAP.put(3.0, 4250.0);
-            DISTANCE_TO_SPEED_MAP.put(6.0, 6000.0);
-            DISTANCE_TO_SPEED_MAP.put(8.0, 6750.0);
-            DISTANCE_TO_SPEED_MAP.put(10.0, 7500.0);
+            DISTANCE_TO_SPEED_MAP.put(6.0, 6500.0);
+            DISTANCE_TO_SPEED_MAP.put(10.0, 7750.0);
         }
     }
 
@@ -312,17 +316,21 @@ public final class Constants {
         public static final double SPIT_ANGLE = 0.0;
 
         static {
-            DISTANCE_TO_ANGLE_MAP.put(1.37, Math.toRadians(59.0));
-            DISTANCE_TO_ANGLE_MAP.put(1.65, Math.toRadians(52.0));
-            DISTANCE_TO_ANGLE_MAP.put(1.97, Math.toRadians(45.0));
-            DISTANCE_TO_ANGLE_MAP.put(2.29, Math.toRadians(39.0));
-            DISTANCE_TO_ANGLE_MAP.put(2.72, Math.toRadians(35.0));
-            DISTANCE_TO_ANGLE_MAP.put(3.17, Math.toRadians(32.0));
-            DISTANCE_TO_ANGLE_MAP.put(4.07, Math.toRadians(29.0));
-            DISTANCE_TO_ANGLE_MAP.put(4.95, Math.toRadians(25.0));
-            DISTANCE_TO_ANGLE_MAP.put(6.46, Math.toRadians(21.0));
-            DISTANCE_TO_ANGLE_MAP.put(7.38, Math.toRadians(18.75));
-            DISTANCE_TO_ANGLE_MAP.put(8.28, Math.toRadians(17.25));
+            DISTANCE_TO_ANGLE_MAP.put(1.44, Math.toRadians(55.0));
+            DISTANCE_TO_ANGLE_MAP.put(1.61, Math.toRadians(52.0));
+            DISTANCE_TO_ANGLE_MAP.put(1.99, Math.toRadians(48.0));
+            DISTANCE_TO_ANGLE_MAP.put(2.34, Math.toRadians(42.0));
+            DISTANCE_TO_ANGLE_MAP.put(2.87, Math.toRadians(35.0));
+            DISTANCE_TO_ANGLE_MAP.put(3.34, Math.toRadians(32.0));
+            DISTANCE_TO_ANGLE_MAP.put(3.92, Math.toRadians(29.0));
+            DISTANCE_TO_ANGLE_MAP.put(4.28, Math.toRadians(27.0));
+            DISTANCE_TO_ANGLE_MAP.put(5.32, Math.toRadians(23.0));
+            DISTANCE_TO_ANGLE_MAP.put(5.82, Math.toRadians(21.75));
+            DISTANCE_TO_ANGLE_MAP.put(6.55, Math.toRadians(20.7));
+            DISTANCE_TO_ANGLE_MAP.put(6.87, Math.toRadians(19.76));
+            DISTANCE_TO_ANGLE_MAP.put(7.55, Math.toRadians(18.0));
+            DISTANCE_TO_ANGLE_MAP.put(8.88, Math.toRadians(16.9));
+            DISTANCE_TO_ANGLE_MAP.put(9.71, Math.toRadians(16.88));
         }
     }
 
@@ -410,8 +418,8 @@ public final class Constants {
             .setMechanicalProperties(6.75, 150.0 / 7.0, 4.0)
             .setDiscretizationLookahead(0.020)
             .setOdometryPeriod(0.020)
-            .setOdometryStd(0.03, 0.03, 0.075)
-            .setVisionStd(0.1, 0.1, 0.125)
+            .setOdometryStd(0.01, 0.01, 0.05)
+            .setVisionStd(0.4, 0.4, 0.5)
             .setSysIdConfig(new SysIdRoutine.Config(Volts.of(1.0).per(Seconds.of(0.4)), Volts.of(7.0), Seconds.of(5.5)))
             .setFieldSize(FIELD_LENGTH, FIELD_WIDTH)
             .addModule(FRONT_LEFT)
@@ -419,33 +427,46 @@ public final class Constants {
             .addModule(BACK_RIGHT)
             .addModule(FRONT_RIGHT);
 
-        public static final PIDConfig AUTO_XY_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
-        public static final PIDConfig AUTO_ROT_PID = new PIDConfig(0.0, 0.0, 0.0, 0.0);
+        public static final PIDConfig AUTO_XY_PID = new PIDConfig(1.0, 0.0, 0.0, 0.0);
+        public static final PIDConfig AUTO_ROT_PID = new PIDConfig(1.0, 0.0, 0.0, 0.0);
 
-        public static final PIDConfig XY_PID = new PIDConfig(2.0, 0.0, 0.1, 0.0);
+        public static final PIDConfig XY_PID = new PIDConfig(2.9, 0.0, 0.6, 0.0);
         public static final PIDConfig ROT_PID = new PIDConfig(5.5, 0.0, 0.2, 0.0);
-        public static final Constraints XY_CONSTRAINTS = new Constraints(3.0, 6.0);
-        public static final Constraints ROT_CONSTRAINTS = new Constraints(7.0, 10.0);
+        public static final Constraints XY_CONSTRAINTS = new Constraints(2.7, 3.2);
+        public static final Constraints ROT_CONSTRAINTS = new Constraints(5.0, 6.0);
 
-        public static final double POSE_XY_ERROR = 0.025;
+        public static final double POSE_XY_ERROR = 0.075;
         public static final double POSE_ROT_ERROR = Math.toRadians(5.0);
 
+        public static final Transform3d FRONT_LEFT_CAMERA = new Transform3d(
+            new Translation3d(0.28364, 0.28369, 0.24511),
+            new Rotation3d(0.0, Math.toRadians(-20.0), Math.toRadians(45.0))
+        );
         public static final Transform3d BACK_LEFT_CAMERA = new Transform3d(
             new Translation3d(-0.29153, 0.26629, 0.24511),
-            new Rotation3d(0.0, Math.toRadians(-30.0), Math.toRadians(-160.0))
+            new Rotation3d(0.0, Math.toRadians(-20.0), Math.toRadians(-160.0))
         );
         public static final Transform3d BACK_RIGHT_CAMERA = new Transform3d(
             new Translation3d(-0.29153, -0.26629, 0.24511),
-            new Rotation3d(0.0, Math.toRadians(-30.0), Math.toRadians(160.0))
+            new Rotation3d(0.0, Math.toRadians(-20.0), Math.toRadians(160.0))
+        );
+        public static final Transform3d FRONT_RIGHT_CAMERA = new Transform3d(
+            new Translation3d(0.28364, -0.28369, 0.24511),
+            new Rotation3d(0.0, Math.toRadians(-20.0), Math.toRadians(-45.0))
         );
 
-        public static final Pose2d AMP_APPROACH_BLUE = new Pose2d(AMP_X, 6.5, new Rotation2d(Math2.HALF_PI));
-        public static final Pose2d AMP_SCORE_BLUE = new Pose2d(AMP_X, 5.5, new Rotation2d(Math2.HALF_PI));
+        public static final Pose2d AMP_APPROACH_BLUE = new Pose2d(AMP_X, 7.2, new Rotation2d(Math2.HALF_PI));
+        public static final Pose2d AMP_SCORE_BLUE = new Pose2d(AMP_X, 7.5, new Rotation2d(Math2.HALF_PI));
         public static final Pose2d AMP_APPROACH_RED = new Pose2d(
             AMP_X,
             FIELD_WIDTH - AMP_APPROACH_BLUE.getY(),
             new Rotation2d(-Math2.HALF_PI)
         );
         public static final Pose2d AMP_SCORE_RED = new Pose2d(AMP_X, FIELD_WIDTH - AMP_SCORE_BLUE.getY(), new Rotation2d(-Math2.HALF_PI));
+
+        public static final double VISION_REJECT_DISTANCE = 2.3;
+
+        public static final double SPIN_COMPENSATION_X = 0.0075;
+        public static final double SPIN_COMPENSATION_Y = 0.06;
     }
 }

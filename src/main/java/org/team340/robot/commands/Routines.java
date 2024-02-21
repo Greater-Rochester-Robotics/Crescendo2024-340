@@ -5,6 +5,7 @@ import static org.team340.robot.RobotContainer.*;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.Supplier;
+import org.team340.lib.util.Alliance;
 import org.team340.robot.Constants;
 
 // TODO Discuss bindings and what commands are needed
@@ -72,27 +73,30 @@ public class Routines {
      * This raises the intake in preparation for scoring in the amp.
      */
     public static Command prepScoreAmp() {
-        return parallel(
-            sequence(
+        return sequence(
+            parallel(
                 sequence(
-                    parallel(
-                        pivot.goToAngle(Constants.PivotConstants.OPTIMAL_RECEIVE_NOTE_ANGLE),
-                        sequence(waitUntil(pivot::isSafeForIntake), intake.intakeDown())
-                    ),
                     sequence(
-                        intake.intakeDown(),
-                        deadline(
-                            sequence(waitUntil(() -> intake.hasNote() && !feeder.hasNote()), waitSeconds(0.1)),
-                            shooterFeederSpitFront(),
-                            intake.receiveFromShooter()
+                        parallel(
+                            pivot.goToAngle(Constants.PivotConstants.OPTIMAL_RECEIVE_NOTE_ANGLE),
+                            sequence(waitUntil(pivot::isSafeForIntake), intake.intakeDown())
+                        ),
+                        sequence(
+                            intake.intakeDown(),
+                            deadline(
+                                sequence(waitUntil(() -> intake.hasNote() && !feeder.hasNote()), waitSeconds(0.1)),
+                                shooterFeederSpitFront(),
+                                intake.receiveFromShooter()
+                            )
                         )
                     )
-                )
-                    .unless(intake::hasNote),
-                intake.scoreAmpPosition(),
-                intake.maintainPosition()
+                        .unless(intake::hasNote),
+                    intake.scoreAmpPosition(),
+                    intake.maintainPosition()
+                ),
+                swerve.driveAmp()
             ),
-            swerve.driveAmp()
+            parallel(intake.scoreAmp(), swerve.drive(() -> 0.0, () -> 0.025 * (Alliance.isBlue() ? -1.0 : 1.0), () -> 0.0, true))
         )
             .withName("prepScoreAmp()");
     }

@@ -1,10 +1,9 @@
 package org.team340.lib.swerve.util;
 
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import org.team340.lib.swerve.config.SwerveConfig;
+import org.team340.lib.util.Alliance;
 import org.team340.lib.util.Math2;
 
 /**
@@ -28,7 +27,7 @@ public class SwerveField2d extends Field2d {
      * @param newPose The robot's new pose.
      */
     public void update(Pose2d newPose) {
-        if (!DriverStation.getAlliance().orElse(Alliance.Blue).equals(Alliance.Blue)) {
+        if (Alliance.isRed()) {
             newPose =
                 new Pose2d(
                     config.getFieldLength() - newPose.getX(),

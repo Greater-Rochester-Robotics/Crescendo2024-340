@@ -91,11 +91,11 @@ public abstract class SwerveBase extends GRRSubsystem {
     protected final SwerveModule[] modules;
     protected final SwerveDrivePoseEstimator poseEstimator;
     protected final SysIdRoutine sysIdRoutine;
+    protected final SwerveField2d field;
 
     private final Translation2d[] moduleTranslations;
     private final SwerveOdometryThread odometryThread;
     private final SwerveRatelimiter ratelimiter;
-    private final SwerveField2d field;
 
     private final MutableMeasure<Voltage> sysIdAppliedVoltage = mutable(Volts.of(0));
     private final MutableMeasure<Distance> sysIdDistance = mutable(Meters.of(0));
