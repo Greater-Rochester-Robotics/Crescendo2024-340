@@ -148,8 +148,6 @@ public final class RobotContainer {
         // POV Right => Zero pivot
         driver.povRight().whileTrue(pivot.home(true));
 
-        driver.start().and(driver.back()).whileTrue(swerve.visionFallThrough());
-
         Trigger driverLockout = TriggerLockout.of(
             driver.a(),
             driver.b(),

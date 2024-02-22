@@ -423,8 +423,8 @@ public final class Constants {
             .setMechanicalProperties(6.75, 150.0 / 7.0, 4.0)
             .setDiscretizationLookahead(0.020)
             .setOdometryPeriod(0.020)
-            .setOdometryStd(0.01, 0.01, 0.05)
-            .setVisionStd(0.35, 0.35, 0.5)
+            .setOdometryStd(0.003, 0.003, 0.0002)
+            .setVisionStd(0.0, 0.0, 0.0)
             .setSysIdConfig(new SysIdRoutine.Config(Volts.of(1.0).per(Seconds.of(0.4)), Volts.of(7.0), Seconds.of(5.5)))
             .setFieldSize(FIELD_LENGTH, FIELD_WIDTH)
             .addModule(FRONT_LEFT)
@@ -460,6 +460,11 @@ public final class Constants {
             new Rotation3d(0.0, Math.toRadians(-20.0), Math.toRadians(-45.0))
         );
 
+        public static final double VISION_FIELD_MARGIN = 0.5;
+        public static final double VISION_Z_MARGIN = 0.75;
+        public static final double VISION_STD_XY_SCALE = 0.005;
+        public static final double VISION_STD_ROT_SCALE = 0.01;
+
         public static final Pose2d AMP_APPROACH_BLUE = new Pose2d(AMP_X, 7.2, new Rotation2d(Math2.HALF_PI));
         public static final Pose2d AMP_SCORE_BLUE = new Pose2d(AMP_X, 7.5, new Rotation2d(Math2.HALF_PI));
         public static final Pose2d AMP_APPROACH_RED = new Pose2d(
@@ -468,8 +473,6 @@ public final class Constants {
             new Rotation2d(-Math2.HALF_PI)
         );
         public static final Pose2d AMP_SCORE_RED = new Pose2d(AMP_X, FIELD_WIDTH - AMP_SCORE_BLUE.getY(), new Rotation2d(-Math2.HALF_PI));
-
-        public static final double VISION_REJECT_DISTANCE = 2.3;
 
         public static final double SPIN_COMPENSATION_X = 0.03;
         public static final double SPIN_COMPENSATION_Y = 0.06;

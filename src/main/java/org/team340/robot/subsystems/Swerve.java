@@ -5,8 +5,10 @@ import static edu.wpi.first.wpilibj2.command.Commands.sequence;
 
 import com.choreo.lib.Choreo;
 import com.choreo.lib.ChoreoTrajectory;
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -23,7 +25,7 @@ import org.photonvision.EstimatedRobotPose;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
 import org.photonvision.PhotonPoseEstimator.PoseStrategy;
-import org.team340.lib.commands.CommandBuilder;
+import org.photonvision.targeting.PhotonTrackedTarget;
 import org.team340.lib.swerve.SwerveBase;
 import org.team340.lib.util.Alliance;
 import org.team340.lib.util.Math2;
@@ -35,82 +37,86 @@ import org.team340.robot.Constants.SwerveConstants;
  */
 public class Swerve extends SwerveBase {
 
-    private final PIDController xPIDAuto = new PIDController(
-        SwerveConstants.AUTO_XY_PID.p(),
-        SwerveConstants.AUTO_XY_PID.i(),
-        SwerveConstants.AUTO_XY_PID.d()
-    );
-    private final PIDController yPIDAuto = new PIDController(
-        SwerveConstants.AUTO_XY_PID.p(),
-        SwerveConstants.AUTO_XY_PID.i(),
-        SwerveConstants.AUTO_XY_PID.d()
-    );
-    private final PIDController rotPIDAuto = new PIDController(
-        SwerveConstants.AUTO_ROT_PID.p(),
-        SwerveConstants.AUTO_ROT_PID.i(),
-        SwerveConstants.AUTO_ROT_PID.d()
-    );
+    private final PIDController xPIDAuto;
+    private final PIDController yPIDAuto;
+    private final PIDController rotPIDAuto;
 
-    private final ProfiledPIDController xPID = new ProfiledPIDController(
-        SwerveConstants.XY_PID.p(),
-        SwerveConstants.XY_PID.i(),
-        SwerveConstants.XY_PID.d(),
-        SwerveConstants.XY_CONSTRAINTS
-    );
-    private final ProfiledPIDController yPID = new ProfiledPIDController(
-        SwerveConstants.XY_PID.p(),
-        SwerveConstants.XY_PID.i(),
-        SwerveConstants.XY_PID.d(),
-        SwerveConstants.XY_CONSTRAINTS
-    );
-    private final ProfiledPIDController rotPID = new ProfiledPIDController(
-        SwerveConstants.ROT_PID.p(),
-        SwerveConstants.ROT_PID.i(),
-        SwerveConstants.ROT_PID.d(),
-        SwerveConstants.ROT_CONSTRAINTS
-    );
+    private final ProfiledPIDController xPID;
+    private final ProfiledPIDController yPID;
+    private final ProfiledPIDController rotPID;
 
-    private final PhotonPoseEstimator[] photonPoseEstimators = new PhotonPoseEstimator[] {
-        new PhotonPoseEstimator(
-            AprilTagFields.k2024Crescendo.loadAprilTagLayoutField(),
-            PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-            new PhotonCamera("FrontLeft"),
-            SwerveConstants.FRONT_LEFT_CAMERA
-        ),
-        new PhotonPoseEstimator(
-            AprilTagFields.k2024Crescendo.loadAprilTagLayoutField(),
-            PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-            new PhotonCamera("BackLeft"),
-            SwerveConstants.BACK_LEFT_CAMERA
-        ),
-        new PhotonPoseEstimator(
-            AprilTagFields.k2024Crescendo.loadAprilTagLayoutField(),
-            PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-            new PhotonCamera("BackRight"),
-            SwerveConstants.BACK_RIGHT_CAMERA
-        ),
-        new PhotonPoseEstimator(
-            AprilTagFields.k2024Crescendo.loadAprilTagLayoutField(),
-            PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-            new PhotonCamera("FrontRight"),
-            SwerveConstants.FRONT_RIGHT_CAMERA
-        ),
-    };
-
+    public final AprilTagFieldLayout aprilTagLayout;
+    private final PhotonPoseEstimator[] photonPoseEstimators;
     private final Pose2d[] photonLastPoses;
 
     private double NOTE_VELOCITY = Constants.NOTE_VELOCITY;
 
     private Pose3d speakerRotTarget = null;
-    private boolean visionFallThrough = false;
 
     /**
      * Create the swerve subsystem.
      */
     public Swerve() {
         super("Swerve Drive", SwerveConstants.CONFIG);
+        xPIDAuto = new PIDController(SwerveConstants.AUTO_XY_PID.p(), SwerveConstants.AUTO_XY_PID.i(), SwerveConstants.AUTO_XY_PID.d());
+        yPIDAuto = new PIDController(SwerveConstants.AUTO_XY_PID.p(), SwerveConstants.AUTO_XY_PID.i(), SwerveConstants.AUTO_XY_PID.d());
+        rotPIDAuto =
+            new PIDController(SwerveConstants.AUTO_ROT_PID.p(), SwerveConstants.AUTO_ROT_PID.i(), SwerveConstants.AUTO_ROT_PID.d());
+
+        xPID =
+            new ProfiledPIDController(
+                SwerveConstants.XY_PID.p(),
+                SwerveConstants.XY_PID.i(),
+                SwerveConstants.XY_PID.d(),
+                SwerveConstants.XY_CONSTRAINTS
+            );
+        yPID =
+            new ProfiledPIDController(
+                SwerveConstants.XY_PID.p(),
+                SwerveConstants.XY_PID.i(),
+                SwerveConstants.XY_PID.d(),
+                SwerveConstants.XY_CONSTRAINTS
+            );
+        rotPID =
+            new ProfiledPIDController(
+                SwerveConstants.ROT_PID.p(),
+                SwerveConstants.ROT_PID.i(),
+                SwerveConstants.ROT_PID.d(),
+                SwerveConstants.ROT_CONSTRAINTS
+            );
+
         rotPID.setIZone(SwerveConstants.ROT_PID.iZone());
         rotPID.enableContinuousInput(-Math.PI, Math.PI);
+
+        aprilTagLayout = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField();
+
+        photonPoseEstimators =
+            new PhotonPoseEstimator[] {
+                new PhotonPoseEstimator(
+                    aprilTagLayout,
+                    PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+                    new PhotonCamera("FrontLeft"),
+                    SwerveConstants.FRONT_LEFT_CAMERA
+                ),
+                new PhotonPoseEstimator(
+                    aprilTagLayout,
+                    PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+                    new PhotonCamera("BackLeft"),
+                    SwerveConstants.BACK_LEFT_CAMERA
+                ),
+                new PhotonPoseEstimator(
+                    aprilTagLayout,
+                    PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+                    new PhotonCamera("BackRight"),
+                    SwerveConstants.BACK_RIGHT_CAMERA
+                ),
+                new PhotonPoseEstimator(
+                    aprilTagLayout,
+                    PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+                    new PhotonCamera("FrontRight"),
+                    SwerveConstants.FRONT_RIGHT_CAMERA
+                ),
+            };
 
         photonLastPoses = new Pose2d[photonPoseEstimators.length];
         for (int i = 0; i < photonLastPoses.length; i++) {
@@ -152,14 +158,34 @@ public class Swerve extends SwerveBase {
             for (int i = 0; i < photonPoseEstimators.length; i++) {
                 Optional<EstimatedRobotPose> pose = photonPoseEstimators[i].update();
                 if (pose.isPresent()) {
-                    Pose2d pose2d = pose.get().estimatedPose.toPose2d();
+                    Pose3d pose3d = pose.get().estimatedPose;
+                    Pose2d pose2d = pose3d.toPose2d();
                     if (
-                        visionFallThrough ||
-                        currentPose.getTranslation().getDistance(pose2d.getTranslation()) < SwerveConstants.VISION_REJECT_DISTANCE
+                        (
+                            pose3d.getX() >= -SwerveConstants.VISION_FIELD_MARGIN &&
+                            pose3d.getX() <= Constants.FIELD_LENGTH + SwerveConstants.VISION_FIELD_MARGIN
+                        ) &&
+                        (
+                            pose3d.getY() >= -SwerveConstants.VISION_FIELD_MARGIN &&
+                            pose3d.getX() <= Constants.FIELD_WIDTH + SwerveConstants.VISION_FIELD_MARGIN
+                        ) &&
+                        (pose3d.getZ() >= -SwerveConstants.VISION_Z_MARGIN && pose3d.getZ() <= SwerveConstants.VISION_Z_MARGIN)
                     ) {
-                        poseEstimator.addVisionMeasurement(pose2d, pose.get().timestampSeconds);
+                        double sum = 0.0;
+                        for (PhotonTrackedTarget target : pose.get().targetsUsed) {
+                            Optional<Pose3d> tagPose = aprilTagLayout.getTagPose(target.getFiducialId());
+                            if (tagPose.isEmpty()) continue;
+                            sum += currentPose.getTranslation().getDistance(tagPose.get().getTranslation().toTranslation2d());
+                        }
+
+                        int tagCount = pose.get().targetsUsed.size();
+                        double stdScale = Math.pow(sum / tagCount, 2.0) / tagCount;
+                        double xyStd = SwerveConstants.VISION_STD_XY_SCALE * stdScale;
+                        double rotStd = SwerveConstants.VISION_STD_ROT_SCALE * stdScale;
+
+                        poseEstimator.addVisionMeasurement(pose2d, pose.get().timestampSeconds, VecBuilder.fill(xyStd, xyStd, rotStd));
                         field.getObject("PhotonVision/" + i).setPose(pose2d);
-                        return;
+                        continue;
                     }
                 }
 
@@ -373,19 +399,6 @@ public class Swerve extends SwerveBase {
                 yPIDAuto.reset();
                 rotPIDAuto.reset();
             });
-    }
-
-    /**
-     * While running, vision measurements outside of the allowed
-     * deviation will be applied. Useful for practicing where the robot
-     * is initialized at the wrong position, or if the robot has drifted
-     * too far from its actual pose.
-     */
-    public Command visionFallThrough() {
-        return new CommandBuilder("swerve.visionFallThrough()")
-            .onInitialize(() -> visionFallThrough = true)
-            .onEnd(() -> visionFallThrough = false)
-            .ignoringDisable(true);
     }
 
     /**
