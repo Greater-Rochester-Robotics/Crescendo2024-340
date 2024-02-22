@@ -111,7 +111,6 @@ public class Swerve extends SwerveBase {
         super("Swerve Drive", SwerveConstants.CONFIG);
         rotPID.setIZone(SwerveConstants.ROT_PID.iZone());
         rotPID.enableContinuousInput(-Math.PI, Math.PI);
-        resetOdometry(new Pose2d(0.5, 7.9, Math2.ROTATION2D_0));
 
         photonLastPoses = new Pose2d[photonPoseEstimators.length];
         for (int i = 0; i < photonLastPoses.length; i++) {
@@ -170,15 +169,22 @@ public class Swerve extends SwerveBase {
     }
 
     /**
-     * This command gets the distance of the current shot to the speaker.
-     * @return The distance in meters.
+     * Returns {@code true} if the robot is in the opponent's wing.
+     */
+    public boolean inOpponentWing() {
+        return getPosition().getX() > Constants.OPPONENT_WING_LINE;
+    }
+
+    /**
+     * Returns the distance from the speaker in meters, adjusted for the robot's movement.
      */
     public double getSpeakerDistance() {
         return getPosition().getTranslation().getDistance(getSpeakerPosition());
     }
 
     /**
-     * Gets a field-relative position for the shot to the speaker the robot should take.
+     * Gets a field-relative position for the shot to the speaker
+     * the robot should take, adjusted for the robot's movement.
      * @return A {@link Translation2d} representing a field relative position in meters.
      */
     public Translation2d getSpeakerPosition() {
@@ -191,7 +197,8 @@ public class Swerve extends SwerveBase {
     }
 
     /**
-     * Gets the angle for the robot to face to score in the speaker, in radians.
+     * Gets the angle for the robot to face to score in the speaker,
+     * in radians. Compensates for note drift caused by spin.
      */
     private double getSpeakerAngle() {
         Translation2d speakerPosition = getSpeakerPosition();
@@ -210,20 +217,6 @@ public class Swerve extends SwerveBase {
     }
 
     /**
-     * Returns {@code true} if the robot is in the opponent's wing.
-     */
-    public boolean inOpponentWing() {
-        return getPosition().getX() > Constants.OPPONENT_WING_LINE;
-    }
-
-    public Command visionFallThrough() {
-        return new CommandBuilder("swerve.visionFallThrough()")
-            .onInitialize(() -> visionFallThrough = true)
-            .onEnd(() -> visionFallThrough = false)
-            .ignoringDisable(true);
-    }
-
-    /**
      * Zeroes the IMU to a specified yaw.
      */
     public Command zeroIMU(Rotation2d yaw) {
@@ -231,10 +224,10 @@ public class Swerve extends SwerveBase {
     }
 
     /**
-     * Drives the robot as a percent of its max velocity (inputs are from {@code -1.0} to {@code 1.0}).
-     * @param x X speed.
-     * @param y Y speed.
-     * @param rot Rotational speed.
+     * Drives the robot.
+     * @param x The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
+     * @param y The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
+     * @param rot The desired rotational speed from {@code -1.0} to {@code 1.0}.
      * @param fieldRelative If the robot should drive field relative.
      */
     public Command drive(Supplier<Double> x, Supplier<Double> y, Supplier<Double> rot, boolean fieldRelative) {
@@ -276,6 +269,7 @@ public class Swerve extends SwerveBase {
      * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
      */
     public Command driveStage(Supplier<Double> x, Supplier<Double> y) {
+        // TODO Fix
         return commandBuilder("swerve.alignWithStage")
             .onInitialize(() -> rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
             .onExecute(() -> {
@@ -286,6 +280,37 @@ public class Swerve extends SwerveBase {
                 ) faceStageAngle = -Math.PI / 3; else faceStageAngle = Math.PI / 3;
 
                 driveAngle(x.get(), y.get(), faceStageAngle, rotPID, false);
+            });
+    }
+
+    /**
+     * Drives to a pose.
+     * @param pose The pose to drive to.
+     * @param willFinish If the command will finish after the robot has reached the pose.
+     */
+    private Command driveToPose(Pose2d pose, boolean willFinish) {
+        return commandBuilder("swerve.alignWithAmp")
+            .onInitialize(() -> {
+                Pose2d robotPose = getPosition();
+                ChassisSpeeds velocity = getVelocity(true);
+                xPID.reset(robotPose.getX(), velocity.vxMetersPerSecond);
+                yPID.reset(robotPose.getY(), velocity.vyMetersPerSecond);
+                rotPID.reset(robotPose.getRotation().getRadians(), velocity.omegaRadiansPerSecond);
+            })
+            .onExecute(() -> {
+                driveToPose(pose, xPID, yPID, rotPID, true);
+            })
+            .isFinished(() -> {
+                Pose2d robotPose = getPosition();
+                return (
+                    willFinish &&
+                    Math2.epsilonEquals(
+                        0.0,
+                        robotPose.getTranslation().getDistance(pose.getTranslation()),
+                        SwerveConstants.POSE_XY_ERROR
+                    ) &&
+                    Math2.epsilonEquals(0.0, robotPose.getRotation().minus(pose.getRotation()).getRadians(), SwerveConstants.POSE_ROT_ERROR)
+                );
             });
     }
 
@@ -351,6 +376,19 @@ public class Swerve extends SwerveBase {
     }
 
     /**
+     * While running, vision measurements outside of the allowed
+     * deviation will be applied. Useful for practicing where the robot
+     * is initialized at the wrong position, or if the robot has drifted
+     * too far from its actual pose.
+     */
+    public Command visionFallThrough() {
+        return new CommandBuilder("swerve.visionFallThrough()")
+            .onInitialize(() -> visionFallThrough = true)
+            .onEnd(() -> visionFallThrough = false)
+            .ignoringDisable(true);
+    }
+
+    /**
      * Runs a SysId quasistatic test.
      * @param direction The direction to run the test in.
      */
@@ -364,31 +402,5 @@ public class Swerve extends SwerveBase {
      */
     public Command sysIdDynamic(SysIdRoutine.Direction direction) {
         return sysIdRoutine.dynamic(direction);
-    }
-
-    private Command driveToPose(Pose2d pose, boolean willFinish) {
-        return commandBuilder("swerve.alignWithAmp")
-            .onInitialize(() -> {
-                Pose2d robotPose = getPosition();
-                ChassisSpeeds velocity = getVelocity(true);
-                xPID.reset(robotPose.getX(), velocity.vxMetersPerSecond);
-                yPID.reset(robotPose.getY(), velocity.vyMetersPerSecond);
-                rotPID.reset(robotPose.getRotation().getRadians(), velocity.omegaRadiansPerSecond);
-            })
-            .onExecute(() -> {
-                driveToPose(pose, xPID, yPID, rotPID, true);
-            })
-            .isFinished(() -> {
-                Pose2d robotPose = getPosition();
-                return (
-                    willFinish &&
-                    Math2.epsilonEquals(
-                        0.0,
-                        robotPose.getTranslation().getDistance(pose.getTranslation()),
-                        SwerveConstants.POSE_XY_ERROR
-                    ) &&
-                    Math2.epsilonEquals(0.0, robotPose.getRotation().minus(pose.getRotation()).getRadians(), SwerveConstants.POSE_ROT_ERROR)
-                );
-            });
     }
 }

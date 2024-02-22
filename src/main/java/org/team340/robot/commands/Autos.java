@@ -25,9 +25,9 @@ public class Autos {
 
     public static Command fourPiece(List<ChoreoTrajectory> traj) {
         return parallel(
-            Routines.prepShootSpeaker(swerve::getSpeakerDistance),
+            pivot.targetDistance(swerve::getSpeakerDistance),
             sequence(
-                deadline(swerve.followTrajectory(traj.get(0), true), intake.intakeDown()),
+                deadline(swerve.followTrajectory(traj.get(0), true), intake.downPosition()),
                 waitSeconds(1.0),
                 feeder.shootNote(),
                 parallel(
@@ -47,9 +47,9 @@ public class Autos {
 
     public static Command twoPieceFront(List<ChoreoTrajectory> traj) {
         return parallel(
-            Routines.prepShootSpeaker(swerve::getSpeakerDistance),
+            pivot.targetDistance(swerve::getSpeakerDistance),
             sequence(
-                deadline(swerve.followTrajectory(traj.get(0), true), intake.intakeDown()),
+                deadline(swerve.followTrajectory(traj.get(0), true), intake.downPosition()),
                 waitSeconds(1.0),
                 feeder.shootNote(),
                 parallel(intake.intake(), sequence(swerve.followTrajectory(traj.get(1)), feeder.shootNote().withTimeout(0.75)))
@@ -59,9 +59,9 @@ public class Autos {
 
     public static Command fourPieceRight(List<ChoreoTrajectory> traj) {
         return parallel(
-            Routines.prepShootSpeaker(swerve::getSpeakerDistance),
+            pivot.targetDistance(swerve::getSpeakerDistance),
             sequence(
-                deadline(swerve.followTrajectory(traj.get(0), 0.25, true), intake.intakeDown()),
+                deadline(swerve.followTrajectory(traj.get(0), 0.25, true), intake.downPosition()),
                 deadline(sequence(waitSeconds(0.8), feeder.shootNote().withTimeout(0.75)), swerve.driveSpeaker()),
                 deadline(sequence(swerve.followTrajectory(traj.get(1)), waitSeconds(0.5)), Routines.intake()),
                 swerve.followTrajectory(traj.get(2), 1.2),

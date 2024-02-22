@@ -28,7 +28,7 @@ public final class Robot extends TimedRobot {
         DriverStation.silenceJoystickConnectionWarning(true);
 
         DataLogManager.logNetworkTables(true);
-        GRRDashboard.initAsync(this, Constants.TELEMETRY_PERIOD, Constants.POWER_USAGE_PERIOD);
+        GRRDashboard.initSync(this, Constants.TELEMETRY_PERIOD, Constants.POWER_USAGE_PERIOD);
         RevConfigRegistry.init(this);
         RobotContainer.init();
     }

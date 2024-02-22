@@ -14,6 +14,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.Supplier;
 import org.team340.lib.GRRSubsystem;
+import org.team340.lib.util.Math2;
 import org.team340.robot.Constants.PivotConstants;
 import org.team340.robot.Constants.RobotMap;
 
@@ -25,17 +26,18 @@ public class Pivot extends GRRSubsystem {
     private final CANSparkFlex pivotMotor;
     private final RelativeEncoder pivotEncoder;
     private final SparkPIDController pivotPID;
-    private final DigitalInput lowerLimit;
+    private final DigitalInput limit;
 
-    private boolean hasBeenHomed = false;
-    private double currentTarget = 0.0;
+    private boolean isHomed = false;
+    private double maintain = 0.0;
+    private double target = 0.0;
 
     public Pivot() {
         super("Pivot");
         pivotMotor = createSparkFlex("Pivot Motor", RobotMap.SHOOTER_PIVOT_MOTOR, MotorType.kBrushless);
         pivotEncoder = pivotMotor.getEncoder();
         pivotPID = pivotMotor.getPIDController();
-        lowerLimit = createDigitalInput("Pivot Lower Limit", RobotMap.PIVOT_LOWER_LIMIT);
+        limit = createDigitalInput("Pivot Lower Limit", RobotMap.PIVOT_LOWER_LIMIT);
 
         PivotConstants.Configs.MOTOR.apply(pivotMotor);
         PivotConstants.Configs.PID.apply(pivotMotor, pivotPID);
@@ -45,141 +47,129 @@ public class Pivot extends GRRSubsystem {
     @Override
     public void initSendable(SendableBuilder builder) {
         super.initSendable(builder);
-        builder.addDoubleProperty("target", () -> Math.toDegrees(currentTarget), angle -> currentTarget = Math.toRadians(angle));
+        builder.addBooleanProperty("atLimit", this::getLimit, null);
+        builder.addBooleanProperty("isHomed", () -> isHomed, null);
+        builder.addDoubleProperty("maintain", () -> maintain, null);
+        builder.addDoubleProperty("target", () -> target, null);
+        builder.addBooleanProperty("safeForIntake", this::isSafeForIntake, null);
     }
 
     /**
-     * Checks if the lower limit switch is pressed.
-     * @return {@code true} if pressed.
+     * Returns {@code true} if the limit is pressed.
      */
-    private boolean getLowerLimit() {
-        return !lowerLimit.get();
+    private boolean getLimit() {
+        return !limit.get();
     }
 
+    /**
+     * Returns {@code true} if the pivot is at a safe position for the intake.
+     */
     public boolean isSafeForIntake() {
         return pivotEncoder.getPosition() <= PivotConstants.SAFE_FOR_INTAKE_ANGLE;
     }
 
     /**
-     * Checks if encoder position is within a set error of target.
-     * @return {@code true} if within closed loop error.
+     * Sets the {@link #pivotPID} to go to the specified position if it is valid
+     * (within the pivot {@link PivotConstants#MINIMUM_ANGLE minimum} and
+     * {@link PivotConstants#MAXIMUM_ANGLE maximum} angles).
+     * @param position The position to set.
      */
-    public boolean isOnTarget() {
-        return Math.abs(pivotEncoder.getPosition() - currentTarget) < PivotConstants.CLOSED_LOOP_ERR;
-    }
-
-    /**
-     * Checks if an angle is valid based on robot constraints.
-     * @param angle The angle.
-     * @return Returns {@code false} if the angle is invalid, {@code true} if valid.
-     */
-    private boolean isAngleValid(double angle) {
-        if (angle < PivotConstants.MINIMUM_ANGLE || angle > PivotConstants.MAXIMUM_ANGLE) {
+    private void setValidPosition(double position) {
+        if (position < PivotConstants.MINIMUM_ANGLE || position > PivotConstants.MAXIMUM_ANGLE) {
             DriverStation.reportWarning(
-                "Invalid shooter pivot angle. " +
-                angle +
-                " is not between " +
-                PivotConstants.MINIMUM_ANGLE +
+                "Invalid shooter pivot position. " +
+                Math2.toFixed(Math.toDegrees(position)) +
+                " degrees is not between " +
+                Math2.toFixed(Math.toDegrees(PivotConstants.MINIMUM_ANGLE)) +
                 " and " +
-                PivotConstants.MAXIMUM_ANGLE,
+                Math2.toFixed(Math.toDegrees(PivotConstants.MAXIMUM_ANGLE)),
                 false
             );
-            return false;
         } else {
-            return true;
+            pivotPID.setReference(position, ControlType.kPosition);
+            target = position;
         }
     }
 
     /**
-     * Homes the pivot by driving slowly down until reaching limit.
-     * @param withOverride If true will ignore {@code hasBeenHomed}.
+     * Homes the pivot using its limit switch. Doesn't home if the pivot
+     * has already been homed, unless {@code withOverride} is {@code true}.
+     * @param withOverride If {@code true}, ignores {@link #isHomed}.
      */
     public Command home(boolean withOverride) {
         return either(
-            commandBuilder("pivot.home(withOverride = " + withOverride + ")")
+            commandBuilder()
+                .onInitialize(() -> target = PivotConstants.MINIMUM_ANGLE)
                 .onExecute(() -> pivotMotor.set(PivotConstants.HOMING_SPEED))
-                .isFinished(() -> getLowerLimit())
+                .isFinished(() -> getLimit())
                 .onEnd(() -> {
                     pivotMotor.stopMotor();
-                    if (getLowerLimit()) {
+
+                    if (getLimit()) {
                         pivotEncoder.setPosition(PivotConstants.MINIMUM_ANGLE);
-                        hasBeenHomed = true;
+                        maintain = PivotConstants.MINIMUM_ANGLE;
+                        isHomed = true;
+                    } else {
+                        maintain = pivotEncoder.getPosition();
                     }
-                    currentTarget = pivotEncoder.getPosition();
                 }),
-            none().withName("pivot.home().fallthrough"),
-            () -> !hasBeenHomed || withOverride
+            none(),
+            () -> withOverride || !isHomed
         )
-            .withName("pivot.home()");
+            .withName("pivot.home(" + withOverride + ")");
     }
 
     /**
-     * Moves to an angle. The command will end after the target angle is reached.
-     * @param angle The angle that the arm pivots to.
+     * Uses the {@link PivotConstants#DISTANCE_MAP distance map} to
+     * automatically target the speaker using the supplied distance.
+     * @param distance A supplier that returns the distance to the speaker in meters.
      */
-    public Command goToAngle(double angle) {
-        return goToAngle(() -> angle, true).withName("pivot.goToAngle(" + angle + ")");
+    public Command targetDistance(Supplier<Double> distance) {
+        return goTo(() -> PivotConstants.DISTANCE_MAP.get(distance.get()), false).withName("pivot.targetDistance()");
     }
 
     /**
-     * Continuously moves to a supplied angle. The command will not end after the target angle is reached and will continue to update from supplier source.
-     * @param angle The angle supplier source that the arm pivots to.
+     * Moves to a position. Ends after the position is reached.
+     * @param position The position for the pivot to move to in radians.
      */
-    public Command goToAngle(Supplier<Double> angle) {
-        return goToAngle(angle, false).withName("pivot.goToAngle()");
+    public Command goTo(double position) {
+        return goTo(() -> position, true).withName("pivot.goTo(" + Math2.formatRadians(position) + ")");
     }
 
     /**
-     * This uses the {@link PivotConstants#DISTANCE_TO_ANGLE_MAP angle map} in constants to find
-     * the angle to put the pivot at based on the distance.
-     * @param distance This is used to find the angle.
-     * @return The angle the pivot should be at to shoot from that distance.
+     * Moves to supplied positions.
+     * @param position A supplier that returns a position to target in radians.
+     * @param willFinish If {@code true}, the command will end after the current target position is reached.
      */
-    public Command goToAngleWithDist(Supplier<Double> distance) {
-        return goToAngle(() -> PivotConstants.DISTANCE_TO_ANGLE_MAP.get(distance.get())).withName("goToAngleWithDist()");
-    }
-
-    /**
-     * Moves to an angle.
-     * @param angle The angle that the arm pivots to.
-     * @param willFinish If {@code true}, the command will end after the target angle is reached.
-     */
-    public Command goToAngle(Supplier<Double> angle, boolean willFinish) {
+    private Command goTo(Supplier<Double> position, boolean willFinish) {
         return home(false)
             .andThen(waitSeconds(0.1))
             .andThen(
-                commandBuilder("pivot.goToAngle().SmartMotion")
-                    .onExecute(() -> {
-                        double angleValue = angle.get();
-                        if (isAngleValid(angleValue)) {
-                            currentTarget = angleValue;
-                            pivotPID.setReference(angleValue, ControlType.kPosition);
-                        }
-                    })
+                commandBuilder()
+                    .onExecute(() -> setValidPosition(position.get()))
                     .isFinished(() ->
-                        (getLowerLimit() && pivotMotor.getAppliedOutput() - PivotConstants.AT_LIMIT_SPEED_ALLOWANCE <= 0.0) ||
-                        (willFinish && isOnTarget())
+                        (getLimit() && pivotMotor.getAppliedOutput() - PivotConstants.AT_LIMIT_SPEED_ALLOWANCE <= 0.0) ||
+                        (willFinish && Math.abs(pivotEncoder.getPosition() - position.get()) < PivotConstants.CLOSED_LOOP_ERR)
                     )
                     .onEnd(interrupted -> {
-                        if (interrupted || getLowerLimit()) {
-                            currentTarget = pivotEncoder.getPosition();
+                        if (interrupted || getLimit()) {
+                            maintain = pivotEncoder.getPosition();
                         } else {
-                            currentTarget = angle.get();
+                            maintain = position.get();
                         }
                     })
             )
-            .withName("pivot.goToAngle(," + willFinish + ")");
+            .withName("pivot.goTo(" + willFinish + ")");
     }
 
     /**
-     * Maintains the current angle. Does nothing if the pivot is not homed.
-     * @return This command.
+     * Maintains the last set position.
      */
     public Command maintainPosition() {
         return commandBuilder("pivot.maintainPosition()")
             .onExecute(() -> {
-                if (hasBeenHomed && isAngleValid(currentTarget)) {
-                    pivotPID.setReference(currentTarget, ControlType.kPosition);
+                if (isHomed) {
+                    setValidPosition(maintain);
                 } else {
                     pivotMotor.stopMotor();
                 }
@@ -187,8 +177,7 @@ public class Pivot extends GRRSubsystem {
     }
 
     /**
-     * This command sets the pivot motors to coast mode, and then back to break mode after it ends,
-     * it should be called when the robot is disabled.
+     * Should be called when disabled, and cancelled when enabled.
      */
     public Command onDisable() {
         return commandBuilder()

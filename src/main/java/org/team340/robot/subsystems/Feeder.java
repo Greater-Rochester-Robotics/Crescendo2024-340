@@ -60,10 +60,19 @@ public class Feeder extends GRRSubsystem {
     public Command receiveNote() {
         return commandBuilder()
             .onInitialize(() -> feedMotor.set(FeederConstants.INTAKE_SPEED))
-            // .isFinished(() -> hasNote())
+            .isFinished(() -> hasNote())
             .onEnd(() -> feedMotor.stopMotor())
-            // .onlyIf(() -> !hasNote())
+            .onlyIf(() -> !hasNote())
             .withName("feeder.receiveNote()");
+    }
+
+    /**
+     * Sets the feeder to receive a note through the shooter from the human player.
+     */
+    public Command intakeHuman() {
+        return commandBuilder("feeder.intakeHuman()")
+            .onInitialize(() -> feedMotor.set(FeederConstants.INTAKE_HUMAN_SPEED))
+            .onEnd(() -> feedMotor.stopMotor());
     }
 
     /**
@@ -114,15 +123,6 @@ public class Feeder extends GRRSubsystem {
     public Command barfBackward() {
         return commandBuilder("feeder.barfBackward()")
             .onInitialize(() -> feedMotor.set(FeederConstants.BARF_BACKWARD_SPEED))
-            .onEnd(() -> feedMotor.stopMotor());
-    }
-
-    /**
-     * Sets the feeder to receive a note through the shooter from the human player.
-     */
-    public Command intakeHuman() {
-        return commandBuilder("feeder.intakeHuman()")
-            .onInitialize(() -> feedMotor.set(FeederConstants.INTAKE_HUMAN_SPEED))
             .onEnd(() -> feedMotor.stopMotor());
     }
 

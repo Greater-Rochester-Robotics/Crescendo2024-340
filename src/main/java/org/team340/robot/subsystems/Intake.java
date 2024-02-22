@@ -16,6 +16,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import org.team340.lib.GRRSubsystem;
 import org.team340.lib.util.Math2;
 import org.team340.robot.Constants.IntakeConstants;
+import org.team340.robot.Constants.PivotConstants;
 import org.team340.robot.Constants.RobotMap;
 
 /**
@@ -61,69 +62,77 @@ public class Intake extends GRRSubsystem {
     public void initSendable(SendableBuilder builder) {
         super.initSendable(builder);
         builder.addDoubleProperty("armTarget", () -> armTarget, null);
+        builder.addDoubleProperty("armMaintain", () -> armMaintain, null);
         builder.addBooleanProperty("hasNote", this::hasNote, null);
     }
 
     /**
-     * RReturns {@code true} when the beam break detects a note.
+     * Returns {@code true} when the beam break detects a note.
      */
     public boolean hasNote() {
         return noteDetector.get();
     }
 
     /**
-     * Returns {@code true} if the intake arm is on target.
-     * @param targetAngle
-     * @return
+     * Returns {@code true} if the arm is at the specified position.
+     * @param position The position to check for in radians.
      */
-    private boolean armOnTarget(double targetAngle) {
-        return Math2.epsilonEquals(MathUtil.angleModulus(armEncoder.getPosition()), targetAngle, IntakeConstants.CLOSED_LOOP_ERROR);
+    private boolean atPosition(double position) {
+        return Math2.epsilonEquals(MathUtil.angleModulus(armEncoder.getPosition()), position, IntakeConstants.CLOSED_LOOP_ERROR);
     }
 
     /**
-     * Sets the {@link #armPID} to go to the specified angle if it is valid
+     * Sets the {@link #armPID} to go to the specified position if it is valid
      * (within the intake {@link IntakeConstants#MINIMUM_ANGLE minimum} and
      * {@link IntakeConstants#MAXIMUM_ANGLE maximum} angles).
-     * @param position The angle to set.
+     * @param position The position to set.
      */
     private void setValidPosition(double position) {
         if (position < IntakeConstants.MINIMUM_ANGLE || position > IntakeConstants.MAXIMUM_ANGLE) {
             DriverStation.reportWarning(
-                "The angle " +
-                position +
-                " is not valid. is must be within " +
-                IntakeConstants.MAXIMUM_ANGLE +
+                "Invalid intake arm position. " +
+                Math2.formatRadians(position) +
+                " degrees is not between " +
+                Math2.formatRadians(PivotConstants.MINIMUM_ANGLE) +
                 " and " +
-                IntakeConstants.MINIMUM_ANGLE +
-                ".",
-                true
+                Math2.formatRadians(PivotConstants.MAXIMUM_ANGLE),
+                false
             );
         } else {
-            armPID.setReference(position, ControlType.kPosition);
             armTarget = position;
+            if (
+                position < IntakeConstants.MINIMUM_PID_ANGLE &&
+                MathUtil.angleModulus(armEncoder.getPosition()) < IntakeConstants.MINIMUM_PID_ANGLE
+            ) {
+                armLeftMotor.stopMotor();
+            } else {
+                armPID.setReference(position, ControlType.kPosition);
+            }
         }
     }
 
-    private Command useState(double angle, double upperSpeed, double lowerSpeed, boolean willFinish) {
-        return commandBuilder()
+    /**
+     * Sets the state of the intake.
+     * @param position The position for the arm to move to in radians.
+     * @param upperSpeed The duty cycle of the upper roller.
+     * @param lowerSpeed The duty cycle of the lower roller.
+     * @param willFinish If {@code true}, the command will end after the arm reaches the specified angle.
+     */
+    private Command useState(double position, double upperSpeed, double lowerSpeed, boolean willFinish) {
+        return commandBuilder(
+            "intake.useState(" + Math2.formatRadians(position) + ", " + upperSpeed + ", " + lowerSpeed + ", " + willFinish + ")"
+        )
             .onInitialize(() -> {
                 rollerUpperMotor.set(upperSpeed);
                 rollerLowerMotor.set(lowerSpeed);
             })
             .onExecute(() -> {
-                if (
-                    angle < IntakeConstants.MINIMUM_PID_ANGLE &&
-                    MathUtil.angleModulus(armEncoder.getPosition()) < IntakeConstants.MINIMUM_PID_ANGLE
-                ) {
-                    armLeftMotor.stopMotor();
-                } else {
-                    setValidPosition(angle);
-                }
+                setValidPosition(position);
                 armMaintain = armEncoder.getPosition();
             })
-            .isFinished(() -> willFinish && armOnTarget(angle))
+            .isFinished(() -> willFinish && atPosition(position))
             .onEnd(interrupted -> {
-                if (!interrupted || armOnTarget(angle)) armMaintain = angle;
+                if (!interrupted || atPosition(position)) armMaintain = position;
                 rollerUpperMotor.stopMotor();
                 rollerLowerMotor.stopMotor();
                 armLeftMotor.stopMotor();
@@ -131,14 +140,49 @@ public class Intake extends GRRSubsystem {
     }
 
     /**
-     * This moves the intake down to the intake position, but doesn't start the rollers.
+     * Moves to the down position. Runs until the arm is at the position.
      */
-    public Command intakeDown() {
-        return useState(IntakeConstants.DOWN_POSITION, 0, 0, true).withName("intake.intakeDown()");
+    public Command downPosition() {
+        return useState(IntakeConstants.DOWN_POSITION, 0, 0, true).withName("intake.downPosition()");
     }
 
     /**
-     * Deploys the intake and runs the roller motors to intake a note.
+     * Moves to the retract position. Runs until the arm is at the position.
+     */
+    public Command retractPosition() {
+        return useState(IntakeConstants.RETRACT_POSITION, 0, 0, true).withName("intake.retractPosition()");
+    }
+
+    /**
+     * Moves to the safe position. Runs until the arm is at the position.
+     */
+    public Command safePosition() {
+        return useState(IntakeConstants.SAFE_POSITION, 0, 0, true).withName("intake.safePosition()");
+    }
+
+    /**
+     * Moves to the upright position. Runs until the arm is at the position.
+     */
+    public Command uprightPosition() {
+        return useState(IntakeConstants.UPRIGHT_POSITION, 0.0, 0.0, true).withName("intake.uprightPosition()");
+    }
+
+    /**
+     * Moves to the spit position. Runs until the arm is at the position.
+     */
+    public Command spitPosition() {
+        return useState(IntakeConstants.BARF_POSITION, 0, 0, true).withName("intake.spitPosition()");
+    }
+
+    /**
+     * Moves to the amp position. Runs until the arm is at the position.
+     */
+    public Command ampPosition() {
+        return useState(IntakeConstants.SCORE_AMP_POSITION, 0, 0, true).withName("intake.ampPosition()");
+    }
+
+    /**
+     * Intakes from the ground. Does not end.
      */
     public Command intake() {
         return useState(IntakeConstants.DOWN_POSITION, IntakeConstants.INTAKE_ROLLER_SPEED, IntakeConstants.INTAKE_ROLLER_SPEED * .6, false)
@@ -146,53 +190,7 @@ public class Intake extends GRRSubsystem {
     }
 
     /**
-     * This moves the intake arm to point straight up.
-     */
-    public Command retract() {
-        return useState(IntakeConstants.RETRACT_POSITION, 0, 0, true).withName("intake.retract()");
-    }
-
-    public Command toUprightPosition() {
-        return useState(IntakeConstants.UPRIGHT_POSITION, 0.0, 0.0, true);
-    }
-
-    /**
-     * Retracts the intake into the frame perimeter and stops the rollers.
-     */
-    public Command toSafePosition() {
-        return useState(IntakeConstants.SAFE_POSITION, 0, 0, true).withName("intake.toSafePosition()");
-    }
-
-    public Command toSpitPosition() {
-        return useState(IntakeConstants.SPIT_POSITION, 0, 0, true).withName("intake.toSpitPosition()");
-    }
-
-    /**
-     * This command moves the intake to the {@link IntakeConstants#SCORE_AMP_POSITION SCORE_AMP_POSITION}
-     * and ends once the position has been reached.
-     */
-    public Command scoreAmpPosition() {
-        return useState(IntakeConstants.SCORE_AMP_POSITION, 0, 0, true).withName("intake.scoreAmpPosition()");
-    }
-
-    /**
-     * This command moves the intake up, and then scores it with a delay. This doesn't bring it back down.
-     */
-    public Command scoreAmp() {
-        return scoreAmpPosition()
-            .andThen(
-                useState(
-                    IntakeConstants.SCORE_AMP_POSITION,
-                    IntakeConstants.SCORE_AMP_ROLLER_SPEED_UPPER,
-                    IntakeConstants.SCORE_AMP_ROLLER_SPEED_LOWER,
-                    false
-                )
-            )
-            .withName("intake.scoreAmp()");
-    }
-
-    /**
-     * This command spits using the {@link IntakeConstants#FROM_SHOOTER_ROLLER_SPEED slow roller speed}.
+     * Receives a note back from the shooter. Does not end.
      */
     public Command receiveFromShooter() {
         return useState(
@@ -205,16 +203,31 @@ public class Intake extends GRRSubsystem {
     }
 
     /**
-     * This spits the note out of the intake, this doesn't end of it's own accord.
+     * Scores in the amp. Does not end.
      */
-    public Command spit() {
-        return useState(IntakeConstants.SPIT_POSITION, IntakeConstants.SPIT_ROLLER_SPEED, IntakeConstants.SPIT_ROLLER_SPEED, false)
-            .withName("intake.spit()");
+    public Command scoreAmp() {
+        return ampPosition()
+            .andThen(
+                useState(
+                    IntakeConstants.SCORE_AMP_POSITION,
+                    IntakeConstants.SCORE_AMP_ROLLER_SPEED_UPPER,
+                    IntakeConstants.SCORE_AMP_ROLLER_SPEED_LOWER,
+                    false
+                )
+            )
+            .withName("intake.scoreAmp()");
     }
 
     /**
-     * This command maintains the position stored in {@link #armMaintain} unless it's null.
-     * It should only be null if the position hasn't been set yet.
+     * Spits the note out of the intake. Does not end.
+     */
+    public Command barf() {
+        return useState(IntakeConstants.BARF_POSITION, IntakeConstants.BARF_ROLLER_SPEED, IntakeConstants.BARF_ROLLER_SPEED, false)
+            .withName("intake.barf()");
+    }
+
+    /**
+     * Maintains the last set position of the arm.
      */
     public Command maintainPosition() {
         return commandBuilder("intake.maintainPosition()")
@@ -223,18 +236,11 @@ public class Intake extends GRRSubsystem {
                     MathUtil.angleModulus(armMaintain) < 0.0
                 ) armMaintain = 0.0;
             })
-            .onExecute(() -> {
-                if (armMaintain < IntakeConstants.MINIMUM_PID_ANGLE) {
-                    armLeftMotor.stopMotor();
-                } else {
-                    setValidPosition(armMaintain);
-                }
-            });
+            .onExecute(() -> setValidPosition(armMaintain));
     }
 
     /**
-     * This command sets the pivot motors to coast mode, and then back to break mode after it ends,
-     * it should be called when the robot is disabled.
+     * Should be called when disabled, and cancelled when enabled.
      */
     public Command onDisable() {
         return commandBuilder()

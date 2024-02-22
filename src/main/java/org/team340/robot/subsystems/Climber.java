@@ -33,6 +33,7 @@ public class Climber extends GRRSubsystem {
     private final SparkPIDController rightPID;
 
     private boolean isHomed = false;
+    private double target = 0.0;
 
     /**
      * Create the climber subsystem.
@@ -64,6 +65,7 @@ public class Climber extends GRRSubsystem {
         builder.addBooleanProperty("atLeftLimit", this::getLeftLimit, null);
         builder.addBooleanProperty("atRightLimit", this::getRightLimit, null);
         builder.addBooleanProperty("isHomed", () -> isHomed, null);
+        builder.addDoubleProperty("target", () -> target, null);
     }
 
     /**
@@ -81,11 +83,14 @@ public class Climber extends GRRSubsystem {
     }
 
     /**
-     * Homes the climber arms using their limit switch.
+     * Homes the climber arms using their limit switch. Doesn't home if the climber
+     * has already been homed, unless {@code withOverride} is {@code true}.
+     * @param withOverride If {@code true}, ignores {@link #isHomed}.
      */
     public Command home(boolean withOverride) {
         return either(
             commandBuilder()
+                .onInitialize(() -> target = ClimberConstants.MAX_POS)
                 .onExecute(() -> {
                     if (!getLeftLimit()) {
                         leftMotor.set(ClimberConstants.ZEROING_SPEED);
@@ -126,6 +131,7 @@ public class Climber extends GRRSubsystem {
             sequence(
                 home(false),
                 commandBuilder()
+                    .onInitialize(() -> target = position)
                     .onExecute(() -> {
                         double difference = leftEncoder.getPosition() - rightEncoder.getPosition();
                         leftPID.setReference(position - (difference * ClimberConstants.BALANCE_COMPENSATION), ControlType.kPosition);

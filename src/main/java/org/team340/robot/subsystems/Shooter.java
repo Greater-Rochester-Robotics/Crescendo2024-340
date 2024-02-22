@@ -44,9 +44,9 @@ public class Shooter extends GRRSubsystem {
     private final MutableMeasure<Angle> sysIdPosition = mutable(Rotations.of(0));
     private final MutableMeasure<Velocity<Angle>> sysIdVelocity = mutable(RotationsPerSecond.of(0));
 
-    private boolean pidActive = false;
     private double leftTargetSpeed = 0.0;
     private double rightTargetSpeed = 0.0;
+    private boolean pidActive = false;
 
     public Shooter() {
         super("Shooter");
@@ -106,16 +106,28 @@ public class Shooter extends GRRSubsystem {
         ShooterConstants.Configs.PID.apply(rightShootMotor, rightShootPID);
     }
 
+    @Override
     public void initSendable(SendableBuilder builder) {
         super.initSendable(builder);
+        builder.addBooleanProperty("atSpeed", this::atSpeed, null);
         builder.addDoubleProperty("leftTarget", () -> leftTargetSpeed, null);
         builder.addDoubleProperty("rightTarget", () -> rightTargetSpeed, null);
         builder.addBooleanProperty("pidActive", () -> pidActive, null);
     }
 
     /**
-     * This starts running the shooter motors to their respective speeds.
-     * @param speed This is speed the right motor will be set to with the left motor set to {@link ShooterConstants#RIGHT_TO_LEFT_RATIO} times this.
+     * Returns {@code true} if the shooter is at speed.
+     */
+    public boolean atSpeed() {
+        return (
+            Math2.epsilonEquals(leftTargetSpeed, leftEncoder.getVelocity(), ShooterConstants.SPEED_TOLERANCE) &&
+            Math2.epsilonEquals(rightTargetSpeed, rightEncoder.getVelocity(), ShooterConstants.SPEED_TOLERANCE)
+        );
+    }
+
+    /**
+     * Applies a specified speed to the shooter.
+     * @param speed The speed in RPM to be applied to the left motor, which is scaled by {@link ShooterConstants#RIGHT_TO_LEFT_RATIO} and applied to the right motor.
      */
     private void applySpeed(double speed) {
         double leftSpeed = speed;
@@ -141,51 +153,70 @@ public class Shooter extends GRRSubsystem {
     }
 
     /**
-     * This method checks if the speed of the shooter motors is within a tolerance of the setpoint.
-     * @return whether the shooter motors have reached their setpoints.
+     * Uses the {@link ShooterConstants#DISTANCE_MAP distance map} to
+     * automatically target the speaker using the supplied distance.
+     * Does not end.
+     * @param distance A supplier that returns the distance to the speaker in meters.
      */
-    public boolean hasReachedSpeed() {
-        return (
-            Math2.epsilonEquals(leftTargetSpeed, leftEncoder.getVelocity(), ShooterConstants.SPEED_TOLERANCE) &&
-            Math2.epsilonEquals(rightTargetSpeed, rightEncoder.getVelocity(), ShooterConstants.SPEED_TOLERANCE)
-        );
+    public Command targetDistance(Supplier<Double> distance) {
+        return targetDistance(distance, 0.0, () -> false).withName("shooter.targetDistance()");
     }
 
     /**
-     * Sets the speed of the shooter.
-     * @param shooterSpeed This is the speed to drive the shooter at.
+     * Uses the {@link ShooterConstants#DISTANCE_MAP distance map} to
+     * automatically target the speaker using the supplied distance.
+     * If the idle supplier is {@code true}, the {@code idleSpeed} is used instead.
+     * Does not end.
+     * @param distance A supplier that returns the distance to the speaker in meters.
+     * @param idleSpeed The speed for the shooter to target in RPM while the idle supplier is {@code true}.
+     * @param idle A supplier that while {@code true} will set the shooter to target the specified idle speed.
      */
-    public Command setSpeed(double shooterSpeed) {
-        return setSpeed(() -> shooterSpeed).withName("shooter.setSpeed(" + shooterSpeed + ")");
+    public Command targetDistance(Supplier<Double> distance, double idleSpeed, Supplier<Boolean> idle) {
+        return setSpeed(() -> idle.get() ? idleSpeed : ShooterConstants.DISTANCE_MAP.get(distance.get()))
+            .withName("shooter.targetDistance(idleSpeed: " + idleSpeed + ")");
     }
 
     /**
-     * Sets the speed of the shooter.
-     * @param shooterSpeed This is the speed to drive the shooter at.
+     * Sets the speed of the shooter. Does not end.
+     * @param speed The speed for the shooter to target in RPM.
      */
-    public Command setSpeed(Supplier<Double> shooterSpeed) {
-        return commandBuilder("shooter.setShootSpeed()")
-            .onExecute(() -> applySpeed(shooterSpeed.get()))
+    public Command setSpeed(double speed) {
+        return setSpeed(() -> speed).withName("shooter.setSpeed(" + speed + ")");
+    }
+
+    /**
+     * Sets the speed of the shooter. Does not end.
+     * @param speed A supplier that returns a speed for the shooter to target in RPM.
+     */
+    public Command setSpeed(Supplier<Double> speed) {
+        return commandBuilder("shooter.setSpeed()")
+            .onExecute(() -> applySpeed(speed.get()))
             .onEnd(() -> {
                 leftShootMotor.stopMotor();
                 rightShootMotor.stopMotor();
             });
     }
 
-    public Command setSpeedWithDist(Supplier<Double> distanceToTarget) {
-        return setSpeedWithDist(distanceToTarget, 0.0, () -> false);
-    }
-
-    public Command setSpeedWithDist(Supplier<Double> distanceToTarget, double idleSpeed, Supplier<Boolean> idle) {
-        return setSpeed(() -> idle.get() ? idleSpeed : ShooterConstants.DISTANCE_TO_SPEED_MAP.get(distanceToTarget.get()))
-            .withName("shooter.setSpeed()");
+    /**
+     * Sets the shooter to receive a note from the human player.
+     */
+    public Command intakeHuman() {
+        return commandBuilder("shooter.intakeHuman()")
+            .onInitialize(() -> {
+                leftShootMotor.set(ShooterConstants.LEFT_INTAKE_HUMAN_SPEED);
+                rightShootMotor.set(ShooterConstants.RIGHT_INTAKE_HUMAN_SPEED);
+            })
+            .onEnd(() -> {
+                leftShootMotor.stopMotor();
+                rightShootMotor.stopMotor();
+            });
     }
 
     /**
-     * Spits the note out of the shooter in case it is stuck.
+     * Spits the note out of the shooter.
      */
-    public Command spitFront() {
-        return commandBuilder("shooter.spitFront()")
+    public Command barfForward() {
+        return commandBuilder("shooter.barfForward()")
             .onInitialize(() -> {
                 leftShootMotor.set(ShooterConstants.LEFT_SPIT_SPEED_FRONT);
                 rightShootMotor.set(ShooterConstants.RIGHT_SPIT_SPEED_FRONT);
@@ -196,23 +227,14 @@ public class Shooter extends GRRSubsystem {
             });
     }
 
-    public Command spitBack() {
-        return commandBuilder("shooter.spitBack()")
+    /**
+     * Spits the note back towards the feeder.
+     */
+    public Command barfBackward() {
+        return commandBuilder("shooter.barfBackward()")
             .onInitialize(() -> {
                 leftShootMotor.set(ShooterConstants.LEFT_SPIT_SPEED_BACK);
                 rightShootMotor.set(ShooterConstants.RIGHT_SPIT_SPEED_BACK);
-            })
-            .onEnd(() -> {
-                leftShootMotor.stopMotor();
-                rightShootMotor.stopMotor();
-            });
-    }
-
-    public Command intakeHuman() {
-        return commandBuilder("shooter.intakeFromHuman()")
-            .onInitialize(() -> {
-                leftShootMotor.set(ShooterConstants.LEFT_INTAKE_HUMAN_SPEED);
-                rightShootMotor.set(ShooterConstants.RIGHT_INTAKE_HUMAN_SPEED);
             })
             .onEnd(() -> {
                 leftShootMotor.stopMotor();

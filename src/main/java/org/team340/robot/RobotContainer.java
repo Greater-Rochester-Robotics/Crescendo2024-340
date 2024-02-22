@@ -85,9 +85,9 @@ public final class RobotContainer {
      * arbitrary predicate or from controllers) and their bindings.
      */
     private static void configBindings() {
-        shooter.setDefaultCommand(shooter.setSpeedWithDist(swerve::getSpeakerDistance, 2000.0, swerve::inOpponentWing));
-        pivot.setDefaultCommand(pivot.maintainPosition());
         intake.setDefaultCommand(intake.maintainPosition());
+        pivot.setDefaultCommand(pivot.maintainPosition());
+        shooter.setDefaultCommand(shooter.targetDistance(swerve::getSpeakerDistance, 2000.0, swerve::inOpponentWing));
         swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
 
         Routines.onDisable().schedule();
@@ -98,7 +98,7 @@ public final class RobotContainer {
          */
 
         // A => Intake (Tap = Down, Hold = Run roller)
-        driver.a().whileTrue(Routines.intake()).onFalse(parallel(feeder.seatNote(), intake.toSafePosition()));
+        driver.a().whileTrue(Routines.intake()).onFalse(parallel(feeder.seatNote(), intake.safePosition()));
 
         // B => Intake from Human Player (Hold)
         driver
@@ -107,25 +107,21 @@ public final class RobotContainer {
             .onFalse(
                 parallel(
                     shooter.setSpeed(0).withTimeout(2.0),
-                    parallel(pivot.goToAngle(0.0), waitUntil(pivot::isSafeForIntake)).andThen(intake.toSafePosition())
+                    parallel(pivot.goTo(0.0), waitUntil(pivot::isSafeForIntake)).andThen(intake.safePosition())
                 )
             );
 
         // X => Amp Score (Hold)
-        driver.x().whileTrue(Routines.prepScoreAmp());
+        driver.x().whileTrue(Routines.scoreAmp());
 
         // Y => Shoot (Tap)
         driver.y().whileTrue(feeder.shootNote());
 
         // Right Joystick Up => Protect intake
-        // driver.rightJoystickUp().onTrue(intake.retract());
-        driver.rightJoystickUp().whileTrue(climber.toPosition(115.0));
+        driver.rightJoystickUp().onTrue(intake.retractPosition());
 
         // Right Joystick Down => Intake down
-        // driver.rightJoystickDown().onTrue(intake.toSafePosition());
-        driver.rightJoystickDown().whileTrue(climber.toPosition(2.0));
-
-        driver.rightJoystickRight().whileTrue(climber.home(true));
+        driver.rightJoystickDown().onTrue(intake.safePosition());
 
         // Right Bumper => Target Speaker (Hold)
         driver
@@ -133,7 +129,7 @@ public final class RobotContainer {
             .whileTrue(
                 parallel(
                     swerve.driveSpeaker(RobotContainer::getDriveX, RobotContainer::getDriveY),
-                    pivot.goToAngleWithDist(swerve::getSpeakerDistance)
+                    pivot.targetDistance(swerve::getSpeakerDistance)
                 )
             );
 
@@ -141,10 +137,10 @@ public final class RobotContainer {
         driver.leftBumper().whileTrue(swerve.driveStage(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
         // POV Up => Barf Backwards
-        driver.povUp().whileTrue(Routines.spitBack());
+        driver.povUp().whileTrue(Routines.barfBackward());
 
         // POV Down => Barf Forward
-        driver.povDown().whileTrue(Routines.spitFront());
+        driver.povDown().whileTrue(Routines.barfForward());
 
         // POV Left => Zero swerve
         driver.povLeft().onTrue(swerve.zeroIMU(Math2.ROTATION2D_0));

@@ -126,6 +126,78 @@ public final class Constants {
         public static final int INTAKE_NOTE_DETECTOR = 9;
     }
 
+    public static final class ClimberConstants {
+
+        public static final double REL_ENC_CONVERSION = 1; // (125 * 12 * 0.25); // 1 / (gear ratio * sprocket teeth * inches/tooth)
+        public static final double CLOSED_LOOP_ERR = 0.125;
+        public static final double ZEROING_SPEED = 0.5;
+
+        public static final double MAX_POS = 120.0;
+        public static final double MIN_POS = 0.0;
+
+        public static final double BALANCE_COMPENSATION = 0.0;
+
+        public static final class Configs {
+
+            public static final SparkMaxConfig MOTOR = new SparkMaxConfig()
+                .clearFaults()
+                .restoreFactoryDefaults()
+                .enableVoltageCompensation(VOLTAGE)
+                .setSmartCurrentLimit(60)
+                .setIdleMode(IdleMode.kBrake)
+                .setInverted(true)
+                .setClosedLoopRampRate(1.5)
+                .setOpenLoopRampRate(1.5);
+            // .setSoftLimit(SoftLimitDirection.kForward, (float) ClimberConstants.MAX_POS)
+            // .enableSoftLimit(SoftLimitDirection.kForward, true);
+
+            public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
+                .setPID(0.1, 0.0, 0.04)
+                .setOutputRange(-0.5, 0.5);
+
+            public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
+                .setPositionConversionFactor(REL_ENC_CONVERSION)
+                .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
+
+            public static final SparkLimitSwitchConfig LIMIT = new SparkLimitSwitchConfig().enableLimitSwitch(true);
+        }
+    }
+
+    public static final class FeederConstants {
+
+        public static final double SHOOT_DELAY = 0.5;
+
+        public static final double INTAKE_SPEED = 0.5;
+        public static final double IN_SLOW_SPEED = 0.05;
+        public static final double POSITION_OFFSET = 2.357;
+        public static final double CLOSED_LOOP_ERR = 0.125;
+        public static final double SHOOT_SPEED = 1.0;
+        public static final double INTAKE_HUMAN_SPEED = -0.25;
+        public static final double BARF_FORWARD_SPEED = -0.5;
+        public static final double BARF_BACKWARD_SPEED = 0.5;
+
+        public static final double REL_ENC_CONVERSION = 1.0; // 1 / ((30 / 64) * 1.4 * Math.PI); // 1 / (gear ratio * roller diameter * pi)
+
+        public static final class Configs {
+
+            public static final SparkMaxConfig MOTOR = new SparkMaxConfig()
+                .clearFaults()
+                .restoreFactoryDefaults()
+                .enableVoltageCompensation(VOLTAGE)
+                .setSmartCurrentLimit(30)
+                .setIdleMode(IdleMode.kBrake)
+                .setInverted(true)
+                .setClosedLoopRampRate(0.0)
+                .setOpenLoopRampRate(0.0);
+
+            public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
+                .setPositionConversionFactor(REL_ENC_CONVERSION)
+                .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
+
+            public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig().setPID(0.15, 0.0, 0.0);
+        }
+    }
+
     public static final class IntakeConstants {
 
         public static final double MINIMUM_ANGLE = 0.0;
@@ -139,12 +211,12 @@ public final class Constants {
         public static final double SAFE_POSITION = Math.toRadians(30.0);
         public static final double RETRACT_POSITION = Math.toRadians(65.0);
         public static final double UPRIGHT_POSITION = Math.toRadians(90.0);
-        public static final double SPIT_POSITION = Math.toRadians(10.0);
+        public static final double BARF_POSITION = Math.toRadians(10.0);
 
         public static final double SCORE_AMP_ROLLER_SPEED_UPPER = -0.5;
         public static final double SCORE_AMP_ROLLER_SPEED_LOWER = -0.1;
         public static final double INTAKE_ROLLER_SPEED = 0.9;
-        public static final double SPIT_ROLLER_SPEED = -0.5;
+        public static final double BARF_ROLLER_SPEED = -0.5;
         public static final double FROM_SHOOTER_ROLLER_SPEED = -0.25;
 
         public static final double AMP_SCORING_TIMEOUT = 2.0;
@@ -190,6 +262,64 @@ public final class Constants {
         }
     }
 
+    public static final class PivotConstants {
+
+        public static final double CLOSED_LOOP_ERR = Math.toRadians(0.015);
+
+        public static final double MINIMUM_ANGLE = 0.0;
+        public static final double MAXIMUM_ANGLE = Math.toRadians(89.0);
+        public static final double SAFE_FOR_INTAKE_ANGLE = Math.toRadians(60.0);
+        public static final double OPTIMAL_RECEIVE_NOTE_ANGLE = Math.toRadians(0.0);
+
+        public static final double HOMING_SPEED = -0.2;
+        public static final double AT_LIMIT_SPEED_ALLOWANCE = -0.025;
+
+        public static final double REL_ENC_CONVERSION = Math.toRadians(1.02432);
+
+        public static final class Configs {
+
+            public static final SparkFlexConfig MOTOR = new SparkFlexConfig()
+                .clearFaults()
+                .restoreFactoryDefaults()
+                .enableVoltageCompensation(VOLTAGE)
+                .setSmartCurrentLimit(60, 30)
+                .setIdleMode(IdleMode.kCoast)
+                .setInverted(true)
+                .setClosedLoopRampRate(0.25)
+                .setOpenLoopRampRate(0.25);
+
+            public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
+                .setPID(2.3, 0.004, 2.7)
+                .setIZone(Math.toRadians(2.0));
+
+            public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
+                .setPositionConversionFactor(REL_ENC_CONVERSION)
+                .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
+        }
+
+        public static final double SPIT_ANGLE = 0.0;
+
+        public static final InterpolatingDoubleTreeMap DISTANCE_MAP = new InterpolatingDoubleTreeMap();
+
+        static {
+            DISTANCE_MAP.put(1.44, Math.toRadians(55.0));
+            DISTANCE_MAP.put(1.61, Math.toRadians(52.0));
+            DISTANCE_MAP.put(1.99, Math.toRadians(48.0));
+            DISTANCE_MAP.put(2.34, Math.toRadians(42.0));
+            DISTANCE_MAP.put(2.87, Math.toRadians(35.0));
+            DISTANCE_MAP.put(3.34, Math.toRadians(32.0));
+            DISTANCE_MAP.put(3.92, Math.toRadians(29.0));
+            DISTANCE_MAP.put(4.28, Math.toRadians(27.0));
+            DISTANCE_MAP.put(5.32, Math.toRadians(23.0));
+            DISTANCE_MAP.put(5.82, Math.toRadians(21.75));
+            DISTANCE_MAP.put(6.55, Math.toRadians(20.7));
+            DISTANCE_MAP.put(6.87, Math.toRadians(19.76));
+            DISTANCE_MAP.put(7.55, Math.toRadians(18.0));
+            DISTANCE_MAP.put(8.88, Math.toRadians(16.9));
+            DISTANCE_MAP.put(9.71, Math.toRadians(16.88));
+        }
+    }
+
     public static final class ShooterConstants {
 
         public static final double SPEED_TOLERANCE = 40.0;
@@ -231,142 +361,12 @@ public final class Constants {
             public static final SysIdRoutine.Config SYSID = new SysIdRoutine.Config();
         }
 
-        public static final InterpolatingDoubleTreeMap DISTANCE_TO_SPEED_MAP = new InterpolatingDoubleTreeMap();
+        public static final InterpolatingDoubleTreeMap DISTANCE_MAP = new InterpolatingDoubleTreeMap();
 
         static {
-            DISTANCE_TO_SPEED_MAP.put(0.0, 3000.0);
-            DISTANCE_TO_SPEED_MAP.put(6.0, 6500.0);
-            DISTANCE_TO_SPEED_MAP.put(10.0, 7750.0);
-        }
-    }
-
-    public static final class FeederConstants {
-
-        public static final double SHOOT_DELAY = 0.5;
-
-        public static final double INTAKE_SPEED = 0.5;
-        public static final double IN_SLOW_SPEED = 0.05;
-        public static final double POSITION_OFFSET = 2.357;
-        public static final double CLOSED_LOOP_ERR = 0.125;
-        public static final double SHOOT_SPEED = 1.0;
-        public static final double INTAKE_HUMAN_SPEED = -0.25;
-        public static final double BARF_FORWARD_SPEED = -0.5;
-        public static final double BARF_BACKWARD_SPEED = 0.5;
-
-        public static final double REL_ENC_CONVERSION = 1.0; // 1 / ((30 / 64) * 1.4 * Math.PI); // 1 / (gear ratio * roller diameter * pi)
-
-        public static final class Configs {
-
-            public static final SparkMaxConfig MOTOR = new SparkMaxConfig()
-                .clearFaults()
-                .restoreFactoryDefaults()
-                .enableVoltageCompensation(VOLTAGE)
-                .setSmartCurrentLimit(30)
-                .setIdleMode(IdleMode.kBrake)
-                .setInverted(true)
-                .setClosedLoopRampRate(0.0)
-                .setOpenLoopRampRate(0.0);
-
-            public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
-                .setPositionConversionFactor(REL_ENC_CONVERSION)
-                .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
-
-            public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig().setPID(0.15, 0.0, 0.0);
-        }
-    }
-
-    public static final class PivotConstants {
-
-        public static final double CLOSED_LOOP_ERR = Math.toRadians(0.015);
-
-        public static final double MINIMUM_ANGLE = 0.0;
-        public static final double MAXIMUM_ANGLE = Math.toRadians(89.0);
-        public static final double SAFE_FOR_INTAKE_ANGLE = Math.toRadians(60.0);
-        public static final double OPTIMAL_RECEIVE_NOTE_ANGLE = Math.toRadians(0.0);
-
-        public static final double HOMING_SPEED = -0.2;
-        public static final double AT_LIMIT_SPEED_ALLOWANCE = -0.025;
-
-        public static final double REL_ENC_CONVERSION = Math.toRadians(1.02432);
-
-        public static final class Configs {
-
-            public static final SparkFlexConfig MOTOR = new SparkFlexConfig()
-                .clearFaults()
-                .restoreFactoryDefaults()
-                .enableVoltageCompensation(VOLTAGE)
-                .setSmartCurrentLimit(60, 30)
-                .setIdleMode(IdleMode.kCoast)
-                .setInverted(true)
-                .setClosedLoopRampRate(0.25)
-                .setOpenLoopRampRate(0.25);
-
-            public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
-                .setPID(2.3, 0.004, 2.7)
-                .setIZone(Math.toRadians(2.0));
-
-            public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
-                .setPositionConversionFactor(REL_ENC_CONVERSION)
-                .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
-        }
-
-        public static final InterpolatingDoubleTreeMap DISTANCE_TO_ANGLE_MAP = new InterpolatingDoubleTreeMap();
-
-        public static final double SPIT_ANGLE = 0.0;
-
-        static {
-            DISTANCE_TO_ANGLE_MAP.put(1.44, Math.toRadians(55.0));
-            DISTANCE_TO_ANGLE_MAP.put(1.61, Math.toRadians(52.0));
-            DISTANCE_TO_ANGLE_MAP.put(1.99, Math.toRadians(48.0));
-            DISTANCE_TO_ANGLE_MAP.put(2.34, Math.toRadians(42.0));
-            DISTANCE_TO_ANGLE_MAP.put(2.87, Math.toRadians(35.0));
-            DISTANCE_TO_ANGLE_MAP.put(3.34, Math.toRadians(32.0));
-            DISTANCE_TO_ANGLE_MAP.put(3.92, Math.toRadians(29.0));
-            DISTANCE_TO_ANGLE_MAP.put(4.28, Math.toRadians(27.0));
-            DISTANCE_TO_ANGLE_MAP.put(5.32, Math.toRadians(23.0));
-            DISTANCE_TO_ANGLE_MAP.put(5.82, Math.toRadians(21.75));
-            DISTANCE_TO_ANGLE_MAP.put(6.55, Math.toRadians(20.7));
-            DISTANCE_TO_ANGLE_MAP.put(6.87, Math.toRadians(19.76));
-            DISTANCE_TO_ANGLE_MAP.put(7.55, Math.toRadians(18.0));
-            DISTANCE_TO_ANGLE_MAP.put(8.88, Math.toRadians(16.9));
-            DISTANCE_TO_ANGLE_MAP.put(9.71, Math.toRadians(16.88));
-        }
-    }
-
-    public static final class ClimberConstants {
-
-        public static final double REL_ENC_CONVERSION = 1; // (125 * 12 * 0.25); // 1 / (gear ratio * sprocket teeth * inches/tooth)
-        public static final double CLOSED_LOOP_ERR = 0.125;
-        public static final double ZEROING_SPEED = 0.5;
-
-        public static final double MAX_POS = 120.0;
-        public static final double MIN_POS = 0.0;
-
-        public static final double BALANCE_COMPENSATION = 0.0;
-
-        public static final class Configs {
-
-            public static final SparkMaxConfig MOTOR = new SparkMaxConfig()
-                .clearFaults()
-                .restoreFactoryDefaults()
-                .enableVoltageCompensation(VOLTAGE)
-                .setSmartCurrentLimit(60)
-                .setIdleMode(IdleMode.kBrake)
-                .setInverted(true)
-                .setClosedLoopRampRate(1.5)
-                .setOpenLoopRampRate(1.5);
-            // .setSoftLimit(SoftLimitDirection.kForward, (float) ClimberConstants.MAX_POS)
-            // .enableSoftLimit(SoftLimitDirection.kForward, true);
-
-            public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
-                .setPID(0.1, 0.0, 0.04)
-                .setOutputRange(-0.5, 0.5);
-
-            public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
-                .setPositionConversionFactor(REL_ENC_CONVERSION)
-                .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
-
-            public static final SparkLimitSwitchConfig LIMIT = new SparkLimitSwitchConfig().enableLimitSwitch(true);
+            DISTANCE_MAP.put(0.0, 3000.0);
+            DISTANCE_MAP.put(6.0, 6500.0);
+            DISTANCE_MAP.put(10.0, 7750.0);
         }
     }
 

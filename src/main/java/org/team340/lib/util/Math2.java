@@ -177,6 +177,14 @@ public final class Math2 {
     }
 
     /**
+     * Converts radians to degrees and rounds to 3 decimal places.
+     * @param radians The radians to format.
+     */
+    public static double formatRadians(double radians) {
+        return toFixed(Math.toDegrees(radians));
+    }
+
+    /**
      * Definition of a 2D parametric function.
      */
     @FunctionalInterface
