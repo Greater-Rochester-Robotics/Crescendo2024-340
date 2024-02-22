@@ -125,7 +125,8 @@ public class Pivot extends GRRSubsystem {
      * @param distance A supplier that returns the distance to the speaker in meters.
      */
     public Command targetDistance(Supplier<Double> distance) {
-        return goTo(() -> PivotConstants.DISTANCE_MAP.get(distance.get()), false).withName("pivot.targetDistance()");
+        return goTo(() -> PivotConstants.DISTANCE_CALC.apply(distance.get()), false).withName("pivot.targetDistance()");
+        // return goTo(() -> PivotConstants.DISTANCE_MAP.get(distance.get()), false).withName("pivot.targetDistance()");
     }
 
     /**

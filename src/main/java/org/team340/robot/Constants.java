@@ -18,6 +18,7 @@ import edu.wpi.first.wpilibj.ADIS16470_IMU.CalibrationTime;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
 import edu.wpi.first.wpilibj.SPI.Port;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import java.util.function.Function;
 import org.team340.lib.controller.Controller2Config;
 import org.team340.lib.swerve.config.SwerveConfig;
 import org.team340.lib.swerve.config.SwerveModuleConfig;
@@ -300,6 +301,14 @@ public final class Constants {
         public static final double SPIT_ANGLE = 0.0;
 
         public static final InterpolatingDoubleTreeMap DISTANCE_MAP = new InterpolatingDoubleTreeMap();
+        public static final Function<Double, Double> DISTANCE_CALC = distance ->
+            Math.toRadians(
+                (0.0207779 * Math.pow(distance, 4)) -
+                (0.584447 * Math.pow(distance, 3)) +
+                (6.34432 * Math.pow(distance, 2)) -
+                (33.2306 * distance) +
+                91.7126
+            );
 
         static {
             DISTANCE_MAP.put(1.44, Math.toRadians(55.0));
