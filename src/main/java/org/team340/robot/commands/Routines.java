@@ -4,7 +4,7 @@ import static edu.wpi.first.wpilibj2.command.Commands.*;
 import static org.team340.robot.RobotContainer.*;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import org.team340.lib.util.Alliance;
+import org.team340.lib.util.Mutable;
 import org.team340.robot.Constants;
 
 // TODO Discuss bindings and what commands are needed
@@ -56,8 +56,11 @@ public class Routines {
      * Scores in the amp.
      */
     public static Command scoreAmp() {
+        Mutable<Boolean> approached = new Mutable<>(false);
         return sequence(
+            runOnce(() -> approached.set(false)),
             parallel(
+                swerve.approachAmp().finallyDo(() -> approached.set(true)),
                 sequence(
                     sequence(
                         parallel(
@@ -68,7 +71,6 @@ public class Routines {
                             intake.downPosition(),
                             deadline(
                                 sequence(waitUntil(() -> intake.hasNote() && !feeder.hasNote()), waitSeconds(0.1)),
-                                shooter.barfForward(),
                                 feeder.barfForward(),
                                 intake.receiveFromShooter()
                             )
@@ -76,11 +78,10 @@ public class Routines {
                     )
                         .unless(intake::hasNote),
                     intake.ampPosition(),
-                    intake.maintainPosition()
-                ),
-                swerve.driveAmp()
+                    intake.maintainPosition().until(approached::get)
+                )
             ),
-            parallel(intake.scoreAmp(), swerve.drive(() -> 0.0, () -> 0.025 * (Alliance.isBlue() ? -1.0 : 1.0), () -> 0.0, true))
+            parallel(swerve.scoreAmp(), sequence(waitSeconds(0.9), intake.scoreAmp()))
         )
             .withName("Routines.scoreAmp()");
     }
@@ -91,7 +92,7 @@ public class Routines {
     public static Command barfForward() {
         return sequence(
             parallel(pivot.goTo(Constants.PivotConstants.SPIT_ANGLE), intake.spitPosition()),
-            parallel(shooter.barfForward(), feeder.barfForward(), intake.barf())
+            parallel(feeder.barfForward(), intake.barf())
         )
             .withName("Routines.barfForward()");
     }
@@ -101,7 +102,7 @@ public class Routines {
      * @return
      */
     public static Command barfBackward() {
-        return parallel(shooter.barfBackward(), sequence(waitSeconds(0.25), parallel(feeder.barfBackward(), intake.intake())))
+        return parallel(shooter.barf(), sequence(waitSeconds(0.35), parallel(feeder.barfBackward(), intake.intake())))
             .withName("Routines.barfBackward()");
     }
 

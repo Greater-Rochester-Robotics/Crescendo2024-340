@@ -13,6 +13,7 @@ import com.revrobotics.SparkPIDController;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
+import java.util.function.Supplier;
 import org.team340.lib.GRRSubsystem;
 import org.team340.robot.Constants.ClimberConstants;
 import org.team340.robot.Constants.RobotMap;
@@ -146,6 +147,19 @@ public class Climber extends GRRSubsystem {
             () -> position >= ClimberConstants.MIN_POS && position <= ClimberConstants.MAX_POS
         )
             .withName("climber.toPosition(" + position + ")");
+    }
+
+    public Command driveManual(Supplier<Double> speed) {
+        return commandBuilder()
+            .onExecute(() -> {
+                double zoom = speed.get() * 0.3;
+                leftMotor.set(zoom);
+                rightMotor.set(zoom);
+            })
+            .onEnd(() -> {
+                leftMotor.stopMotor();
+                rightMotor.stopMotor();
+            });
     }
 
     /**

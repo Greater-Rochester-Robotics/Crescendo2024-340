@@ -134,13 +134,14 @@ public final class RobotContainer {
             );
 
         // Left Bumper => Face Stage (Hold)
-        driver.leftBumper().whileTrue(swerve.driveStage(RobotContainer::getDriveX, RobotContainer::getDriveY));
+        // driver.leftBumper().whileTrue(swerve.driveStage(RobotContainer::getDriveX, RobotContainer::getDriveY));
+        // driver.leftBumper().whileTrue(climber.driveManual(driver::getRightY));
 
         // POV Up => Barf Backwards
-        driver.povUp().whileTrue(Routines.barfBackward());
+        driver.povUp().whileTrue(Routines.barfForward());
 
         // POV Down => Barf Forward
-        driver.povDown().whileTrue(Routines.barfForward());
+        driver.povDown().whileTrue(Routines.barfBackward());
 
         // POV Left => Zero swerve
         driver.povLeft().onTrue(swerve.zeroIMU(Math2.ROTATION2D_0));

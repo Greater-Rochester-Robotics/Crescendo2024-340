@@ -11,6 +11,7 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.SparkAbsoluteEncoder;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -20,6 +21,9 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.math.trajectory.Trajectory;
+import edu.wpi.first.math.trajectory.TrajectoryConfig;
+import edu.wpi.first.math.trajectory.TrajectoryGenerator;
 import edu.wpi.first.units.Distance;
 import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.MutableMeasure;
@@ -32,6 +36,7 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism;
+import java.util.List;
 import java.util.function.Consumer;
 import org.team340.lib.GRRDashboard;
 import org.team340.lib.GRRSubsystem;
@@ -287,6 +292,28 @@ public abstract class SwerveBase extends GRRSubsystem {
     }
 
     /**
+     * Generates a trajectory using the configured constraints of the robot.
+     * @param points The points in the trajectory.
+     */
+    protected Trajectory generateTrajectory(Pose2d... points) {
+        return generateTrajectory(0.0, 0.0, points);
+    }
+
+    /**
+     * Generates a trajectory using the configured constraints of the robot.
+     * @param startVelocity The start velocity of the trajectory.
+     * @param endVelocity The end velocity of the trajectory.
+     * @param points The points in the trajectory.
+     */
+    protected Trajectory generateTrajectory(double startVelocity, double endVelocity, Pose2d... points) {
+        TrajectoryConfig trajectoryConfig = new TrajectoryConfig(config.getTrajectoryVelocity(), config.getTrajectoryAcceleration());
+        trajectoryConfig.setStartVelocity(startVelocity);
+        trajectoryConfig.setEndVelocity(endVelocity);
+        trajectoryConfig.setKinematics(kinematics);
+        return TrajectoryGenerator.generateTrajectory(List.of(points), trajectoryConfig);
+    }
+
+    /**
      * Drives the modules into an X formation to prevent the robot from moving.
      */
     protected void lockWheels() {
@@ -416,8 +443,8 @@ public abstract class SwerveBase extends GRRSubsystem {
      */
     protected void driveToPose(
         Pose2d pose,
-        ProfiledPIDController xController,
-        ProfiledPIDController yController,
+        PIDController xController,
+        PIDController yController,
         ProfiledPIDController rotController,
         boolean useIMU
     ) {

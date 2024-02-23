@@ -32,6 +32,8 @@ public class SwerveConfig {
     private double rotationalVelocity = -1.0;
     private double acceleration = -1.0;
     private double moduleRotationalVelocity = -1.0;
+    private double trajectoryVelocity = -1.0;
+    private double trajectoryAcceleration = -1.0;
     private double optimalVoltage = -1.0;
     private double moveCurrentLimit = -1.0;
     private double turnCurrentLimit = -1.0;
@@ -305,6 +307,31 @@ public class SwerveConfig {
     }
 
     /**
+     * Sets constraints for trajectory generation.
+     * @param trajectoryVelocity Max trajectory velocity in meters/second.
+     * @param trajectoryAcceleration Max trajectory acceleration in meters/second/second.
+     */
+    public SwerveConfig setTrajectoryConstraints(double trajectoryVelocity, double trajectoryAcceleration) {
+        this.trajectoryVelocity = trajectoryVelocity;
+        this.trajectoryAcceleration = trajectoryAcceleration;
+        return this;
+    }
+
+    /**
+     * Gets the configured maximum trajectory velocity in meters/second.
+     */
+    public double getTrajectoryVelocity() {
+        return trajectoryVelocity;
+    }
+
+    /**
+     * Gets te configured maximum trajectory acceleration in meters/second/second.
+     */
+    public double getTrajectoryAcceleration() {
+        return trajectoryAcceleration;
+    }
+
+    /**
      * Sets power properties.
      * @param optimalVoltage Optimal voltage to run at. Should be {@code 12}.
      * @param moveCurrentLimit A current limit in amps for move motors. This is typically {@code 40}.
@@ -534,6 +561,8 @@ public class SwerveConfig {
         if (rotationalVelocity == -1) throwMissing("Rotational Velocity");
         if (acceleration == -1) throwMissing("Acceleration");
         if (moduleRotationalVelocity == -1) throwMissing("Module Rotational Velocity");
+        if (trajectoryVelocity == -1) throwMissing("Trajectory Velocity");
+        if (trajectoryAcceleration == -1) throwMissing("Trajectory Acceleration");
         if (optimalVoltage == -1) throwMissing("Optimal Voltage");
         if (moveCurrentLimit == -1) throwMissing("Move Current Limit");
         if (turnCurrentLimit == -1) throwMissing("Turn Current Limit");

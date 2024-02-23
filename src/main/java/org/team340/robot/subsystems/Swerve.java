@@ -1,7 +1,6 @@
 package org.team340.robot.subsystems;
 
-import static edu.wpi.first.wpilibj2.command.Commands.either;
-import static edu.wpi.first.wpilibj2.command.Commands.sequence;
+import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 import com.choreo.lib.Choreo;
 import com.choreo.lib.ChoreoTrajectory;
@@ -9,6 +8,7 @@ import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.controller.HolonomicDriveController;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -16,7 +16,10 @@ import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.trajectory.Trajectory;
+import edu.wpi.first.math.trajectory.Trajectory.State;
 import edu.wpi.first.util.sendable.SendableBuilder;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import java.util.Optional;
@@ -37,12 +40,13 @@ import org.team340.robot.Constants.SwerveConstants;
  */
 public class Swerve extends SwerveBase {
 
-    private final PIDController xPIDAuto;
-    private final PIDController yPIDAuto;
-    private final PIDController rotPIDAuto;
+    private final PIDController xPIDTraj;
+    private final PIDController yPIDTraj;
+    private final PIDController rotPIDTraj;
+    private final ProfiledPIDController rotPIDTrajProfiled;
 
-    private final ProfiledPIDController xPID;
-    private final ProfiledPIDController yPID;
+    private final PIDController xPID;
+    private final PIDController yPID;
     private final ProfiledPIDController rotPID;
 
     public final AprilTagFieldLayout aprilTagLayout;
@@ -53,30 +57,27 @@ public class Swerve extends SwerveBase {
 
     private Pose3d speakerRotTarget = null;
 
+    private HolonomicDriveController trajController;
+
     /**
      * Create the swerve subsystem.
      */
     public Swerve() {
         super("Swerve Drive", SwerveConstants.CONFIG);
-        xPIDAuto = new PIDController(SwerveConstants.AUTO_XY_PID.p(), SwerveConstants.AUTO_XY_PID.i(), SwerveConstants.AUTO_XY_PID.d());
-        yPIDAuto = new PIDController(SwerveConstants.AUTO_XY_PID.p(), SwerveConstants.AUTO_XY_PID.i(), SwerveConstants.AUTO_XY_PID.d());
-        rotPIDAuto =
-            new PIDController(SwerveConstants.AUTO_ROT_PID.p(), SwerveConstants.AUTO_ROT_PID.i(), SwerveConstants.AUTO_ROT_PID.d());
+        xPIDTraj = new PIDController(SwerveConstants.TRAJ_XY_PID.p(), SwerveConstants.TRAJ_XY_PID.i(), SwerveConstants.TRAJ_XY_PID.d());
+        yPIDTraj = new PIDController(SwerveConstants.TRAJ_XY_PID.p(), SwerveConstants.TRAJ_XY_PID.i(), SwerveConstants.TRAJ_XY_PID.d());
+        rotPIDTraj =
+            new PIDController(SwerveConstants.TRAJ_ROT_PID.p(), SwerveConstants.TRAJ_ROT_PID.i(), SwerveConstants.TRAJ_ROT_PID.d());
+        rotPIDTrajProfiled =
+            new ProfiledPIDController(
+                SwerveConstants.TRAJ_ROT_PID.p(),
+                SwerveConstants.TRAJ_ROT_PID.i(),
+                SwerveConstants.TRAJ_ROT_PID.d(),
+                SwerveConstants.TRAJ_ROT_CONSTRAINTS
+            );
 
-        xPID =
-            new ProfiledPIDController(
-                SwerveConstants.XY_PID.p(),
-                SwerveConstants.XY_PID.i(),
-                SwerveConstants.XY_PID.d(),
-                SwerveConstants.XY_CONSTRAINTS
-            );
-        yPID =
-            new ProfiledPIDController(
-                SwerveConstants.XY_PID.p(),
-                SwerveConstants.XY_PID.i(),
-                SwerveConstants.XY_PID.d(),
-                SwerveConstants.XY_CONSTRAINTS
-            );
+        xPID = new PIDController(SwerveConstants.XY_PID.p(), SwerveConstants.XY_PID.i(), SwerveConstants.XY_PID.d());
+        yPID = new PIDController(SwerveConstants.XY_PID.p(), SwerveConstants.XY_PID.i(), SwerveConstants.XY_PID.d());
         rotPID =
             new ProfiledPIDController(
                 SwerveConstants.ROT_PID.p(),
@@ -85,11 +86,20 @@ public class Swerve extends SwerveBase {
                 SwerveConstants.ROT_CONSTRAINTS
             );
 
+        xPIDTraj.setIZone(SwerveConstants.TRAJ_XY_PID.iZone());
+        yPIDTraj.setIZone(SwerveConstants.TRAJ_XY_PID.iZone());
+        rotPIDTraj.setIZone(SwerveConstants.ROT_PID.iZone());
+        rotPIDTraj.enableContinuousInput(-Math.PI, Math.PI);
+        rotPIDTrajProfiled.setIZone(SwerveConstants.ROT_PID.iZone());
+        rotPIDTrajProfiled.enableContinuousInput(-Math.PI, Math.PI);
+        xPID.setIZone(SwerveConstants.XY_PID.iZone());
+        yPID.setIZone(SwerveConstants.XY_PID.iZone());
         rotPID.setIZone(SwerveConstants.ROT_PID.iZone());
         rotPID.enableContinuousInput(-Math.PI, Math.PI);
 
-        aprilTagLayout = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField();
+        trajController = new HolonomicDriveController(xPIDTraj, yPIDTraj, rotPIDTrajProfiled);
 
+        aprilTagLayout = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField();
         photonPoseEstimators =
             new PhotonPoseEstimator[] {
                 new PhotonPoseEstimator(
@@ -161,15 +171,12 @@ public class Swerve extends SwerveBase {
                     Pose3d pose3d = pose.get().estimatedPose;
                     Pose2d pose2d = pose3d.toPose2d();
                     if (
-                        (
-                            pose3d.getX() >= -SwerveConstants.VISION_FIELD_MARGIN &&
-                            pose3d.getX() <= Constants.FIELD_LENGTH + SwerveConstants.VISION_FIELD_MARGIN
-                        ) &&
-                        (
-                            pose3d.getY() >= -SwerveConstants.VISION_FIELD_MARGIN &&
-                            pose3d.getX() <= Constants.FIELD_WIDTH + SwerveConstants.VISION_FIELD_MARGIN
-                        ) &&
-                        (pose3d.getZ() >= -SwerveConstants.VISION_Z_MARGIN && pose3d.getZ() <= SwerveConstants.VISION_Z_MARGIN)
+                        pose3d.getX() >= -SwerveConstants.VISION_FIELD_MARGIN &&
+                        pose3d.getX() <= Constants.FIELD_LENGTH + SwerveConstants.VISION_FIELD_MARGIN &&
+                        pose3d.getY() >= -SwerveConstants.VISION_FIELD_MARGIN &&
+                        pose3d.getY() <= Constants.FIELD_WIDTH + SwerveConstants.VISION_FIELD_MARGIN &&
+                        pose3d.getZ() >= -SwerveConstants.VISION_Z_MARGIN &&
+                        pose3d.getZ() <= SwerveConstants.VISION_Z_MARGIN
                     ) {
                         double sum = 0.0;
                         for (PhotonTrackedTarget target : pose.get().targetsUsed) {
@@ -273,20 +280,26 @@ public class Swerve extends SwerveBase {
      * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
      */
     public Command driveSpeaker(Supplier<Double> x, Supplier<Double> y) {
-        return commandBuilder()
+        return commandBuilder("swerve.driveSpeaker()")
             .onInitialize(() -> rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
             .onExecute(() -> driveAngle(x.get(), y.get(), getSpeakerAngle(), rotPID, false));
+    }
+
+    public Command approachAmp() {
+        return either(trajectoryTo(SwerveConstants.AMP_APPROACH_BLUE), trajectoryTo(SwerveConstants.AMP_APPROACH_RED), Alliance::isBlue)
+            .withName("swerve.approachAmp()");
     }
 
     /**
      * Drives to the amp.
      */
-    public Command driveAmp() {
+    public Command scoreAmp() {
         return either(
-            sequence(driveToPose(SwerveConstants.AMP_APPROACH_BLUE, true), driveToPose(SwerveConstants.AMP_SCORE_BLUE, true)),
-            sequence(driveToPose(SwerveConstants.AMP_APPROACH_RED, true), driveToPose(SwerveConstants.AMP_SCORE_RED, true)),
+            sequence(trajectoryTo(SwerveConstants.AMP_SCORE_BLUE), pidTo(SwerveConstants.AMP_SCORE_BLUE)),
+            sequence(trajectoryTo(SwerveConstants.AMP_SCORE_RED), pidTo(SwerveConstants.AMP_SCORE_RED)),
             Alliance::isBlue
-        );
+        )
+            .withName("swerve.scoreAmp()");
     }
 
     /**
@@ -310,34 +323,28 @@ public class Swerve extends SwerveBase {
     }
 
     /**
-     * Drives to a pose.
-     * @param pose The pose to drive to.
-     * @param willFinish If the command will finish after the robot has reached the pose.
+     * Moves to a specified pose using PID. Does not end.
+     * @param pose The pose to translate to.
      */
-    private Command driveToPose(Pose2d pose, boolean willFinish) {
-        return commandBuilder("swerve.alignWithAmp")
+    public Command pidTo(Pose2d pose) {
+        return commandBuilder("swerve.pidTo(" + pose.toString() + ")")
             .onInitialize(() -> {
-                Pose2d robotPose = getPosition();
-                ChassisSpeeds velocity = getVelocity(true);
-                xPID.reset(robotPose.getX(), velocity.vxMetersPerSecond);
-                yPID.reset(robotPose.getY(), velocity.vyMetersPerSecond);
-                rotPID.reset(robotPose.getRotation().getRadians(), velocity.omegaRadiansPerSecond);
+                rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond);
+                xPID.reset();
+                yPID.reset();
             })
-            .onExecute(() -> {
-                driveToPose(pose, xPID, yPID, rotPID, true);
-            })
-            .isFinished(() -> {
-                Pose2d robotPose = getPosition();
-                return (
-                    willFinish &&
-                    Math2.epsilonEquals(
-                        0.0,
-                        robotPose.getTranslation().getDistance(pose.getTranslation()),
-                        SwerveConstants.POSE_XY_ERROR
-                    ) &&
-                    Math2.epsilonEquals(0.0, robotPose.getRotation().minus(pose.getRotation()).getRadians(), SwerveConstants.POSE_ROT_ERROR)
-                );
-            });
+            .onExecute(() -> driveToPose(pose, xPID, yPID, rotPID, false))
+            .onEnd(this::stop);
+    }
+
+    /**
+     * Moves to a specified pose by generating and following a trajectory.
+     * Ends after the trajectory is completed.
+     * @param pose The pose to translate to.
+     */
+    public Command trajectoryTo(Pose2d pose) {
+        return defer(() -> followTrajectory(generateTrajectory(getPosition(), pose)))
+            .withName("swerve.trajectoryTo(" + pose.toString() + ")");
     }
 
     /**
@@ -380,9 +387,9 @@ public class Swerve extends SwerveBase {
                 targetTime,
                 this::getSpeakerAngle,
                 rotPID,
-                xPIDAuto,
-                yPIDAuto,
-                rotPIDAuto,
+                xPIDTraj,
+                yPIDTraj,
+                rotPIDTraj,
                 speeds -> driveSpeeds(speeds, false, false),
                 Alliance::isRed,
                 this
@@ -395,9 +402,41 @@ public class Swerve extends SwerveBase {
                 }
 
                 rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond);
-                xPIDAuto.reset();
-                yPIDAuto.reset();
-                rotPIDAuto.reset();
+                xPIDTraj.reset();
+                yPIDTraj.reset();
+                rotPIDTraj.reset();
+            })
+            .withName("swerve.followTrajectory()");
+    }
+
+    /**
+     * Follows a trajectory.
+     * @param trajectory The trajectory to follow.
+     */
+    public Command followTrajectory(Trajectory trajectory) {
+        Timer timer = new Timer();
+        Rotation2d startRotation = trajectory.getInitialPose().getRotation();
+        Rotation2d endRotation = trajectory.getStates().get(trajectory.getStates().size() - 1).poseMeters.getRotation();
+        return commandBuilder("swerve.followTrajectory()")
+            .onInitialize(() -> {
+                rotPIDTrajProfiled.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond);
+                xPIDTraj.reset();
+                yPIDTraj.reset();
+                timer.restart();
+            })
+            .onExecute(() -> {
+                State goal = trajectory.sample(timer.get());
+                ChassisSpeeds speeds = trajController.calculate(
+                    getPosition(),
+                    goal,
+                    startRotation.interpolate(endRotation, timer.get() / trajectory.getTotalTimeSeconds())
+                );
+                driveSpeeds(speeds, false, false);
+            })
+            .isFinished(() -> timer.hasElapsed(trajectory.getTotalTimeSeconds()))
+            .onEnd(() -> {
+                timer.stop();
+                stop();
             });
     }
 
