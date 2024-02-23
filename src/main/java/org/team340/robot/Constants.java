@@ -66,10 +66,10 @@ public final class Constants {
     public static final class ControllerConstants {
 
         public static final double DRIVE_EXP = 1.0;
-        public static final double DRIVE_MULTIPLIER = 0.85;
-        public static final double DRIVE_MULTIPLIER_MODIFIED = 0.95;
+        public static final double DRIVE_MULTIPLIER = 0.9;
+        public static final double DRIVE_MULTIPLIER_MODIFIED = 0.975;
 
-        public static final double DRIVE_ROT_EXP = 2.0;
+        public static final double DRIVE_ROT_EXP = 2.5;
         public static final double DRIVE_ROT_MULTIPLIER = 0.4;
 
         public static final Controller2Config DRIVER = new Controller2Config()
