@@ -308,21 +308,46 @@ public final class Constants {
         public static final InterpolatingDoubleTreeMap DISTANCE_MAP = new InterpolatingDoubleTreeMap();
 
         static {
-            DISTANCE_MAP.put(1.44, Math.toRadians(55.0));
-            DISTANCE_MAP.put(1.61, Math.toRadians(52.0));
-            DISTANCE_MAP.put(1.99, Math.toRadians(48.0));
-            DISTANCE_MAP.put(2.34, Math.toRadians(42.0));
-            DISTANCE_MAP.put(2.87, Math.toRadians(35.0));
-            DISTANCE_MAP.put(3.34, Math.toRadians(32.0));
-            DISTANCE_MAP.put(3.92, Math.toRadians(29.0));
-            DISTANCE_MAP.put(4.28, Math.toRadians(27.0));
-            DISTANCE_MAP.put(5.32, Math.toRadians(23.0));
-            DISTANCE_MAP.put(5.82, Math.toRadians(21.75));
+            DISTANCE_MAP.put(1.31, Math.toRadians(59.01));
+            DISTANCE_MAP.put(1.53, Math.toRadians(52.90));
+            DISTANCE_MAP.put(1.81, Math.toRadians(46.82));
+            DISTANCE_MAP.put(2.09, Math.toRadians(42.10));
+            DISTANCE_MAP.put(2.09, Math.toRadians(42.10));
+            DISTANCE_MAP.put(2.71, Math.toRadians(37.76));
+            DISTANCE_MAP.put(2.83, Math.toRadians(35.65));
+            DISTANCE_MAP.put(3.05, Math.toRadians(33.54));
+            DISTANCE_MAP.put(3.16, Math.toRadians(33.38));
+            DISTANCE_MAP.put(3.45, Math.toRadians(31.25));
+            DISTANCE_MAP.put(4.09, Math.toRadians(27.74));
+            DISTANCE_MAP.put(4.40, Math.toRadians(26.46));
+            DISTANCE_MAP.put(4.44, Math.toRadians(26.39));
+            DISTANCE_MAP.put(4.60, Math.toRadians(25.72));
+            DISTANCE_MAP.put(4.84, Math.toRadians(23.27));
+            DISTANCE_MAP.put(5.07, Math.toRadians(23.15));
+            DISTANCE_MAP.put(5.38, Math.toRadians(21.75));
+            DISTANCE_MAP.put(5.63, Math.toRadians(21.12));
+            DISTANCE_MAP.put(5.94, Math.toRadians(20.39));
+            DISTANCE_MAP.put(6.38, Math.toRadians(19.61));
             DISTANCE_MAP.put(6.55, Math.toRadians(20.7));
             DISTANCE_MAP.put(6.87, Math.toRadians(19.76));
             DISTANCE_MAP.put(7.55, Math.toRadians(18.0));
             DISTANCE_MAP.put(8.88, Math.toRadians(16.9));
             DISTANCE_MAP.put(9.71, Math.toRadians(16.88));
+            // DISTANCE_MAP.put(1.44, Math.toRadians(55.0));
+            // DISTANCE_MAP.put(1.61, Math.toRadians(52.0));
+            // DISTANCE_MAP.put(1.99, Math.toRadians(48.0));
+            // DISTANCE_MAP.put(2.34, Math.toRadians(42.0));
+            // DISTANCE_MAP.put(2.87, Math.toRadians(35.0));
+            // DISTANCE_MAP.put(3.34, Math.toRadians(32.0));
+            // DISTANCE_MAP.put(3.92, Math.toRadians(29.0));
+            // DISTANCE_MAP.put(4.28, Math.toRadians(27.0));
+            // DISTANCE_MAP.put(5.32, Math.toRadians(23.0));
+            // DISTANCE_MAP.put(5.82, Math.toRadians(21.75));
+            // DISTANCE_MAP.put(6.55, Math.toRadians(20.7));
+            // DISTANCE_MAP.put(6.87, Math.toRadians(19.76));
+            // DISTANCE_MAP.put(7.55, Math.toRadians(18.0));
+            // DISTANCE_MAP.put(8.88, Math.toRadians(16.9));
+            // DISTANCE_MAP.put(9.71, Math.toRadians(16.88));
         }
     }
 
@@ -462,12 +487,12 @@ public final class Constants {
 
         public static final double NOTE_VELOCITY = 200.0;
         public static final double SPIN_COMPENSATION_X = 0.04;
-        public static final double SPIN_COMPENSATION_Y = 0.06;
+        public static final double SPIN_COMPENSATION_Y = 0.085;
     }
 
     public static final class FieldPositions {
 
-        public static final Translation2d BLUE_SPEAKER = new Translation2d(0.033, 5.634);
+        public static final Translation2d BLUE_SPEAKER = new Translation2d(0.033, 5.834);
         public static final Translation2d RED_SPEAKER = new Translation2d(BLUE_SPEAKER.getX(), FIELD_WIDTH - BLUE_SPEAKER.getY());
 
         public static final double SPEAKER_HEIGHT = 2.08;
