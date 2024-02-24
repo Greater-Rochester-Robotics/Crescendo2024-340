@@ -89,35 +89,35 @@ public class Intake extends GRRSubsystem {
      */
     private boolean atPosition(double position) {
         return (
-            Math2.epsilonEquals(MathUtil.angleModulus(armLeftEncoder.getPosition()), position, IntakeConstants.CLOSED_LOOP_ERROR) &&
-            Math2.epsilonEquals(MathUtil.angleModulus(armRightEncoder.getPosition()), position, IntakeConstants.CLOSED_LOOP_ERROR)
+            Math2.epsilonEquals(MathUtil.angleModulus(armLeftEncoder.getPosition()), position, IntakeConstants.CLOSED_LOOP_ERR) &&
+            Math2.epsilonEquals(MathUtil.angleModulus(armRightEncoder.getPosition()), position, IntakeConstants.CLOSED_LOOP_ERR)
         );
     }
 
     /**
      * Sets the {@link #armLeftPID arms' PIDs} to go to the specified position if it is valid
-     * (within the intake {@link IntakeConstants#MINIMUM_ANGLE minimum} and
-     * {@link IntakeConstants#MAXIMUM_ANGLE maximum} angles).
+     * (within the intake {@link IntakeConstants#MIN_POS minimum} and
+     * {@link IntakeConstants#MAX_POS maximum} angles).
      * @param position The position to set.
      */
     private void applyPosition(double position) {
-        if (position < IntakeConstants.MINIMUM_ANGLE || position > IntakeConstants.MAXIMUM_ANGLE) {
+        if (position < IntakeConstants.MIN_POS || position > IntakeConstants.MAX_POS) {
             DriverStation.reportWarning(
                 "Invalid intake arm position. " +
                 Math2.formatRadians(position) +
                 " degrees is not between " +
-                Math2.formatRadians(PivotConstants.MINIMUM_ANGLE) +
+                Math2.formatRadians(PivotConstants.MIN_POS) +
                 " and " +
-                Math2.formatRadians(PivotConstants.MAXIMUM_ANGLE),
+                Math2.formatRadians(PivotConstants.MAX_POS),
                 false
             );
         } else {
             armTarget = position;
             if (
-                position < IntakeConstants.MINIMUM_PID_ANGLE &&
+                position < IntakeConstants.PID_INACTIVE_POSITION &&
                 (
-                    MathUtil.angleModulus(armLeftEncoder.getPosition()) < IntakeConstants.MINIMUM_PID_ANGLE ||
-                    MathUtil.angleModulus(armRightEncoder.getPosition()) < IntakeConstants.MINIMUM_PID_ANGLE
+                    MathUtil.angleModulus(armLeftEncoder.getPosition()) < IntakeConstants.PID_INACTIVE_POSITION ||
+                    MathUtil.angleModulus(armRightEncoder.getPosition()) < IntakeConstants.PID_INACTIVE_POSITION
                 )
             ) {
                 armLeftMotor.stopMotor();
@@ -166,17 +166,17 @@ public class Intake extends GRRSubsystem {
     }
 
     /**
-     * Moves to the retract position. Runs until the arm is at the position.
-     */
-    public Command retractPosition() {
-        return useState(IntakeConstants.RETRACT_POSITION, 0, 0, true).withName("intake.retractPosition()");
-    }
-
-    /**
      * Moves to the safe position. Runs until the arm is at the position.
      */
     public Command safePosition() {
         return useState(IntakeConstants.SAFE_POSITION, 0, 0, true).withName("intake.safePosition()");
+    }
+
+    /**
+     * Moves to the retract position. Runs until the arm is at the position.
+     */
+    public Command retractPosition() {
+        return useState(IntakeConstants.RETRACT_POSITION, 0, 0, true).withName("intake.retractPosition()");
     }
 
     /**
@@ -187,38 +187,33 @@ public class Intake extends GRRSubsystem {
     }
 
     /**
-     * Moves to the spit position. Runs until the arm is at the position.
+     * Moves to the barf position. Runs until the arm is at the position.
      */
-    public Command spitPosition() {
-        return useState(IntakeConstants.BARF_POSITION, 0, 0, true).withName("intake.spitPosition()");
+    public Command barfPosition() {
+        return useState(IntakeConstants.BARF_POSITION, 0, 0, true).withName("intake.barfPosition()");
     }
 
     /**
      * Moves to the amp position. Runs until the arm is at the position.
      */
     public Command ampPosition() {
-        return useState(IntakeConstants.SCORE_AMP_POSITION, 0, 0, true).withName("intake.ampPosition()");
+        return useState(IntakeConstants.AMP_POSITION, 0, 0, true).withName("intake.ampPosition()");
     }
 
     /**
      * Intakes from the ground. Does not end.
      */
     public Command intake() {
-        return useState(IntakeConstants.DOWN_POSITION, IntakeConstants.INTAKE_ROLLER_SPEED, IntakeConstants.INTAKE_ROLLER_SPEED * .6, false)
+        return useState(IntakeConstants.DOWN_POSITION, IntakeConstants.INTAKE_SPEED, IntakeConstants.INTAKE_SPEED * .6, false)
             .withName("intake.intake()");
     }
 
     /**
-     * Receives a note back from the shooter. Does not end.
+     * Receives a note back from the shooter for amp scoring. Does not end.
      */
-    public Command receiveFromShooter() {
-        return useState(
-            IntakeConstants.DOWN_POSITION,
-            IntakeConstants.FROM_SHOOTER_ROLLER_SPEED,
-            IntakeConstants.FROM_SHOOTER_ROLLER_SPEED,
-            false
-        )
-            .withName("intake.receiveFromShooter()");
+    public Command ampHandoff() {
+        return useState(IntakeConstants.DOWN_POSITION, IntakeConstants.AMP_HANDOFF_SPEED, IntakeConstants.AMP_HANDOFF_SPEED, false)
+            .withName("intake.ampHandoff()");
     }
 
     /**
@@ -226,14 +221,7 @@ public class Intake extends GRRSubsystem {
      */
     public Command scoreAmp() {
         return ampPosition()
-            .andThen(
-                useState(
-                    IntakeConstants.SCORE_AMP_POSITION,
-                    IntakeConstants.SCORE_AMP_ROLLER_SPEED_UPPER,
-                    IntakeConstants.SCORE_AMP_ROLLER_SPEED_LOWER,
-                    false
-                )
-            )
+            .andThen(useState(IntakeConstants.AMP_POSITION, IntakeConstants.AMP_UPPER_SPEED, IntakeConstants.AMP_LOWER_SPEED, false))
             .withName("intake.scoreAmp()");
     }
 
@@ -241,7 +229,7 @@ public class Intake extends GRRSubsystem {
      * Spits the note out of the intake. Does not end.
      */
     public Command barf() {
-        return useState(IntakeConstants.BARF_POSITION, IntakeConstants.BARF_ROLLER_SPEED, IntakeConstants.BARF_ROLLER_SPEED, false)
+        return useState(IntakeConstants.BARF_POSITION, IntakeConstants.BARF_SPEED, IntakeConstants.BARF_SPEED, false)
             .withName("intake.barf()");
     }
 
@@ -283,9 +271,9 @@ public class Intake extends GRRSubsystem {
                 double diff = speed.get() * Constants.PERIOD;
                 double armLeftPos = armLeftEncoder.getPosition();
                 double armRightPos = armRightEncoder.getPosition();
-                if (armLeftPos < IntakeConstants.MINIMUM_ANGLE || armRightPos < IntakeConstants.MINIMUM_ANGLE) {
+                if (armLeftPos < IntakeConstants.MIN_POS || armRightPos < IntakeConstants.MIN_POS) {
                     diff = Math.max(diff, 0.0);
-                } else if (armLeftPos > IntakeConstants.MAXIMUM_ANGLE || armRightPos > IntakeConstants.MAXIMUM_ANGLE) {
+                } else if (armLeftPos > IntakeConstants.MAX_POS || armRightPos > IntakeConstants.MAX_POS) {
                     diff = Math.min(diff, 0.0);
                 }
 

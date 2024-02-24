@@ -57,13 +57,13 @@ public class Feeder extends GRRSubsystem {
     /**
      * Receives a note from the intake.
      */
-    public Command receiveNote() {
+    public Command receive() {
         return commandBuilder()
-            .onInitialize(() -> feedMotor.set(FeederConstants.INTAKE_SPEED))
+            .onInitialize(() -> feedMotor.set(FeederConstants.RECEIVE_SPEED))
             .isFinished(() -> hasNote())
             .onEnd(() -> feedMotor.stopMotor())
             .onlyIf(() -> !hasNote())
-            .withName("feeder.receiveNote()");
+            .withName("feeder.receive()");
     }
 
     /**
@@ -78,34 +78,34 @@ public class Feeder extends GRRSubsystem {
     /**
      * Seats the note in the shooter to a set position.
      */
-    public Command seatNote() {
+    public Command seat() {
         return sequence(
             commandBuilder()
-                .onInitialize(() -> feedMotor.set(FeederConstants.IN_SLOW_SPEED))
+                .onInitialize(() -> feedMotor.set(FeederConstants.SEAT_SPEED))
                 .isFinished(() -> hasNote())
                 .onEnd(() -> feedEncoder.setPosition(0.0)),
             commandBuilder()
-                .onInitialize(() -> feedPID.setReference(FeederConstants.POSITION_OFFSET, ControlType.kPosition))
+                .onInitialize(() -> feedPID.setReference(FeederConstants.SEAT_POSITION, ControlType.kPosition))
                 .isFinished(() ->
-                    Math2.epsilonEquals(feedEncoder.getPosition(), FeederConstants.POSITION_OFFSET, FeederConstants.CLOSED_LOOP_ERR)
+                    Math2.epsilonEquals(feedEncoder.getPosition(), FeederConstants.SEAT_POSITION, FeederConstants.CLOSED_LOOP_ERR)
                 )
                 .onEnd(() -> feedMotor.stopMotor())
         )
             .onlyIf(() -> !hasNote())
             .withTimeout(2.0)
-            .withName("feeder.seatNote()");
+            .withName("feeder.seat()");
     }
 
     /**
      * Feeds the note into the shooter wheels. Ends after the note has left the shooter.
      */
-    public Command shootNote() {
+    public Command shoot() {
         return commandBuilder()
             .onInitialize(() -> feedMotor.set(FeederConstants.SHOOT_SPEED))
             .isFinished(() -> !hasNote())
             .andThen(waitSeconds(FeederConstants.SHOOT_DELAY))
             .finallyDo(() -> feedMotor.stopMotor())
-            .withName("feeder.shootNote()");
+            .withName("feeder.shoot()");
     }
 
     /**

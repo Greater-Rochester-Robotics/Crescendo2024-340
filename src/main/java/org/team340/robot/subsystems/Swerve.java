@@ -14,7 +14,6 @@ import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.trajectory.Trajectory;
@@ -34,6 +33,7 @@ import org.team340.lib.swerve.SwerveBase;
 import org.team340.lib.util.Alliance;
 import org.team340.lib.util.Math2;
 import org.team340.robot.Constants;
+import org.team340.robot.Constants.FieldPositions;
 import org.team340.robot.Constants.SwerveConstants;
 
 /**\[]
@@ -59,7 +59,7 @@ public class Swerve extends SwerveBase {
     private final Pose2d[] photonLastPoses;
 
     private Pose3d internalSpeakerTarget = null;
-    private double tunableNoteVelocity = Constants.NOTE_VELOCITY;
+    private double tunableNoteVelocity = SwerveConstants.NOTE_VELOCITY;
 
     /**
      * Create the swerve subsystem.
@@ -118,7 +118,7 @@ public class Swerve extends SwerveBase {
             () -> {
                 Pose3d pose = internalSpeakerTarget != null
                     ? internalSpeakerTarget
-                    : (Alliance.isBlue() ? Constants.BLUE_SPEAKER_3D : Constants.RED_SPEAKER_3D);
+                    : (Alliance.isBlue() ? FieldPositions.BLUE_SPEAKER_3D : FieldPositions.RED_SPEAKER_3D);
                 return new double[] {
                     pose.getX(),
                     pose.getY(),
@@ -176,7 +176,7 @@ public class Swerve extends SwerveBase {
      * Returns {@code true} if the robot is in the opponent's wing.
      */
     public boolean inOpponentWing() {
-        return getPosition().getX() > Constants.OPPONENT_WING_LINE;
+        return getPosition().getX() > FieldPositions.OPPONENT_WING_LINE;
     }
 
     /**
@@ -192,7 +192,7 @@ public class Swerve extends SwerveBase {
      * @return A {@link Translation2d} representing a field relative position in meters.
      */
     public Translation2d getSpeakerPosition() {
-        Translation2d goalPose = Alliance.isBlue() ? Constants.BLUE_SPEAKER : Constants.RED_SPEAKER;
+        Translation2d goalPose = Alliance.isBlue() ? FieldPositions.BLUE_SPEAKER : FieldPositions.RED_SPEAKER;
         ChassisSpeeds robotVel = getVelocity(true);
         double distanceToSpeaker = getPosition().getTranslation().getDistance(goalPose);
         double x = goalPose.getX() - (robotVel.vxMetersPerSecond * (distanceToSpeaker / tunableNoteVelocity));
@@ -216,12 +216,15 @@ public class Swerve extends SwerveBase {
             speakerPosition.getY() + shotRot.getCos() * SwerveConstants.SPIN_COMPENSATION_Y * speakerDistance
         );
 
-        internalSpeakerTarget = new Pose3d(targetPosition.getX(), targetPosition.getY(), Constants.SPEAKER_HEIGHT, Math2.ROTATION3D_0);
+        internalSpeakerTarget = new Pose3d(targetPosition.getX(), targetPosition.getY(), FieldPositions.SPEAKER_HEIGHT, Math2.ROTATION3D_0);
         return MathUtil.angleModulus(targetPosition.minus(robotPoint).getAngle().getRadians() + Math.PI);
     }
 
-    public Rotation3d getIMURotation3d() {
-        return new Rotation3d(imu.getRoll().getRadians(), imu.getPitch().getRadians(), imu.getYaw().getRadians());
+    /**
+     * Returns the robot's roll in radians.
+     */
+    public double getRoll() {
+        return imu.getRoll().getRadians();
     }
 
     /**
@@ -261,7 +264,7 @@ public class Swerve extends SwerveBase {
     }
 
     public Command approachAmp() {
-        return either(trajectoryTo(SwerveConstants.AMP_APPROACH_BLUE), trajectoryTo(SwerveConstants.AMP_APPROACH_RED), Alliance::isBlue)
+        return either(trajectoryTo(FieldPositions.AMP_APPROACH_BLUE), trajectoryTo(FieldPositions.AMP_APPROACH_RED), Alliance::isBlue)
             .withName("swerve.approachAmp()");
     }
 
@@ -270,8 +273,8 @@ public class Swerve extends SwerveBase {
      */
     public Command scoreAmp() {
         return either(
-            sequence(trajectoryTo(SwerveConstants.AMP_SCORE_BLUE), pidTo(SwerveConstants.AMP_SCORE_BLUE)),
-            sequence(trajectoryTo(SwerveConstants.AMP_SCORE_RED), pidTo(SwerveConstants.AMP_SCORE_RED)),
+            sequence(trajectoryTo(FieldPositions.AMP_SCORE_BLUE), pidTo(FieldPositions.AMP_SCORE_BLUE)),
+            sequence(trajectoryTo(FieldPositions.AMP_SCORE_RED), pidTo(FieldPositions.AMP_SCORE_RED)),
             Alliance::isBlue
         )
             .withName("swerve.scoreAmp()");
@@ -287,7 +290,7 @@ public class Swerve extends SwerveBase {
         return commandBuilder("swerve.alignWithStage")
             .onInitialize(() -> rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
             .onExecute(() -> {
-                double stageAngle = Constants.STAGE.minus(getPosition().getTranslation()).getAngle().getRadians();
+                double stageAngle = FieldPositions.STAGE.minus(getPosition().getTranslation()).getAngle().getRadians();
                 double faceStageAngle;
                 if (stageAngle <= Math.PI / 3 && stageAngle >= -Math.PI / 3) faceStageAngle = Math.PI; else if (
                     stageAngle >= Math.PI / 3 && stageAngle <= Math.PI

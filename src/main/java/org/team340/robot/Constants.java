@@ -6,7 +6,6 @@ import static edu.wpi.first.units.Units.Volts;
 import com.revrobotics.CANSparkBase.IdleMode;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -17,7 +16,6 @@ import edu.wpi.first.wpilibj.ADIS16470_IMU.CalibrationTime;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
 import edu.wpi.first.wpilibj.SPI.Port;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import java.util.function.Function;
 import org.team340.lib.controller.Controller2Config;
 import org.team340.lib.swerve.config.SwerveConfig;
 import org.team340.lib.swerve.config.SwerveModuleConfig;
@@ -46,19 +44,6 @@ public final class Constants {
     public static final double FIELD_LENGTH = 16.5417;
     public static final double FIELD_WIDTH = 8.0136;
 
-    public static final double NOTE_VELOCITY = 200.0;
-
-    public static final Translation2d BLUE_SPEAKER = new Translation2d(0.0331, 5.547868);
-    public static final Translation2d RED_SPEAKER = new Translation2d(BLUE_SPEAKER.getX(), FIELD_WIDTH - BLUE_SPEAKER.getY());
-    public static final Translation2d STAGE = new Translation2d(4.981067, 4.105783);
-
-    public static final double SPEAKER_HEIGHT = 2.08;
-    public static final Pose3d BLUE_SPEAKER_3D = new Pose3d(BLUE_SPEAKER.getX(), BLUE_SPEAKER.getY(), SPEAKER_HEIGHT, Math2.ROTATION3D_0);
-    public static final Pose3d RED_SPEAKER_3D = new Pose3d(RED_SPEAKER.getX(), RED_SPEAKER.getY(), SPEAKER_HEIGHT, Math2.ROTATION3D_0);
-
-    public static final double OPPONENT_WING_LINE = 10.66;
-    public static final double AMP_X = 1.85;
-
     /**
      * Driver and co-driver controller constants.
      */
@@ -68,7 +53,7 @@ public final class Constants {
         public static final double DRIVE_MULTIPLIER = 0.9;
         public static final double DRIVE_MULTIPLIER_MODIFIED = 0.975;
 
-        public static final double DRIVE_ROT_EXP = 2.5;
+        public static final double DRIVE_ROT_EXP = 2.0;
         public static final double DRIVE_ROT_MULTIPLIER = 0.4;
 
         public static final Controller2Config DRIVER = new Controller2Config()
@@ -124,17 +109,23 @@ public final class Constants {
 
     public static final class ClimberConstants {
 
-        public static final double REL_ENC_CONVERSION = 1; // (125 * 12 * 0.25); // 1 / (gear ratio * sprocket teeth * inches/tooth)
-        public static final double CLOSED_LOOP_ERR = Math.toRadians(5.0);
-        public static final double ZEROING_SPEED = 0.5;
+        // Limits
+        public static final double MIN_POS = 0.0;
+        public static final double MAX_POS = 120.0;
+
+        // Speeds
+        public static final double HOMING_SPEED = 0.5;
         public static final double CLIMBING_SPEED = 0.4;
 
-        public static final double MAX_POS = 120.0;
-        public static final double MIN_POS = 0.0;
-
+        // Misc
+        public static final double CLOSED_LOOP_ERR = Math.toRadians(5.0);
         public static final double BALANCE_COMPENSATION = 0.1;
 
+        // Hardware Configs
         public static final class Configs {
+
+            // Relative Encoder Conversion Factor
+            private static final double REL_ENC_FACTOR = 1.0;
 
             public static final SparkMaxConfig MOTOR = new SparkMaxConfig()
                 .clearFaults()
@@ -145,16 +136,14 @@ public final class Constants {
                 .setInverted(true)
                 .setClosedLoopRampRate(1.5)
                 .setOpenLoopRampRate(1.5);
-            // .setSoftLimit(SoftLimitDirection.kForward, (float) ClimberConstants.MAX_POS)
-            // .enableSoftLimit(SoftLimitDirection.kForward, true);
 
             public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
                 .setPID(0.1, 0.0, 0.04)
                 .setOutputRange(-0.5, 0.5);
 
             public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
-                .setPositionConversionFactor(REL_ENC_CONVERSION)
-                .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
+                .setPositionConversionFactor(REL_ENC_FACTOR)
+                .setVelocityConversionFactor(REL_ENC_FACTOR / 60);
 
             public static final SparkLimitSwitchConfig LIMIT = new SparkLimitSwitchConfig().enableLimitSwitch(true);
         }
@@ -162,20 +151,26 @@ public final class Constants {
 
     public static final class FeederConstants {
 
-        public static final double SHOOT_DELAY = 0.5;
-
-        public static final double INTAKE_SPEED = 0.5;
-        public static final double IN_SLOW_SPEED = 0.05;
-        public static final double POSITION_OFFSET = 2.357;
-        public static final double CLOSED_LOOP_ERR = 0.125;
-        public static final double SHOOT_SPEED = 1.0;
+        // Speeds
+        public static final double RECEIVE_SPEED = 0.5;
         public static final double INTAKE_HUMAN_SPEED = -0.25;
+        public static final double SEAT_SPEED = 0.05;
+        public static final double SHOOT_SPEED = 1.0;
         public static final double BARF_FORWARD_SPEED = -0.5;
         public static final double BARF_BACKWARD_SPEED = 0.5;
 
-        public static final double REL_ENC_CONVERSION = 1.0; // 1 / ((30 / 64) * 1.4 * Math.PI); // 1 / (gear ratio * roller diameter * pi)
+        // Positions
+        public static final double SEAT_POSITION = 2.357;
 
+        // Misc
+        public static final double CLOSED_LOOP_ERR = 0.125;
+        public static final double SHOOT_DELAY = 0.5;
+
+        // Hardware Configs
         public static final class Configs {
+
+            // Relative Encoder Conversion Factor
+            private static final double REL_ENC_FACTOR = 1.0;
 
             public static final SparkMaxConfig MOTOR = new SparkMaxConfig()
                 .clearFaults()
@@ -188,8 +183,8 @@ public final class Constants {
                 .setOpenLoopRampRate(0.0);
 
             public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
-                .setPositionConversionFactor(REL_ENC_CONVERSION)
-                .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
+                .setPositionConversionFactor(REL_ENC_FACTOR)
+                .setVelocityConversionFactor(REL_ENC_FACTOR / 60);
 
             public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig().setPID(0.15, 0.0, 0.0);
         }
@@ -197,29 +192,35 @@ public final class Constants {
 
     public static final class IntakeConstants {
 
-        public static final double MINIMUM_ANGLE = 0.0;
-        public static final double MAXIMUM_ANGLE = Math.toRadians(135.0);
+        // Limits
+        public static final double MIN_POS = 0.0;
+        public static final double MAX_POS = Math.toRadians(135.0);
 
-        public static final double MINIMUM_PID_ANGLE = Math.toRadians(2.0);
-        public static final double CLOSED_LOOP_ERROR = Math.toRadians(5.0);
+        // Speeds
+        public static final double INTAKE_SPEED = 0.9;
+        public static final double AMP_HANDOFF_SPEED = -0.25;
+        public static final double AMP_UPPER_SPEED = -0.5;
+        public static final double AMP_LOWER_SPEED = -0.1;
+        public static final double BARF_SPEED = -0.5;
+        public static final double OVERRIDE_INTAKE_SPEED = 0.25;
 
+        // Positions
         public static final double DOWN_POSITION = 0.0;
-        public static final double SCORE_AMP_POSITION = Math.toRadians(56.0);
         public static final double SAFE_POSITION = Math.toRadians(30.0);
         public static final double RETRACT_POSITION = Math.toRadians(65.0);
         public static final double UPRIGHT_POSITION = Math.toRadians(90.0);
         public static final double BARF_POSITION = Math.toRadians(10.0);
+        public static final double AMP_POSITION = Math.toRadians(56.0);
+        public static final double PID_INACTIVE_POSITION = Math.toRadians(2.0);
 
-        public static final double SCORE_AMP_ROLLER_SPEED_UPPER = -0.5;
-        public static final double SCORE_AMP_ROLLER_SPEED_LOWER = -0.1;
-        public static final double INTAKE_ROLLER_SPEED = 0.9;
-        public static final double BARF_ROLLER_SPEED = -0.5;
-        public static final double FROM_SHOOTER_ROLLER_SPEED = -0.25;
-        public static final double OVERRIDE_INTAKE_SPEED = 0.25;
+        // Misc
+        public static final double CLOSED_LOOP_ERR = Math.toRadians(5.0);
 
-        public static final double AMP_SCORING_TIMEOUT = 2.0;
-
+        // Arm Hardware Configs
         public static final class ArmConfigs {
+
+            // Relative Encoder Conversion Factor
+            private static final double REL_ENC_FACTOR = Math2.TWO_PI;
 
             public static final SparkFlexConfig MOTOR = new SparkFlexConfig()
                 .clearFaults()
@@ -232,8 +233,8 @@ public final class Constants {
                 .setOpenLoopRampRate(0.35);
 
             private static final SparkAbsoluteEncoderConfig ENCODER_BASE = new SparkAbsoluteEncoderConfig()
-                .setPositionConversionFactor(Math2.TWO_PI)
-                .setVelocityConversionFactor(Math2.TWO_PI / 60.0);
+                .setPositionConversionFactor(REL_ENC_FACTOR)
+                .setVelocityConversionFactor(REL_ENC_FACTOR / 60.0);
 
             public static final SparkAbsoluteEncoderConfig LEFT_ENCODER = ENCODER_BASE.clone().setInverted(true).setZeroOffset(4.83665);
             public static final SparkAbsoluteEncoderConfig RIGHT_ENCODER = ENCODER_BASE.clone().setInverted(false).setZeroOffset(5.82576);
@@ -242,9 +243,10 @@ public final class Constants {
                 .setPID(1.0, 0.0015, 0.02)
                 .setIZone(Math.toRadians(5.25))
                 .setPositionPIDWrappingEnabled(true)
-                .setPositionPIDWrappingInputLimits(0.0, Math2.TWO_PI);
+                .setPositionPIDWrappingInputLimits(0.0, REL_ENC_FACTOR);
         }
 
+        // Roller Hardware Configs
         public static final class RollerConfigs {
 
             public static final SparkMaxConfig MOTOR = new SparkMaxConfig()
@@ -261,19 +263,27 @@ public final class Constants {
 
     public static final class PivotConstants {
 
-        public static final double CLOSED_LOOP_ERR = Math.toRadians(0.015);
+        // Limits
+        public static final double MIN_POS = 0.0;
+        public static final double MAX_POS = Math.toRadians(89.0);
 
-        public static final double MINIMUM_ANGLE = 0.0;
-        public static final double MAXIMUM_ANGLE = Math.toRadians(89.0);
-        public static final double SAFE_FOR_INTAKE_ANGLE = Math.toRadians(60.0);
-        public static final double OPTIMAL_RECEIVE_NOTE_ANGLE = Math.toRadians(0.0);
-
+        // Speeds
         public static final double HOMING_SPEED = -0.2;
+
+        // Positions
+        public static final double BARF_FORWARD_POSITION = 0.0;
+        public static final double AMP_HANDOFF_POSITION = Math.toRadians(0.0);
+        public static final double INTAKE_SAFE_POSITION = Math.toRadians(60.0);
+
+        // Misc
+        public static final double CLOSED_LOOP_ERR = Math.toRadians(0.015);
         public static final double AT_LIMIT_SPEED_ALLOWANCE = -0.025;
 
-        public static final double REL_ENC_CONVERSION = Math.toRadians(1.02432);
-
+        // Hardware Configs
         public static final class Configs {
+
+            // Relative Encoder Conversion Factor
+            private static final double REL_ENC_FACTOR = Math.toRadians(1.02432);
 
             public static final SparkFlexConfig MOTOR = new SparkFlexConfig()
                 .clearFaults()
@@ -290,21 +300,12 @@ public final class Constants {
                 .setIZone(Math.toRadians(2.0));
 
             public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
-                .setPositionConversionFactor(REL_ENC_CONVERSION)
-                .setVelocityConversionFactor(REL_ENC_CONVERSION / 60);
+                .setPositionConversionFactor(REL_ENC_FACTOR)
+                .setVelocityConversionFactor(REL_ENC_FACTOR / 60);
         }
 
-        public static final double SPIT_ANGLE = 0.0;
-
+        // Shooting position lookup table
         public static final InterpolatingDoubleTreeMap DISTANCE_MAP = new InterpolatingDoubleTreeMap();
-        public static final Function<Double, Double> DISTANCE_CALC = distance ->
-            Math.toRadians(
-                (0.0207779 * Math.pow(distance, 4)) -
-                (0.584447 * Math.pow(distance, 3)) +
-                (6.34432 * Math.pow(distance, 2)) -
-                (33.2306 * distance) +
-                91.7126
-            );
 
         static {
             DISTANCE_MAP.put(1.44, Math.toRadians(55.0));
@@ -327,22 +328,21 @@ public final class Constants {
 
     public static final class ShooterConstants {
 
-        public static final double SPEED_TOLERANCE = 40.0;
-
-        public static final double LEFT_SPIT_SPEED_BACK = 0.5;
-        public static final double RIGHT_SPIT_SPEED_BACK = 0.5;
-        public static final double LEFT_SPIT_SPEED_FRONT = -0.25;
-        public static final double RIGHT_SPIT_SPEED_FRONT = -0.25;
-        public static final double LEFT_INTAKE_HUMAN_SPEED = -0.3;
-        public static final double RIGHT_INTAKE_HUMAN_SPEED = -0.3;
-
-        public static final double RIGHT_TO_LEFT_RATIO = 0.55;
-        public static final double PID_RANGE = 750.0;
+        // Speeds
         public static final double RAMP_SPEED = 0.95;
+        public static final double INTAKE_HUMAN_SPEED = -0.3;
+        public static final double BARF_SPEED = 0.5;
 
-        public static final double REL_ENC_CONVERSION = 2.0; // gear ratio
+        // Misc
+        public static final double CLOSED_LOOP_ERR = 40.0;
+        public static final double PID_ACTIVE_RANGE = 750.0;
+        public static final double RIGHT_PERCENT_OF_LEFT = 0.55;
 
+        // Hardware Configs
         public static final class Configs {
+
+            // Relative Encoder Conversion Factor
+            private static final double REL_ENC_CONVERSION = 2.0;
 
             private static final SparkFlexConfig MOTOR_BASE = new SparkFlexConfig()
                 .clearFaults()
@@ -352,20 +352,21 @@ public final class Constants {
                 .setIdleMode(IdleMode.kCoast)
                 .setClosedLoopRampRate(0.0)
                 .setOpenLoopRampRate(0.0);
+
             public static final SparkFlexConfig LEFT_MOTOR = MOTOR_BASE.clone().setInverted(true);
             public static final SparkFlexConfig RIGHT_MOTOR = MOTOR_BASE.clone().setInverted(false);
 
             public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig().setPID(0.001, 0.0, 0.0);
 
-            public static final FeedForwardConfig FEED_FORWARD = new FeedForwardConfig(0.11331 / 60.0, 0.060404 / 60.0, 0.064897 / 60.0);
-
             public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
                 .setPositionConversionFactor(REL_ENC_CONVERSION)
                 .setVelocityConversionFactor(REL_ENC_CONVERSION);
 
+            public static final FeedForwardConfig FEED_FORWARD = new FeedForwardConfig(0.11331 / 60.0, 0.060404 / 60.0, 0.064897 / 60.0);
             public static final SysIdRoutine.Config SYSID = new SysIdRoutine.Config();
         }
 
+        // Shooting speed lookup table
         public static final InterpolatingDoubleTreeMap DISTANCE_MAP = new InterpolatingDoubleTreeMap();
 
         static {
@@ -429,17 +430,6 @@ public final class Constants {
             .addModule(BACK_RIGHT)
             .addModule(FRONT_RIGHT);
 
-        public static final PIDConfig TRAJ_XY_PID = new PIDConfig(10.0, 0.0, 0.0, 0.0);
-        public static final PIDConfig TRAJ_ROT_PID = new PIDConfig(6.0, 0.0, 0.0, 0.0);
-        public static final Constraints TRAJ_ROT_CONSTRAINTS = new Constraints(6.5, 7.0);
-
-        public static final PIDConfig XY_PID = new PIDConfig(3.9, 0.0, 0.65, 0.0);
-        public static final PIDConfig ROT_PID = new PIDConfig(5.5, 0.0, 0.2, 0.0);
-        public static final Constraints ROT_CONSTRAINTS = new Constraints(6.0, 7.0);
-
-        public static final double POSE_XY_ERROR = 0.125;
-        public static final double POSE_ROT_ERROR = Math.toRadians(5.0);
-
         public static final Transform3d FRONT_LEFT_CAMERA = new Transform3d(
             new Translation3d(0.28364, 0.28369, 0.24511),
             new Rotation3d(0.0, Math.toRadians(-20.0), Math.toRadians(45.0))
@@ -462,16 +452,45 @@ public final class Constants {
         public static final double VISION_STD_XY_SCALE = 0.005;
         public static final double VISION_STD_ROT_SCALE = 0.01;
 
-        public static final Pose2d AMP_APPROACH_BLUE = new Pose2d(AMP_X, 7.2, new Rotation2d(Math2.HALF_PI));
-        public static final Pose2d AMP_SCORE_BLUE = new Pose2d(AMP_X, 7.77, new Rotation2d(Math2.HALF_PI));
+        public static final PIDConfig TRAJ_XY_PID = new PIDConfig(10.0, 0.0, 0.0, 0.0);
+        public static final PIDConfig TRAJ_ROT_PID = new PIDConfig(6.0, 0.0, 0.0, 0.0);
+        public static final Constraints TRAJ_ROT_CONSTRAINTS = new Constraints(6.5, 7.0);
+
+        public static final PIDConfig XY_PID = new PIDConfig(3.9, 0.0, 0.65, 0.0);
+        public static final PIDConfig ROT_PID = new PIDConfig(5.5, 0.0, 0.2, 0.0);
+        public static final Constraints ROT_CONSTRAINTS = new Constraints(6.0, 7.0);
+
+        public static final double NOTE_VELOCITY = 200.0;
+        public static final double SPIN_COMPENSATION_X = 0.04;
+        public static final double SPIN_COMPENSATION_Y = 0.06;
+    }
+
+    public static final class FieldPositions {
+
+        public static final Translation2d BLUE_SPEAKER = new Translation2d(0.033, 5.634);
+        public static final Translation2d RED_SPEAKER = new Translation2d(BLUE_SPEAKER.getX(), FIELD_WIDTH - BLUE_SPEAKER.getY());
+
+        public static final double SPEAKER_HEIGHT = 2.08;
+        public static final Pose3d BLUE_SPEAKER_3D = new Pose3d(
+            BLUE_SPEAKER.getX(),
+            BLUE_SPEAKER.getY(),
+            SPEAKER_HEIGHT,
+            Math2.ROTATION3D_0
+        );
+        public static final Pose3d RED_SPEAKER_3D = new Pose3d(RED_SPEAKER.getX(), RED_SPEAKER.getY(), SPEAKER_HEIGHT, Math2.ROTATION3D_0);
+
+        public static final double AMP_X = 1.85;
+        public static final Pose2d AMP_APPROACH_BLUE = new Pose2d(AMP_X, 7.2, Math2.ROTATION2D_HALF_PI);
         public static final Pose2d AMP_APPROACH_RED = new Pose2d(
             AMP_X,
             FIELD_WIDTH - AMP_APPROACH_BLUE.getY(),
-            new Rotation2d(-Math2.HALF_PI)
+            Math2.ROTATION2D_NEG_HALF_PI
         );
-        public static final Pose2d AMP_SCORE_RED = new Pose2d(AMP_X, FIELD_WIDTH - AMP_SCORE_BLUE.getY(), new Rotation2d(-Math2.HALF_PI));
+        public static final Pose2d AMP_SCORE_BLUE = new Pose2d(AMP_X, 7.77, Math2.ROTATION2D_HALF_PI);
+        public static final Pose2d AMP_SCORE_RED = new Pose2d(AMP_X, FIELD_WIDTH - AMP_SCORE_BLUE.getY(), Math2.ROTATION2D_NEG_HALF_PI);
 
-        public static final double SPIN_COMPENSATION_X = 0.04;
-        public static final double SPIN_COMPENSATION_Y = 0.06;
+        public static final Translation2d STAGE = new Translation2d(4.981067, 4.105783);
+
+        public static final double OPPONENT_WING_LINE = 10.66;
     }
 }

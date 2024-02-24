@@ -100,7 +100,7 @@ public final class RobotContainer {
          */
 
         // A => Intake (Tap = Down, Hold = Run roller)
-        driver.a().whileTrue(Routines.intake()).onFalse(parallel(feeder.seatNote(), intake.safePosition()));
+        driver.a().whileTrue(Routines.intake()).onFalse(parallel(feeder.seat(), intake.safePosition()));
 
         // B => Intake from Human Player (Hold)
         driver
@@ -117,7 +117,7 @@ public final class RobotContainer {
         driver.x().whileTrue(Routines.scoreAmp());
 
         // Y => Shoot (Tap)
-        driver.y().whileTrue(feeder.shootNote());
+        driver.y().whileTrue(feeder.shoot());
 
         // Right Joystick Up => Protect intake
         driver.rightJoystickUp().onTrue(intake.retractPosition());
@@ -177,14 +177,14 @@ public final class RobotContainer {
 
         coDriverOverride.whileTrue(
             parallel(
-                intake.driveArmManual(() -> -coDriver.getLeftY()),
-                pivot.driveManual(() -> -coDriver.getRightY()),
-                shooter.driveManual(() -> -coDriver.getRightX())
+                intake.driveArmManual(() -> -coDriver.getLeftY() * 0.5),
+                pivot.driveManual(() -> -coDriver.getRightY() * 0.4),
+                shooter.driveManual(() -> -coDriver.getRightX() * 500.0)
             )
         );
 
         // A => Reserved For Climb
-        coDriver.a().whileTrue(climber.balance(() -> swerve.getIMURotation3d().getX()));
+        coDriver.a().whileTrue(climber.balance(swerve::getRoll));
 
         // B => Overrides intake
         coDriver.b().and(coDriverOverride).whileTrue(Routines.intakeOverride());

@@ -66,24 +66,24 @@ public class Pivot extends GRRSubsystem {
      * Returns {@code true} if the pivot is at a safe position for the intake.
      */
     public boolean isSafeForIntake() {
-        return pivotEncoder.getPosition() <= PivotConstants.SAFE_FOR_INTAKE_ANGLE;
+        return pivotEncoder.getPosition() <= PivotConstants.INTAKE_SAFE_POSITION;
     }
 
     /**
      * Sets the {@link #pivotPID} to go to the specified position if it is valid
-     * (within the pivot {@link PivotConstants#MINIMUM_ANGLE minimum} and
-     * {@link PivotConstants#MAXIMUM_ANGLE maximum} angles).
+     * (within the pivot {@link PivotConstants#MIN_POS minimum} and
+     * {@link PivotConstants#MAX_POS maximum} angles).
      * @param position The position to set.
      */
     private void applyPosition(double position) {
-        if (position < PivotConstants.MINIMUM_ANGLE || position > PivotConstants.MAXIMUM_ANGLE) {
+        if (position < PivotConstants.MIN_POS || position > PivotConstants.MAX_POS) {
             DriverStation.reportWarning(
                 "Invalid shooter pivot position. " +
                 Math2.toFixed(Math.toDegrees(position)) +
                 " degrees is not between " +
-                Math2.toFixed(Math.toDegrees(PivotConstants.MINIMUM_ANGLE)) +
+                Math2.toFixed(Math.toDegrees(PivotConstants.MIN_POS)) +
                 " and " +
-                Math2.toFixed(Math.toDegrees(PivotConstants.MAXIMUM_ANGLE)),
+                Math2.toFixed(Math.toDegrees(PivotConstants.MAX_POS)),
                 false
             );
         } else {
@@ -100,15 +100,15 @@ public class Pivot extends GRRSubsystem {
     public Command home(boolean withOverride) {
         return either(
             commandBuilder()
-                .onInitialize(() -> target = PivotConstants.MINIMUM_ANGLE)
+                .onInitialize(() -> target = PivotConstants.MIN_POS)
                 .onExecute(() -> pivotMotor.set(PivotConstants.HOMING_SPEED))
                 .isFinished(() -> getLimit())
                 .onEnd(() -> {
                     pivotMotor.stopMotor();
 
                     if (getLimit()) {
-                        pivotEncoder.setPosition(PivotConstants.MINIMUM_ANGLE);
-                        maintain = PivotConstants.MINIMUM_ANGLE;
+                        pivotEncoder.setPosition(PivotConstants.MIN_POS);
+                        maintain = PivotConstants.MIN_POS;
                         isHomed = true;
                     } else {
                         maintain = pivotEncoder.getPosition();
@@ -127,7 +127,6 @@ public class Pivot extends GRRSubsystem {
      */
     public Command targetDistance(Supplier<Double> distance) {
         return goTo(() -> PivotConstants.DISTANCE_MAP.get(distance.get()), false).withName("pivot.targetDistance()");
-        // return goTo(() -> PivotConstants.DISTANCE_CALC.apply(distance.get()), false).withName("pivot.targetDistance()");
     }
 
     /**
@@ -191,7 +190,7 @@ public class Pivot extends GRRSubsystem {
                         double diff = speed.get() * Constants.PERIOD;
                         if (getLimit()) {
                             diff = Math.max(diff, 0.0);
-                        } else if (pivotEncoder.getPosition() > PivotConstants.MAXIMUM_ANGLE) {
+                        } else if (pivotEncoder.getPosition() > PivotConstants.MAX_POS) {
                             diff = Math.min(diff, 0.0);
                         }
 

@@ -123,18 +123,18 @@ public class Shooter extends GRRSubsystem {
      */
     public boolean atSpeed() {
         return (
-            Math2.epsilonEquals(leftTargetSpeed, leftEncoder.getVelocity(), ShooterConstants.SPEED_TOLERANCE) &&
-            Math2.epsilonEquals(rightTargetSpeed, rightEncoder.getVelocity(), ShooterConstants.SPEED_TOLERANCE)
+            Math2.epsilonEquals(leftTargetSpeed, leftEncoder.getVelocity(), ShooterConstants.CLOSED_LOOP_ERR) &&
+            Math2.epsilonEquals(rightTargetSpeed, rightEncoder.getVelocity(), ShooterConstants.CLOSED_LOOP_ERR)
         );
     }
 
     /**
      * Applies a specified speed to the shooter.
-     * @param speed The speed in RPM to be applied to the left motor, which is scaled by {@link ShooterConstants#RIGHT_TO_LEFT_RATIO} and applied to the right motor.
+     * @param speed The speed in RPM to be applied to the left motor, which is scaled by {@link ShooterConstants#RIGHT_PERCENT_OF_LEFT} and applied to the right motor.
      */
     private void applySpeed(double speed) {
         double leftSpeed = speed;
-        double rightSpeed = speed * ShooterConstants.RIGHT_TO_LEFT_RATIO;
+        double rightSpeed = speed * ShooterConstants.RIGHT_PERCENT_OF_LEFT;
 
         if (speed == 0.0) {
             leftShootMotor.stopMotor();
@@ -143,7 +143,7 @@ public class Shooter extends GRRSubsystem {
             rightPIDActive = false;
         } else {
             double leftDelta = leftSpeed - leftEncoder.getVelocity();
-            if (Math.abs(leftDelta) < ShooterConstants.PID_RANGE) {
+            if (Math.abs(leftDelta) < ShooterConstants.PID_ACTIVE_RANGE) {
                 leftShootPID.setReference(leftSpeed, ControlType.kVelocity, 0, feedforward.calculate(leftSpeed));
                 leftPIDActive = true;
             } else {
@@ -152,7 +152,7 @@ public class Shooter extends GRRSubsystem {
             }
 
             double rightDelta = rightSpeed - rightEncoder.getVelocity();
-            if (Math.abs(rightDelta) < ShooterConstants.PID_RANGE) {
+            if (Math.abs(rightDelta) < ShooterConstants.PID_ACTIVE_RANGE) {
                 rightShootPID.setReference(rightSpeed, ControlType.kVelocity, 0, feedforward.calculate(rightSpeed));
                 rightPIDActive = true;
             } else {
@@ -216,8 +216,8 @@ public class Shooter extends GRRSubsystem {
     public Command intakeHuman() {
         return commandBuilder("shooter.intakeHuman()")
             .onInitialize(() -> {
-                leftShootMotor.set(ShooterConstants.LEFT_INTAKE_HUMAN_SPEED);
-                rightShootMotor.set(ShooterConstants.RIGHT_INTAKE_HUMAN_SPEED);
+                leftShootMotor.set(ShooterConstants.INTAKE_HUMAN_SPEED);
+                rightShootMotor.set(ShooterConstants.INTAKE_HUMAN_SPEED);
             })
             .onEnd(() -> {
                 leftShootMotor.stopMotor();
@@ -231,8 +231,8 @@ public class Shooter extends GRRSubsystem {
     public Command barf() {
         return commandBuilder("shooter.barf()")
             .onInitialize(() -> {
-                leftShootMotor.set(ShooterConstants.LEFT_SPIT_SPEED_BACK);
-                rightShootMotor.set(ShooterConstants.RIGHT_SPIT_SPEED_BACK);
+                leftShootMotor.set(ShooterConstants.BARF_SPEED);
+                rightShootMotor.set(ShooterConstants.BARF_SPEED);
             })
             .onEnd(() -> {
                 leftShootMotor.stopMotor();
