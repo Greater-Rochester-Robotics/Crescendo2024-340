@@ -3,7 +3,6 @@ package org.team340.robot;
 import static edu.wpi.first.units.Units.Seconds;
 import static edu.wpi.first.units.Units.Volts;
 
-import com.revrobotics.CANSparkBase.ExternalFollower;
 import com.revrobotics.CANSparkBase.IdleMode;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -41,7 +40,7 @@ import org.team340.lib.util.config.rev.SparkPIDControllerConfig;
 public final class Constants {
 
     public static final double PERIOD = 0.020;
-    public static final double TELEMETRY_PERIOD = 0.040;
+    public static final double TELEMETRY_PERIOD = 0.020;
     public static final double POWER_USAGE_PERIOD = 0.020;
     public static final double VOLTAGE = 12.0;
     public static final double FIELD_LENGTH = 16.5417;
@@ -78,9 +77,7 @@ public final class Constants {
             .setJoystickDeadband(0.15)
             .setJoystickThreshold(0.7)
             .setTriggerDeadband(0.1)
-            .setTriggerThreshold(0.1)
-            .setLeftProfile("joystickprofiles/DriverLeft.json")
-            .setRightProfile("joystickprofiles/DriverRight.json");
+            .setTriggerThreshold(0.1);
 
         public static final Controller2Config CO_DRIVER = new Controller2Config()
             .setLabel("CoDriver")
@@ -88,9 +85,7 @@ public final class Constants {
             .setJoystickDeadband(0.1)
             .setJoystickThreshold(0.7)
             .setTriggerDeadband(0.1)
-            .setTriggerThreshold(0.1)
-            .setLeftProfile("joystickprofiles/CoDriverLeft.json")
-            .setRightProfile("joystickprofiles/CoDriverRight.json");
+            .setTriggerThreshold(0.1);
     }
 
     /**
@@ -130,13 +125,14 @@ public final class Constants {
     public static final class ClimberConstants {
 
         public static final double REL_ENC_CONVERSION = 1; // (125 * 12 * 0.25); // 1 / (gear ratio * sprocket teeth * inches/tooth)
-        public static final double CLOSED_LOOP_ERR = 0.125;
+        public static final double CLOSED_LOOP_ERR = Math.toRadians(5.0);
         public static final double ZEROING_SPEED = 0.5;
+        public static final double CLIMBING_SPEED = 0.4;
 
         public static final double MAX_POS = 120.0;
         public static final double MIN_POS = 0.0;
 
-        public static final double BALANCE_COMPENSATION = 0.0;
+        public static final double BALANCE_COMPENSATION = 0.1;
 
         public static final class Configs {
 
@@ -208,7 +204,7 @@ public final class Constants {
         public static final double CLOSED_LOOP_ERROR = Math.toRadians(5.0);
 
         public static final double DOWN_POSITION = 0.0;
-        public static final double SCORE_AMP_POSITION = Math.toRadians(55.0);
+        public static final double SCORE_AMP_POSITION = Math.toRadians(56.0);
         public static final double SAFE_POSITION = Math.toRadians(30.0);
         public static final double RETRACT_POSITION = Math.toRadians(65.0);
         public static final double UPRIGHT_POSITION = Math.toRadians(90.0);
@@ -219,28 +215,28 @@ public final class Constants {
         public static final double INTAKE_ROLLER_SPEED = 0.9;
         public static final double BARF_ROLLER_SPEED = -0.5;
         public static final double FROM_SHOOTER_ROLLER_SPEED = -0.25;
+        public static final double OVERRIDE_INTAKE_SPEED = 0.25;
 
         public static final double AMP_SCORING_TIMEOUT = 2.0;
 
         public static final class ArmConfigs {
 
-            private static final SparkFlexConfig MOTOR_BASE = new SparkFlexConfig()
+            public static final SparkFlexConfig MOTOR = new SparkFlexConfig()
                 .clearFaults()
                 .restoreFactoryDefaults()
                 .enableVoltageCompensation(VOLTAGE)
                 .setSmartCurrentLimit(60, 30)
                 .setIdleMode(IdleMode.kBrake)
-                .setClosedLoopRampRate(0.15)
-                .setOpenLoopRampRate(0.15);
-            public static final SparkFlexConfig LEFT_MOTOR = MOTOR_BASE.clone().setInverted(true);
-            public static final SparkFlexConfig RIGHT_MOTOR = MOTOR_BASE
-                .clone()
-                .follow(ExternalFollower.kFollowerSpark, RobotMap.INTAKE_ARM_LEFT_MOTOR, false);
-            public static final SparkAbsoluteEncoderConfig ENCODER = new SparkAbsoluteEncoderConfig()
                 .setInverted(true)
+                .setClosedLoopRampRate(0.35)
+                .setOpenLoopRampRate(0.35);
+
+            private static final SparkAbsoluteEncoderConfig ENCODER_BASE = new SparkAbsoluteEncoderConfig()
                 .setPositionConversionFactor(Math2.TWO_PI)
-                .setVelocityConversionFactor(Math2.TWO_PI / 60.0)
-                .setZeroOffset(4.8304510);
+                .setVelocityConversionFactor(Math2.TWO_PI / 60.0);
+
+            public static final SparkAbsoluteEncoderConfig LEFT_ENCODER = ENCODER_BASE.clone().setInverted(true).setZeroOffset(4.83665);
+            public static final SparkAbsoluteEncoderConfig RIGHT_ENCODER = ENCODER_BASE.clone().setInverted(false).setZeroOffset(5.82576);
 
             public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
                 .setPID(1.0, 0.0015, 0.02)
@@ -352,7 +348,7 @@ public final class Constants {
                 .clearFaults()
                 .restoreFactoryDefaults()
                 .enableVoltageCompensation(VOLTAGE)
-                .setSmartCurrentLimit(60, 40)
+                .setSmartCurrentLimit(50, 35)
                 .setIdleMode(IdleMode.kCoast)
                 .setClosedLoopRampRate(0.0)
                 .setOpenLoopRampRate(0.0);
@@ -420,7 +416,7 @@ public final class Constants {
             .setMaxSpeeds(4.95, 11.8)
             .setRatelimits(8.1, 28.75)
             .setTrajectoryConstraints(3.8, 2.4)
-            .setPowerProperties(VOLTAGE, 60.0, 40.0)
+            .setPowerProperties(VOLTAGE, 55.0, 40.0)
             .setMechanicalProperties(6.75, 150.0 / 7.0, 4.0)
             .setDiscretizationLookahead(0.020)
             .setOdometryPeriod(0.020)
@@ -437,11 +433,11 @@ public final class Constants {
         public static final PIDConfig TRAJ_ROT_PID = new PIDConfig(6.0, 0.0, 0.0, 0.0);
         public static final Constraints TRAJ_ROT_CONSTRAINTS = new Constraints(6.5, 7.0);
 
-        public static final PIDConfig XY_PID = new PIDConfig(2.9, 0.0, 0.6, 0.0);
+        public static final PIDConfig XY_PID = new PIDConfig(3.9, 0.0, 0.65, 0.0);
         public static final PIDConfig ROT_PID = new PIDConfig(5.5, 0.0, 0.2, 0.0);
         public static final Constraints ROT_CONSTRAINTS = new Constraints(6.0, 7.0);
 
-        public static final double POSE_XY_ERROR = 0.075;
+        public static final double POSE_XY_ERROR = 0.125;
         public static final double POSE_ROT_ERROR = Math.toRadians(5.0);
 
         public static final Transform3d FRONT_LEFT_CAMERA = new Transform3d(
@@ -467,7 +463,7 @@ public final class Constants {
         public static final double VISION_STD_ROT_SCALE = 0.01;
 
         public static final Pose2d AMP_APPROACH_BLUE = new Pose2d(AMP_X, 7.2, new Rotation2d(Math2.HALF_PI));
-        public static final Pose2d AMP_SCORE_BLUE = new Pose2d(AMP_X, 7.775, new Rotation2d(Math2.HALF_PI));
+        public static final Pose2d AMP_SCORE_BLUE = new Pose2d(AMP_X, 7.77, new Rotation2d(Math2.HALF_PI));
         public static final Pose2d AMP_APPROACH_RED = new Pose2d(
             AMP_X,
             FIELD_WIDTH - AMP_APPROACH_BLUE.getY(),

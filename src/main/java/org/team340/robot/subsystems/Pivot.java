@@ -15,6 +15,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.Supplier;
 import org.team340.lib.GRRSubsystem;
 import org.team340.lib.util.Math2;
+import org.team340.robot.Constants;
 import org.team340.robot.Constants.PivotConstants;
 import org.team340.robot.Constants.RobotMap;
 
@@ -74,7 +75,7 @@ public class Pivot extends GRRSubsystem {
      * {@link PivotConstants#MAXIMUM_ANGLE maximum} angles).
      * @param position The position to set.
      */
-    private void setValidPosition(double position) {
+    private void applyPosition(double position) {
         if (position < PivotConstants.MINIMUM_ANGLE || position > PivotConstants.MAXIMUM_ANGLE) {
             DriverStation.reportWarning(
                 "Invalid shooter pivot position. " +
@@ -147,7 +148,7 @@ public class Pivot extends GRRSubsystem {
             .andThen(waitSeconds(0.1))
             .andThen(
                 commandBuilder()
-                    .onExecute(() -> setValidPosition(position.get()))
+                    .onExecute(() -> applyPosition(position.get()))
                     .isFinished(() ->
                         (getLimit() && pivotMotor.getAppliedOutput() - PivotConstants.AT_LIMIT_SPEED_ALLOWANCE <= 0.0) ||
                         (willFinish && Math.abs(pivotEncoder.getPosition() - position.get()) < PivotConstants.CLOSED_LOOP_ERR)
@@ -170,7 +171,7 @@ public class Pivot extends GRRSubsystem {
         return commandBuilder("pivot.maintainPosition()")
             .onExecute(() -> {
                 if (isHomed) {
-                    setValidPosition(maintain);
+                    applyPosition(maintain);
                 } else {
                     pivotMotor.stopMotor();
                 }
@@ -178,11 +179,41 @@ public class Pivot extends GRRSubsystem {
     }
 
     /**
+     * Drives the pivot manually. Will hold position.
+     * @param speed The speed of the pivot in radians/second.
+     */
+    public Command driveManual(Supplier<Double> speed) {
+        return home(false)
+            .andThen(waitSeconds(0.1))
+            .andThen(
+                commandBuilder()
+                    .onExecute(() -> {
+                        double diff = speed.get() * Constants.PERIOD;
+                        if (getLimit()) {
+                            diff = Math.max(diff, 0.0);
+                        } else if (pivotEncoder.getPosition() > PivotConstants.MAXIMUM_ANGLE) {
+                            diff = Math.min(diff, 0.0);
+                        }
+
+                        maintain += diff;
+                        applyPosition(maintain);
+                    })
+                    .onEnd(() -> {
+                        if (getLimit()) maintain = pivotEncoder.getPosition();
+                    })
+            )
+            .withName("pivot.driveManual()");
+    }
+
+    /**
      * Should be called when disabled, and cancelled when enabled.
      */
     public Command onDisable() {
         return commandBuilder()
-            .onInitialize(() -> pivotMotor.setIdleMode(IdleMode.kCoast))
+            .onInitialize(() -> {
+                pivotMotor.setIdleMode(IdleMode.kCoast);
+                pivotMotor.stopMotor();
+            })
             .onEnd(() -> pivotMotor.setIdleMode(IdleMode.kBrake))
             .ignoringDisable(true)
             .withName("pivot.onDisable()");

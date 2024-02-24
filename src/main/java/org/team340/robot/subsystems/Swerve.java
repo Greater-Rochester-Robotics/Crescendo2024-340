@@ -14,6 +14,7 @@ import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.trajectory.Trajectory;
@@ -40,64 +41,34 @@ import org.team340.robot.Constants.SwerveConstants;
  */
 public class Swerve extends SwerveBase {
 
-    private final PIDController xPIDTraj;
-    private final PIDController yPIDTraj;
-    private final PIDController rotPIDTraj;
-    private final ProfiledPIDController rotPIDTrajProfiled;
+    private final PIDController xPIDTraj = SwerveConstants.TRAJ_XY_PID.pidController();
+    private final PIDController yPIDTraj = SwerveConstants.TRAJ_XY_PID.pidController();
+    private final PIDController rotPIDTraj = SwerveConstants.TRAJ_ROT_PID.pidController();
+    private final ProfiledPIDController rotPIDTrajProfiled = SwerveConstants.TRAJ_ROT_PID.profiledPIDController(
+        SwerveConstants.TRAJ_ROT_CONSTRAINTS
+    );
 
-    private final PIDController xPID;
-    private final PIDController yPID;
-    private final ProfiledPIDController rotPID;
+    private final HolonomicDriveController trajectoryController = new HolonomicDriveController(xPIDTraj, yPIDTraj, rotPIDTrajProfiled);
 
-    public final AprilTagFieldLayout aprilTagLayout;
+    private final PIDController xPID = SwerveConstants.XY_PID.pidController();
+    private final PIDController yPID = SwerveConstants.XY_PID.pidController();
+    private final ProfiledPIDController rotPID = SwerveConstants.ROT_PID.profiledPIDController(SwerveConstants.ROT_CONSTRAINTS);
+
+    private final AprilTagFieldLayout aprilTagLayout;
     private final PhotonPoseEstimator[] photonPoseEstimators;
     private final Pose2d[] photonLastPoses;
 
-    private double NOTE_VELOCITY = Constants.NOTE_VELOCITY;
-
-    private Pose3d speakerRotTarget = null;
-
-    private HolonomicDriveController trajController;
+    private Pose3d internalSpeakerTarget = null;
+    private double tunableNoteVelocity = Constants.NOTE_VELOCITY;
 
     /**
      * Create the swerve subsystem.
      */
     public Swerve() {
         super("Swerve Drive", SwerveConstants.CONFIG);
-        xPIDTraj = new PIDController(SwerveConstants.TRAJ_XY_PID.p(), SwerveConstants.TRAJ_XY_PID.i(), SwerveConstants.TRAJ_XY_PID.d());
-        yPIDTraj = new PIDController(SwerveConstants.TRAJ_XY_PID.p(), SwerveConstants.TRAJ_XY_PID.i(), SwerveConstants.TRAJ_XY_PID.d());
-        rotPIDTraj =
-            new PIDController(SwerveConstants.TRAJ_ROT_PID.p(), SwerveConstants.TRAJ_ROT_PID.i(), SwerveConstants.TRAJ_ROT_PID.d());
-        rotPIDTrajProfiled =
-            new ProfiledPIDController(
-                SwerveConstants.TRAJ_ROT_PID.p(),
-                SwerveConstants.TRAJ_ROT_PID.i(),
-                SwerveConstants.TRAJ_ROT_PID.d(),
-                SwerveConstants.TRAJ_ROT_CONSTRAINTS
-            );
-
-        xPID = new PIDController(SwerveConstants.XY_PID.p(), SwerveConstants.XY_PID.i(), SwerveConstants.XY_PID.d());
-        yPID = new PIDController(SwerveConstants.XY_PID.p(), SwerveConstants.XY_PID.i(), SwerveConstants.XY_PID.d());
-        rotPID =
-            new ProfiledPIDController(
-                SwerveConstants.ROT_PID.p(),
-                SwerveConstants.ROT_PID.i(),
-                SwerveConstants.ROT_PID.d(),
-                SwerveConstants.ROT_CONSTRAINTS
-            );
-
-        xPIDTraj.setIZone(SwerveConstants.TRAJ_XY_PID.iZone());
-        yPIDTraj.setIZone(SwerveConstants.TRAJ_XY_PID.iZone());
-        rotPIDTraj.setIZone(SwerveConstants.ROT_PID.iZone());
         rotPIDTraj.enableContinuousInput(-Math.PI, Math.PI);
-        rotPIDTrajProfiled.setIZone(SwerveConstants.ROT_PID.iZone());
         rotPIDTrajProfiled.enableContinuousInput(-Math.PI, Math.PI);
-        xPID.setIZone(SwerveConstants.XY_PID.iZone());
-        yPID.setIZone(SwerveConstants.XY_PID.iZone());
-        rotPID.setIZone(SwerveConstants.ROT_PID.iZone());
         rotPID.enableContinuousInput(-Math.PI, Math.PI);
-
-        trajController = new HolonomicDriveController(xPIDTraj, yPIDTraj, rotPIDTrajProfiled);
 
         aprilTagLayout = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField();
         photonPoseEstimators =
@@ -141,12 +112,12 @@ public class Swerve extends SwerveBase {
         builder.addDoubleProperty("speakerY", () -> getSpeakerPosition().getY(), null);
         builder.addDoubleProperty("speakerDistance", this::getSpeakerDistance, null);
         builder.addBooleanProperty("inOpponentWing", this::inOpponentWing, null);
-        builder.addDoubleProperty("tunableNoteVelocity", () -> NOTE_VELOCITY, velocity -> NOTE_VELOCITY = velocity);
+        builder.addDoubleProperty("tunableNoteVelocity", () -> tunableNoteVelocity, velocity -> tunableNoteVelocity = velocity);
         builder.addDoubleArrayProperty(
-            "speakerRotTarget",
+            "internalSpeakerTarget",
             () -> {
-                Pose3d pose = speakerRotTarget != null
-                    ? speakerRotTarget
+                Pose3d pose = internalSpeakerTarget != null
+                    ? internalSpeakerTarget
                     : (Alliance.isBlue() ? Constants.BLUE_SPEAKER_3D : Constants.RED_SPEAKER_3D);
                 return new double[] {
                     pose.getX(),
@@ -224,8 +195,8 @@ public class Swerve extends SwerveBase {
         Translation2d goalPose = Alliance.isBlue() ? Constants.BLUE_SPEAKER : Constants.RED_SPEAKER;
         ChassisSpeeds robotVel = getVelocity(true);
         double distanceToSpeaker = getPosition().getTranslation().getDistance(goalPose);
-        double x = goalPose.getX() - (robotVel.vxMetersPerSecond * (distanceToSpeaker / NOTE_VELOCITY));
-        double y = goalPose.getY() - (robotVel.vyMetersPerSecond * (distanceToSpeaker / NOTE_VELOCITY));
+        double x = goalPose.getX() - (robotVel.vxMetersPerSecond * (distanceToSpeaker / tunableNoteVelocity));
+        double y = goalPose.getY() - (robotVel.vyMetersPerSecond * (distanceToSpeaker / tunableNoteVelocity));
         return new Translation2d(x, y);
     }
 
@@ -245,8 +216,12 @@ public class Swerve extends SwerveBase {
             speakerPosition.getY() + shotRot.getCos() * SwerveConstants.SPIN_COMPENSATION_Y * speakerDistance
         );
 
-        speakerRotTarget = new Pose3d(targetPosition.getX(), targetPosition.getY(), Constants.SPEAKER_HEIGHT, Math2.ROTATION3D_0);
+        internalSpeakerTarget = new Pose3d(targetPosition.getX(), targetPosition.getY(), Constants.SPEAKER_HEIGHT, Math2.ROTATION3D_0);
         return MathUtil.angleModulus(targetPosition.minus(robotPoint).getAngle().getRadians() + Math.PI);
+    }
+
+    public Rotation3d getIMURotation3d() {
+        return new Rotation3d(imu.getRoll().getRadians(), imu.getPitch().getRadians(), imu.getYaw().getRadians());
     }
 
     /**
@@ -426,7 +401,7 @@ public class Swerve extends SwerveBase {
             })
             .onExecute(() -> {
                 State goal = trajectory.sample(timer.get());
-                ChassisSpeeds speeds = trajController.calculate(
+                ChassisSpeeds speeds = trajectoryController.calculate(
                     getPosition(),
                     goal,
                     startRotation.interpolate(endRotation, timer.get() / trajectory.getTotalTimeSeconds())

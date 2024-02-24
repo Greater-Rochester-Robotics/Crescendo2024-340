@@ -131,7 +131,10 @@ public class Feeder extends GRRSubsystem {
      */
     public Command onDisable() {
         return commandBuilder()
-            .onInitialize(() -> feedMotor.setIdleMode(IdleMode.kCoast))
+            .onInitialize(() -> {
+                feedMotor.setIdleMode(IdleMode.kCoast);
+                feedMotor.stopMotor();
+            })
             .onEnd(() -> feedMotor.setIdleMode(IdleMode.kBrake))
             .ignoringDisable(true)
             .withName("feeder.onDisable()");

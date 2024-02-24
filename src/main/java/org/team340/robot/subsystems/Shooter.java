@@ -23,6 +23,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import java.util.function.Supplier;
 import org.team340.lib.GRRSubsystem;
 import org.team340.lib.util.Math2;
+import org.team340.robot.Constants;
 import org.team340.robot.Constants.RobotMap;
 import org.team340.robot.Constants.ShooterConstants;
 
@@ -46,7 +47,8 @@ public class Shooter extends GRRSubsystem {
 
     private double leftTargetSpeed = 0.0;
     private double rightTargetSpeed = 0.0;
-    private boolean pidActive = false;
+    private boolean leftPIDActive = false;
+    private boolean rightPIDActive = false;
 
     public Shooter() {
         super("Shooter");
@@ -112,7 +114,8 @@ public class Shooter extends GRRSubsystem {
         builder.addBooleanProperty("atSpeed", this::atSpeed, null);
         builder.addDoubleProperty("leftTarget", () -> leftTargetSpeed, null);
         builder.addDoubleProperty("rightTarget", () -> rightTargetSpeed, null);
-        builder.addBooleanProperty("pidActive", () -> pidActive, null);
+        builder.addBooleanProperty("leftPIDActive", () -> leftPIDActive, null);
+        builder.addBooleanProperty("rightPIDActive", () -> rightPIDActive, null);
     }
 
     /**
@@ -132,24 +135,34 @@ public class Shooter extends GRRSubsystem {
     private void applySpeed(double speed) {
         double leftSpeed = speed;
         double rightSpeed = speed * ShooterConstants.RIGHT_TO_LEFT_RATIO;
+
+        if (speed == 0.0) {
+            leftShootMotor.stopMotor();
+            rightShootMotor.stopMotor();
+            leftPIDActive = false;
+            rightPIDActive = false;
+        } else {
+            double leftDelta = leftSpeed - leftEncoder.getVelocity();
+            if (Math.abs(leftDelta) < ShooterConstants.PID_RANGE) {
+                leftShootPID.setReference(leftSpeed, ControlType.kVelocity, 0, feedforward.calculate(leftSpeed));
+                leftPIDActive = true;
+            } else {
+                leftShootMotor.set(ShooterConstants.RAMP_SPEED * Math.signum(leftDelta));
+                leftPIDActive = false;
+            }
+
+            double rightDelta = rightSpeed - rightEncoder.getVelocity();
+            if (Math.abs(rightDelta) < ShooterConstants.PID_RANGE) {
+                rightShootPID.setReference(rightSpeed, ControlType.kVelocity, 0, feedforward.calculate(rightSpeed));
+                rightPIDActive = true;
+            } else {
+                rightShootMotor.set(ShooterConstants.RAMP_SPEED * Math.signum(rightDelta));
+                rightPIDActive = false;
+            }
+        }
+
         leftTargetSpeed = leftSpeed;
         rightTargetSpeed = rightSpeed;
-
-        double leftDelta = leftSpeed - leftEncoder.getVelocity();
-        if (Math.abs(leftDelta) < ShooterConstants.PID_RANGE) {
-            leftShootPID.setReference(leftSpeed, ControlType.kVelocity, 0, feedforward.calculate(leftSpeed));
-            pidActive = true;
-        } else {
-            leftShootMotor.set(ShooterConstants.RAMP_SPEED * Math.signum(leftDelta));
-            pidActive = false;
-        }
-
-        double rightDelta = rightSpeed - rightEncoder.getVelocity();
-        if (Math.abs(rightDelta) < ShooterConstants.PID_RANGE) {
-            rightShootPID.setReference(rightSpeed, ControlType.kVelocity, 0, feedforward.calculate(rightSpeed));
-        } else {
-            rightShootMotor.set(ShooterConstants.RAMP_SPEED * Math.signum(rightDelta));
-        }
     }
 
     /**
@@ -225,6 +238,14 @@ public class Shooter extends GRRSubsystem {
                 leftShootMotor.stopMotor();
                 rightShootMotor.stopMotor();
             });
+    }
+
+    /**
+     * Drives shooter by modifying a moving target RPM.
+     * @param rampSpeed The speed to ramp the shooter by in RPM/second.
+     */
+    public Command driveManual(Supplier<Double> rampSpeed) {
+        return setSpeed(() -> leftTargetSpeed + rampSpeed.get() * Constants.PERIOD);
     }
 
     /**

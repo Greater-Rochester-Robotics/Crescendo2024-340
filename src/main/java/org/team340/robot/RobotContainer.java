@@ -3,6 +3,8 @@ package org.team340.robot;
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 import com.choreo.lib.Choreo;
+import edu.wpi.first.wpilibj.GenericHID.RumbleType;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import org.team340.lib.GRRDashboard;
@@ -134,7 +136,7 @@ public final class RobotContainer {
             );
 
         // Left Bumper => Face Stage (Hold)
-        // driver.leftBumper().whileTrue(swerve.driveStage(RobotContainer::getDriveX, RobotContainer::getDriveY));
+        driver.leftBumper().whileTrue(swerve.driveStage(RobotContainer::getDriveX, RobotContainer::getDriveY));
         // driver.leftBumper().whileTrue(climber.driveManual(driver::getRightY));
 
         // POV Up => Barf Backwards
@@ -149,35 +151,59 @@ public final class RobotContainer {
         // POV Right => Zero pivot
         driver.povRight().whileTrue(pivot.home(true));
 
-        Trigger driverLockout = TriggerLockout.of(
-            driver.a(),
-            driver.b(),
-            driver.x(),
-            driver.y(),
-            driver.rightJoystickUp(),
-            driver.rightJoystickDown(),
-            driver.povUp(),
-            driver.povDown(),
-            driver.povLeft(),
-            driver.povRight(),
-            driver.rightBumper()
-        );
+        // Start + Back => Toggle Shooter
+        driver.start().and(driver.back()).toggleOnTrue(shooter.setSpeed(0.0));
 
         /**
          * Co-driver bindings.
          */
 
-        // A => Overrides
-        coDriver.a().onTrue(none());
+        Trigger coDriverOverride = TriggerLockout
+            .of(
+                driver.a(),
+                driver.b(),
+                driver.x(),
+                driver.y(),
+                driver.rightJoystickUp(),
+                driver.rightJoystickDown(),
+                driver.povUp(),
+                driver.povDown(),
+                driver.povLeft(),
+                driver.povRight(),
+                driver.rightBumper()
+            )
+            .and(coDriver.leftBumper())
+            .and(coDriver.rightBumper());
 
-        // B => Reserved
-        coDriver.b().onTrue(none());
+        coDriverOverride.whileTrue(
+            parallel(
+                intake.driveArmManual(() -> -coDriver.getLeftY()),
+                pivot.driveManual(() -> -coDriver.getRightY()),
+                shooter.driveManual(() -> -coDriver.getRightX())
+            )
+        );
+
+        // A => Reserved For Climb
+        coDriver.a().whileTrue(climber.balance(() -> swerve.getIMURotation3d().getX()));
+
+        // B => Overrides intake
+        coDriver.b().and(coDriverOverride).whileTrue(Routines.intakeOverride());
 
         // X => Reserved For Climb
         coDriver.x().onTrue(none());
 
         // Y => Reserved For Climb
-        coDriver.x().onTrue(none());
+        coDriver.y().onTrue(none());
+
+        // Both Triggers => Drives climber manually
+        coDriver
+            .leftTrigger()
+            .and(coDriver.rightTrigger())
+            .whileTrue(climber.driveManual(() -> -coDriver.getLeftY() * 0.3, () -> -coDriver.getRightY() * 0.3));
+
+        coDriver.back().toggleOnTrue(setCoDriverRumble(RumbleType.kLeftRumble, 0.5).ignoringDisable(true));
+
+        coDriver.start().toggleOnTrue(setCoDriverRumble(RumbleType.kRightRumble, 0.5).ignoringDisable(true));
         /**
          * SysId Routines
          */
@@ -231,5 +257,12 @@ public final class RobotContainer {
      */
     private static double getDriveRotate() {
         return driver.getTriggerDifference(ControllerConstants.DRIVE_ROT_MULTIPLIER, ControllerConstants.DRIVE_ROT_EXP);
+    }
+
+    private static Command setCoDriverRumble(RumbleType type, double value) {
+        return runEnd(
+            () -> coDriver.getHID().setRumble(RumbleType.kRightRumble, 0.5),
+            () -> coDriver.getHID().setRumble(RumbleType.kRightRumble, 0.0)
+        );
     }
 }

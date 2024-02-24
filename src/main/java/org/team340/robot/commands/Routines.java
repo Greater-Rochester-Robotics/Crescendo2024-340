@@ -31,6 +31,10 @@ public class Routines {
             .withName("Routines.intake()");
     }
 
+    public static Command intakeOverride() {
+        return parallel(intake.intakeOverride(), feeder.shootNote()).withName("Routines.intakeOverride()");
+    }
+
     /**
      * Intakes from the human player.
      */
@@ -81,7 +85,7 @@ public class Routines {
                     intake.maintainPosition().until(approached::get)
                 )
             ),
-            parallel(swerve.scoreAmp(), sequence(waitSeconds(0.9), intake.scoreAmp()))
+            parallel(swerve.scoreAmp(), sequence(waitSeconds(1.3), intake.scoreAmp()))
         )
             .withName("Routines.scoreAmp()");
     }
