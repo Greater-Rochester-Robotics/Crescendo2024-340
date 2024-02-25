@@ -5,6 +5,7 @@ import static edu.wpi.first.wpilibj2.command.Commands.*;
 import com.choreo.lib.Choreo;
 import com.choreo.lib.ChoreoTrajectory;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
+import edu.wpi.first.apriltag.AprilTagFieldLayout.OriginPosition;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
@@ -14,6 +15,7 @@ import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.trajectory.Trajectory;
@@ -54,7 +56,8 @@ public class Swerve extends SwerveBase {
     private final PIDController yPID = SwerveConstants.XY_PID.pidController();
     private final ProfiledPIDController rotPID = SwerveConstants.ROT_PID.profiledPIDController(SwerveConstants.ROT_CONSTRAINTS);
 
-    private final AprilTagFieldLayout aprilTagLayout;
+    private final AprilTagFieldLayout blueAprilTags;
+    private final AprilTagFieldLayout redAprilTags;
     private final PhotonPoseEstimator[] photonPoseEstimators;
     private final Pose2d[] photonLastPoses;
 
@@ -70,29 +73,33 @@ public class Swerve extends SwerveBase {
         rotPIDTrajProfiled.enableContinuousInput(-Math.PI, Math.PI);
         rotPID.enableContinuousInput(-Math.PI, Math.PI);
 
-        aprilTagLayout = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField();
+        blueAprilTags = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField();
+        redAprilTags = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField();
+        blueAprilTags.setOrigin(OriginPosition.kBlueAllianceWallRightSide);
+        redAprilTags.setOrigin(OriginPosition.kRedAllianceWallRightSide);
+
         photonPoseEstimators =
             new PhotonPoseEstimator[] {
                 new PhotonPoseEstimator(
-                    aprilTagLayout,
+                    blueAprilTags,
                     PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
                     new PhotonCamera("FrontLeft"),
                     SwerveConstants.FRONT_LEFT_CAMERA
                 ),
                 new PhotonPoseEstimator(
-                    aprilTagLayout,
+                    blueAprilTags,
                     PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
                     new PhotonCamera("BackLeft"),
                     SwerveConstants.BACK_LEFT_CAMERA
                 ),
                 new PhotonPoseEstimator(
-                    aprilTagLayout,
+                    blueAprilTags,
                     PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
                     new PhotonCamera("BackRight"),
                     SwerveConstants.BACK_RIGHT_CAMERA
                 ),
                 new PhotonPoseEstimator(
-                    aprilTagLayout,
+                    blueAprilTags,
                     PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
                     new PhotonCamera("FrontRight"),
                     SwerveConstants.FRONT_RIGHT_CAMERA
@@ -139,7 +146,15 @@ public class Swerve extends SwerveBase {
             for (int i = 0; i < photonPoseEstimators.length; i++) {
                 Optional<EstimatedRobotPose> pose = photonPoseEstimators[i].update();
                 if (pose.isPresent()) {
-                    Pose3d pose3d = pose.get().estimatedPose;
+                    Pose3d raw = pose.get().estimatedPose;
+                    Pose3d pose3d = Alliance.isBlue()
+                        ? raw
+                        : new Pose3d(
+                            Constants.FIELD_LENGTH - raw.getX(),
+                            Constants.FIELD_WIDTH - raw.getY(),
+                            raw.getZ(),
+                            raw.getRotation().minus(new Rotation3d(0.0, 0.0, Math.PI))
+                        );
                     Pose2d pose2d = pose3d.toPose2d();
                     if (
                         pose3d.getX() >= -SwerveConstants.VISION_FIELD_MARGIN &&
@@ -151,7 +166,8 @@ public class Swerve extends SwerveBase {
                     ) {
                         double sum = 0.0;
                         for (PhotonTrackedTarget target : pose.get().targetsUsed) {
-                            Optional<Pose3d> tagPose = aprilTagLayout.getTagPose(target.getFiducialId());
+                            Optional<Pose3d> tagPose =
+                                (Alliance.isBlue() ? blueAprilTags : redAprilTags).getTagPose(target.getFiducialId());
                             if (tagPose.isEmpty()) continue;
                             sum += currentPose.getTranslation().getDistance(tagPose.get().getTranslation().toTranslation2d());
                         }
@@ -213,7 +229,11 @@ public class Swerve extends SwerveBase {
 
         Translation2d targetPosition = new Translation2d(
             speakerPosition.getX() + shotRot.getSin() * SwerveConstants.SPIN_COMPENSATION_X * speakerDistance,
-            speakerPosition.getY() + shotRot.getCos() * SwerveConstants.SPIN_COMPENSATION_Y * speakerDistance
+            speakerPosition.getY() +
+            shotRot.getCos() *
+            SwerveConstants.SPIN_COMPENSATION_Y *
+            speakerDistance *
+            (Alliance.isBlue() ? 1.0 : -1.0)
         );
 
         internalSpeakerTarget = new Pose3d(targetPosition.getX(), targetPosition.getY(), FieldPositions.SPEAKER_HEIGHT, Math2.ROTATION3D_0);

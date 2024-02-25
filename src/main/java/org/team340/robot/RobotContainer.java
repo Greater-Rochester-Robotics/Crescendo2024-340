@@ -224,14 +224,16 @@ public final class RobotContainer {
      * added to {@link GRRDashboard}.
      */
     private static void configAutos() {
-        var fourPiece = Choreo.getTrajectoryGroup("FourPiece");
-        GRRDashboard.addAutoCommand("Four Piece", fourPiece, Autos.fourPiece(fourPiece));
+        var fourPieceLeft = Choreo.getTrajectoryGroup("FourPieceLeft");
+        GRRDashboard.addAutoCommand("Four Piece Left", fourPieceLeft, Autos.fourPieceLeft(fourPieceLeft));
+
+        var fourPieceFront = Choreo.getTrajectoryGroup("FourPieceFront");
+        GRRDashboard.addAutoCommand("Four Piece Front", fourPieceFront, Autos.fourPieceFront(fourPieceFront));
 
         var fourPieceRight = Choreo.getTrajectoryGroup("FourPieceRight");
         GRRDashboard.addAutoCommand("Four Piece Right", fourPieceRight, Autos.fourPieceRight(fourPieceRight));
-
-        var twoPieceFront = Choreo.getTrajectoryGroup("TwoPieceFront");
-        GRRDashboard.addAutoCommand("Two Piece Front", twoPieceFront, Autos.twoPieceFront(twoPieceFront));
+        // var fourPieceOld = Choreo.getTrajectoryGroup("FourPieceOld");
+        // GRRDashboard.addAutoCommand("Four Piece Old", fourPieceOld, Autos.fourPieceOld(fourPieceOld));
     }
 
     /**
@@ -260,9 +262,6 @@ public final class RobotContainer {
     }
 
     private static Command setCoDriverRumble(RumbleType type, double value) {
-        return runEnd(
-            () -> coDriver.getHID().setRumble(RumbleType.kRightRumble, 0.5),
-            () -> coDriver.getHID().setRumble(RumbleType.kRightRumble, 0.0)
-        );
+        return runEnd(() -> coDriver.getHID().setRumble(type, 0.5), () -> coDriver.getHID().setRumble(type, 0.0));
     }
 }

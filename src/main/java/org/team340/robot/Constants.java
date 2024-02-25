@@ -477,7 +477,7 @@ public final class Constants {
         public static final double VISION_STD_XY_SCALE = 0.005;
         public static final double VISION_STD_ROT_SCALE = 0.01;
 
-        public static final PIDConfig TRAJ_XY_PID = new PIDConfig(10.0, 0.0, 0.0, 0.0);
+        public static final PIDConfig TRAJ_XY_PID = new PIDConfig(1.0, 0.0, 0.0, 0.0);
         public static final PIDConfig TRAJ_ROT_PID = new PIDConfig(6.0, 0.0, 0.0, 0.0);
         public static final Constraints TRAJ_ROT_CONSTRAINTS = new Constraints(6.5, 7.0);
 
@@ -485,9 +485,11 @@ public final class Constants {
         public static final PIDConfig ROT_PID = new PIDConfig(5.5, 0.0, 0.2, 0.0);
         public static final Constraints ROT_CONSTRAINTS = new Constraints(6.0, 7.0);
 
-        public static final double NOTE_VELOCITY = 200.0;
+        public static final double NOTE_VELOCITY = 5.0;
         public static final double SPIN_COMPENSATION_X = 0.04;
         public static final double SPIN_COMPENSATION_Y = 0.085;
+
+        public static final double NORM_FUDGE = 0.1;
     }
 
     public static final class FieldPositions {
