@@ -8,6 +8,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
@@ -121,6 +122,7 @@ public class Choreo {
         PIDController yController,
         PIDController rotationController,
         Consumer<ChassisSpeeds> outputChassisSpeeds,
+        Consumer<Pose2d> outputTargetPose,
         BooleanSupplier mirrorTrajectory,
         Subsystem... requirements
     ) {
@@ -130,17 +132,22 @@ public class Choreo {
             timer::restart,
             () -> {
                 Pose2d pose = poseSupplier.get();
-                ChassisSpeeds speeds = controller.apply(pose, trajectory.sample(timer.get(), mirrorTrajectory.getAsBoolean()));
+                ChoreoTrajectoryState sample = trajectory.sample(timer.get(), mirrorTrajectory.getAsBoolean());
+                ChassisSpeeds speeds = controller.apply(pose, sample);
+                Pose2d targetOutput = sample.getPose();
                 if (targetTime >= 0 && timer.get() >= targetTime) {
+                    double angle = targetAngle.get();
                     speeds =
                         new ChassisSpeeds(
                             speeds.vxMetersPerSecond,
                             speeds.vyMetersPerSecond,
-                            targetController.calculate(MathUtil.angleModulus(pose.getRotation().getRadians()), targetAngle.get())
+                            targetController.calculate(MathUtil.angleModulus(pose.getRotation().getRadians()), angle)
                         );
+                    targetOutput = new Pose2d(targetOutput.getX(), targetOutput.getY(), new Rotation2d(angle));
                 }
 
                 outputChassisSpeeds.accept(speeds);
+                outputTargetPose.accept(targetOutput);
             },
             interrupted -> {
                 timer.stop();

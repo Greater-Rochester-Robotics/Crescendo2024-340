@@ -164,7 +164,7 @@ public final class Constants {
 
         // Misc
         public static final double CLOSED_LOOP_ERR = 0.125;
-        public static final double SHOOT_DELAY = 0.5;
+        public static final double SHOOT_DELAY = 0.3;
 
         // Hardware Configs
         public static final class Configs {
@@ -215,6 +215,7 @@ public final class Constants {
 
         // Misc
         public static final double CLOSED_LOOP_ERR = Math.toRadians(5.0);
+        public static final double ALLOWABLE_DIFFERENCE = Math.toRadians(15.0);
 
         // Arm Hardware Configs
         public static final class ArmConfigs {
@@ -434,18 +435,18 @@ public final class Constants {
         public static final SwerveConfig CONFIG = new SwerveConfig()
             .useADIS16470(IMUAxis.kZ, IMUAxis.kX, IMUAxis.kY, Port.kOnboardCS0, CalibrationTime._4s)
             .setPeriod(PERIOD)
-            .setMovePID(0.0125, 0.001, 0.005, 0.075)
+            .setMovePID(0.069, 0.001, 0.032, 0.075)
             .setMoveFF(0.13312, 2.3443, 0.3159)
             .setTurnPID(0.65, 0.001, 3.0, 0.01)
             .setRampRate(0.03, 0.03)
             .setMotorTypes(SwerveMotor.Type.SPARK_FLEX_BRUSHLESS, SwerveMotor.Type.SPARK_FLEX_BRUSHLESS)
             .setMaxSpeeds(4.95, 11.8)
-            .setRatelimits(8.1, 28.75)
+            .setRatelimits(10.45, 30.75)
             .setTrajectoryConstraints(3.8, 2.4)
-            .setPowerProperties(VOLTAGE, 55.0, 40.0)
+            .setPowerProperties(VOLTAGE, 60.0, 40.0)
             .setMechanicalProperties(6.75, 150.0 / 7.0, 4.0)
             .setDiscretizationLookahead(0.020)
-            .setOdometryPeriod(0.020)
+            .setOdometryPeriod(0.040)
             .setOdometryStd(0.003, 0.003, 0.0012)
             .setVisionStd(0.0, 0.0, 0.0)
             .setSysIdConfig(new SysIdRoutine.Config(Volts.of(1.0).per(Seconds.of(0.4)), Volts.of(7.0), Seconds.of(5.5)))
@@ -474,22 +475,22 @@ public final class Constants {
 
         public static final double VISION_FIELD_MARGIN = 0.5;
         public static final double VISION_Z_MARGIN = 0.75;
-        public static final double VISION_STD_XY_SCALE = 0.005;
-        public static final double VISION_STD_ROT_SCALE = 0.01;
+        public static final double VISION_STD_XY_SCALE = 0.006;
+        public static final double VISION_STD_ROT_SCALE = 0.015;
 
-        public static final PIDConfig TRAJ_XY_PID = new PIDConfig(1.0, 0.0, 0.0, 0.0);
-        public static final PIDConfig TRAJ_ROT_PID = new PIDConfig(6.0, 0.0, 0.0, 0.0);
+        public static final PIDConfig TRAJ_XY_PID = new PIDConfig(8.5, 0.0, 0.0, 0.0);
+        public static final PIDConfig TRAJ_ROT_PID = new PIDConfig(2.1, 0.0, 0.1, 0.0);
         public static final Constraints TRAJ_ROT_CONSTRAINTS = new Constraints(6.5, 7.0);
 
         public static final PIDConfig XY_PID = new PIDConfig(3.9, 0.0, 0.65, 0.0);
         public static final PIDConfig ROT_PID = new PIDConfig(5.5, 0.0, 0.2, 0.0);
         public static final Constraints ROT_CONSTRAINTS = new Constraints(6.0, 7.0);
 
-        public static final double NOTE_VELOCITY = 5.0;
+        public static final double NOTE_VELOCITY = 4.5;
+        public static final double NORM_FUDGE = 0.9;
+        public static final double NORM_FUDGE_MIN = 0.1;
         public static final double SPIN_COMPENSATION_X = 0.04;
         public static final double SPIN_COMPENSATION_Y = 0.085;
-
-        public static final double NORM_FUDGE = 0.1;
     }
 
     public static final class FieldPositions {

@@ -27,17 +27,16 @@ public class Autos {
         return parallel(
             pivot.targetDistance(swerve::getSpeakerDistance),
             sequence(
-                deadline(swerve.followTrajectory(traj.get(0), 1.5, true), intake.downPosition()),
-                deadline(sequence(waitSeconds(0.8), feeder.shoot().withTimeout(0.75)), swerve.driveSpeaker()),
-                deadline(sequence(swerve.followTrajectory(traj.get(1)), waitSeconds(0.5)), Routines.intake()),
-                swerve.followTrajectory(traj.get(2), 1.3),
-                deadline(sequence(waitSeconds(0.6), feeder.shoot().withTimeout(0.75)), swerve.driveSpeaker()),
-                deadline(sequence(swerve.followTrajectory(traj.get(3)), waitSeconds(0.5)), Routines.intake()),
-                swerve.followTrajectory(traj.get(4), 1.3),
-                deadline(sequence(waitSeconds(0.6), feeder.shoot().withTimeout(0.75)), swerve.driveSpeaker()),
-                deadline(sequence(swerve.followTrajectory(traj.get(5)), waitSeconds(0.5)), Routines.intake()),
-                swerve.followTrajectory(traj.get(4), 0.4),
-                deadline(sequence(waitSeconds(0.6), feeder.shoot().withTimeout(0.75)), swerve.driveSpeaker())
+                deadline(swerve.followTrajectory(traj.get(0), 1.78, true), intake.downPosition()),
+                deadline(sequence(waitSeconds(1.0), feeder.shoot().withTimeout(0.6)), swerve.driveSpeaker()),
+                deadline(swerve.followTrajectory(traj.get(1)), Routines.intake()),
+                deadline(swerve.followTrajectory(traj.get(2), 0.93), Routines.intake().withTimeout(0.3)),
+                feeder.shoot().withTimeout(0.6),
+                deadline(swerve.followTrajectory(traj.get(3)), Routines.intake()),
+                deadline(swerve.followTrajectory(traj.get(4), 2.2), Routines.intake().withTimeout(0.3)),
+                feeder.shoot().withTimeout(0.6),
+                parallel(swerve.followTrajectory(traj.get(5), -1.0), Routines.intake()),
+                deadline(sequence(waitSeconds(1.0), feeder.shoot().withTimeout(0.6)), swerve.driveSpeaker())
             )
         );
     }

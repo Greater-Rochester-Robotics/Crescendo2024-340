@@ -62,7 +62,9 @@ public class Swerve extends SwerveBase {
     private final Pose2d[] photonLastPoses;
 
     private Pose3d internalSpeakerTarget = null;
+    private Pose2d trajTargetPose = new Pose2d();
     private double tunableNoteVelocity = SwerveConstants.NOTE_VELOCITY;
+    private double tunableNormFudge = SwerveConstants.NORM_FUDGE;
 
     /**
      * Create the swerve subsystem.
@@ -120,6 +122,7 @@ public class Swerve extends SwerveBase {
         builder.addDoubleProperty("speakerDistance", this::getSpeakerDistance, null);
         builder.addBooleanProperty("inOpponentWing", this::inOpponentWing, null);
         builder.addDoubleProperty("tunableNoteVelocity", () -> tunableNoteVelocity, velocity -> tunableNoteVelocity = velocity);
+        builder.addDoubleProperty("tunableNormFudge", () -> tunableNormFudge, fudge -> tunableNormFudge = fudge);
         builder.addDoubleArrayProperty(
             "internalSpeakerTarget",
             () -> {
@@ -135,6 +138,11 @@ public class Swerve extends SwerveBase {
                     pose.getRotation().getZ(),
                 };
             },
+            null
+        );
+        builder.addDoubleArrayProperty(
+            "trajTargetPose",
+            () -> new double[] { trajTargetPose.getX(), trajTargetPose.getY(), trajTargetPose.getRotation().getDegrees() },
             null
         );
     }
@@ -209,10 +217,21 @@ public class Swerve extends SwerveBase {
      */
     public Translation2d getSpeakerPosition() {
         Translation2d goalPose = Alliance.isBlue() ? FieldPositions.BLUE_SPEAKER : FieldPositions.RED_SPEAKER;
+        Translation2d robotPos = getPosition().getTranslation();
         ChassisSpeeds robotVel = getVelocity(true);
-        double distanceToSpeaker = getPosition().getTranslation().getDistance(goalPose);
-        double x = goalPose.getX() - (robotVel.vxMetersPerSecond * (distanceToSpeaker / tunableNoteVelocity));
-        double y = goalPose.getY() - (robotVel.vyMetersPerSecond * (distanceToSpeaker / tunableNoteVelocity));
+        double distance = robotPos.getDistance(goalPose);
+        double normFactor = Math.hypot(robotVel.vxMetersPerSecond, robotVel.vyMetersPerSecond) < SwerveConstants.NORM_FUDGE_MIN
+            ? 0.0
+            : Math.abs(
+                MathUtil.angleModulus(
+                    robotPos.minus(goalPose).getAngle().getRadians() - Math.atan2(robotVel.vyMetersPerSecond, robotVel.vxMetersPerSecond)
+                ) /
+                Math.PI
+            );
+        if (Math.random() > 0.9) System.out.println((1.0 - (tunableNormFudge * normFactor)));
+        double x =
+            goalPose.getX() - (robotVel.vxMetersPerSecond * (distance / tunableNoteVelocity) * (1.0 - (tunableNormFudge * normFactor)));
+        double y = goalPose.getY() - (robotVel.vyMetersPerSecond * (distance / tunableNoteVelocity));
         return new Translation2d(x, y);
     }
 
@@ -389,12 +408,13 @@ public class Swerve extends SwerveBase {
                 yPIDTraj,
                 rotPIDTraj,
                 speeds -> driveSpeeds(speeds, false, false),
+                targetPose -> trajTargetPose = targetPose,
                 Alliance::isRed,
                 this
             )
             .beforeStarting(() -> {
                 if (resetOdometry) {
-                    Pose2d initialPose = traj.getInitialPose();
+                    Pose2d initialPose = Alliance.isBlue() ? traj.getInitialPose() : traj.getInitialState().flipped().getPose();
                     zeroIMU(initialPose.getRotation());
                     resetOdometry(initialPose);
                 }
