@@ -31,11 +31,14 @@ import edu.wpi.first.units.Velocity;
 import edu.wpi.first.units.Voltage;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.ADIS16470_IMU;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import org.team340.lib.GRRDashboard;
@@ -54,10 +57,8 @@ import org.team340.lib.swerve.hardware.motors.vendors.SwerveSparkFlex;
 import org.team340.lib.swerve.hardware.motors.vendors.SwerveSparkMax;
 import org.team340.lib.swerve.hardware.motors.vendors.SwerveTalonFX;
 import org.team340.lib.swerve.util.SwerveConversions;
-import org.team340.lib.swerve.util.SwerveField2d;
-import org.team340.lib.swerve.util.SwerveOdometryThread;
 import org.team340.lib.swerve.util.SwerveRatelimiter;
-import org.team340.lib.swerve.util.SwerveSerializer;
+import org.team340.lib.swerve.util.SwerveVisualizer;
 import org.team340.lib.util.Math2;
 import org.team340.lib.util.SendableFactory;
 import org.team340.lib.util.StringUtil;
@@ -96,10 +97,9 @@ public abstract class SwerveBase extends GRRSubsystem {
     protected final SwerveModule[] modules;
     protected final SwerveDrivePoseEstimator poseEstimator;
     protected final SysIdRoutine sysIdRoutine;
-    protected final SwerveField2d field;
+    protected final SwerveVisualizer visualizer;
 
     private final Translation2d[] moduleTranslations;
-    private final SwerveOdometryThread odometryThread;
     private final SwerveRatelimiter ratelimiter;
 
     private final MutableMeasure<Voltage> sysIdAppliedVoltage = mutable(Volts.of(0));
@@ -128,9 +128,8 @@ public abstract class SwerveBase extends GRRSubsystem {
 
         conversions = new SwerveConversions(config);
         kinematics = new SwerveDriveKinematics(moduleTranslations);
-        odometryThread = new SwerveOdometryThread(modules, imu::getYaw, config);
         ratelimiter = new SwerveRatelimiter(config, kinematics, getModuleStates());
-        field = new SwerveField2d(config);
+        visualizer = new SwerveVisualizer(this::getPosition, this::getModuleStates, this::getDesiredModuleStates);
 
         double[] odometryStd = config.getOdometryStd();
         double[] visionStd = config.getVisionStd();
@@ -139,7 +138,7 @@ public abstract class SwerveBase extends GRRSubsystem {
                 kinematics,
                 imu.getYaw(),
                 getModulePositions(),
-                new Pose2d(),
+                Math2.POSE2D_0,
                 VecBuilder.fill(odometryStd[0], odometryStd[1], odometryStd[2]),
                 VecBuilder.fill(visionStd[0], visionStd[1], visionStd[2])
             );
@@ -168,7 +167,6 @@ public abstract class SwerveBase extends GRRSubsystem {
             );
 
         imu.setZero(Math2.ROTATION2D_0);
-        odometryThread.start();
 
         System.out.println(
             "\nGRRSwerve Conversions:" +
@@ -188,18 +186,18 @@ public abstract class SwerveBase extends GRRSubsystem {
         builder.addDoubleProperty("velocityX", () -> getVelocity(true).vxMetersPerSecond, null);
         builder.addDoubleProperty("velocityY", () -> getVelocity(true).vyMetersPerSecond, null);
         builder.addDoubleProperty("velocityRot", () -> getVelocity(true).omegaRadiansPerSecond, null);
-        builder.addDoubleProperty("velocityNorm", () -> SwerveSerializer.chassisSpeedsNorm(getVelocity(true)), null);
+        builder.addDoubleProperty(
+            "velocityNorm",
+            () -> {
+                ChassisSpeeds speeds = getVelocity(true);
+                return Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
+            },
+            null
+        );
 
         builder.addDoubleProperty("odometryX", () -> getPosition().getX(), null);
         builder.addDoubleProperty("odometryY", () -> getPosition().getY(), null);
         builder.addDoubleProperty("odometryRot", () -> getPosition().getRotation().getRadians(), null);
-
-        builder.addDoubleArrayProperty(
-            "desiredModuleStates",
-            () -> SwerveSerializer.moduleStatesDoubleArray(getDesiredModuleStates()),
-            null
-        );
-        builder.addDoubleArrayProperty("moduleStates", () -> SwerveSerializer.moduleStatesDoubleArray(getModuleStates()), null);
 
         for (SwerveModule module : modules) {
             GRRDashboard.addSubsystemSendable(
@@ -209,12 +207,14 @@ public abstract class SwerveBase extends GRRSubsystem {
                     moduleBuilder.publishConstString(".label", module.getLabel());
                     moduleBuilder.addDoubleProperty("velocity", module::getVelocity, null);
                     moduleBuilder.addDoubleProperty("distance", module::getDistance, null);
-                    moduleBuilder.addDoubleProperty("angle", module::getHeading, null);
+                    moduleBuilder.addDoubleProperty("heading", module::getHeading, null);
+                    moduleBuilder.addDoubleProperty("desiredVelocity", () -> module.getDesiredState().speedMetersPerSecond, null);
+                    moduleBuilder.addDoubleProperty("desiredHeading", () -> module.getDesiredState().angle.getRadians(), null);
                 })
             );
         }
 
-        GRRDashboard.addSubsystemSendable("Field", this, field);
+        GRRDashboard.addSubsystemSendable("Visualizations", this, visualizer);
     }
 
     /**
@@ -286,21 +286,24 @@ public abstract class SwerveBase extends GRRSubsystem {
      * @param poseEstimatorConsumer A consumer that accepts the pose estimator. Should be used for applying field-relative poses from vision data. Note that it is expected that standard deviations are specified when using {@link SwerveDrivePoseEstimator#addVisionMeasurement}, as the initial standard deviations are set to {@code 0.0}.
      */
     protected void updateOdometry(Consumer<SwerveDrivePoseEstimator> poseEstimatorConsumer) {
-        odometryThread.update(poseEstimator);
         poseEstimatorConsumer.accept(poseEstimator);
-        field.update(getPosition());
+        poseEstimator.update(imu.getYaw(), getModulePositions());
     }
 
     /**
      * Generates a trajectory using the configured constraints of the robot.
+     * Always starts at the robot's position, with a starting velocity of the
+     * robot's velocity, and an ending velocity of {@code 0.0}.
      * @param points The points in the trajectory.
      */
     protected Trajectory generateTrajectory(Pose2d... points) {
-        return generateTrajectory(0.0, 0.0, points);
+        ChassisSpeeds speeds = getVelocity(true);
+        return generateTrajectory(Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond), 0.0, points);
     }
 
     /**
      * Generates a trajectory using the configured constraints of the robot.
+     * Always starts at the robot's position.
      * @param startVelocity The start velocity of the trajectory.
      * @param endVelocity The end velocity of the trajectory.
      * @param points The points in the trajectory.
@@ -310,7 +313,18 @@ public abstract class SwerveBase extends GRRSubsystem {
         trajectoryConfig.setStartVelocity(startVelocity);
         trajectoryConfig.setEndVelocity(endVelocity);
         trajectoryConfig.setKinematics(kinematics);
-        return TrajectoryGenerator.generateTrajectory(List.of(points), trajectoryConfig);
+        List<Pose2d> pointsList = new ArrayList<>(Arrays.asList(points));
+        Pose2d position = getPosition();
+        pointsList.add(
+            0,
+            new Pose2d(position.getX(), position.getY(), points[0].getTranslation().minus(position.getTranslation()).getAngle())
+        );
+        try {
+            return TrajectoryGenerator.generateTrajectory(pointsList, trajectoryConfig);
+        } catch (Exception e) {
+            DriverStation.reportError(e.getMessage(), true);
+            return new Trajectory();
+        }
     }
 
     /**

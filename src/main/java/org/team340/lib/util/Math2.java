@@ -39,9 +39,17 @@ public final class Math2 {
      */
     public static final double HALF_PI = Math.PI / 2.0;
     /**
+     * {@code PI / 3}
+     */
+    public static final double THIRD_PI = Math.PI / 3.0;
+    /**
      * {@code PI / 4}
      */
     public static final double QUARTER_PI = Math.PI / 4.0;
+    /**
+     * {@code 2PI / 3}
+     */
+    public static final double TWO_THIRD_PI = 2.0 * Math.PI / 3.0;
 
     /**
      * Identity {@link Translation2d}.

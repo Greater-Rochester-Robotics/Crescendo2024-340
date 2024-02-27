@@ -75,7 +75,7 @@ public class SwerveTalonFX implements SwerveMotor {
         positionSignal = talonFX.getPosition();
         dutyCycleSignal = talonFX.getDutyCycle();
 
-        double hz = 1.0 / config.getOdometryPeriod();
+        double hz = 1.0 / config.getPeriod();
         BaseStatusSignal.setUpdateFrequencyForAll(hz, velocitySignal, positionSignal, dutyCycleSignal);
         talonFX.optimizeBusUtilization();
 

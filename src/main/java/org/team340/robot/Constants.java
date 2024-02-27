@@ -3,6 +3,7 @@ package org.team340.robot;
 import static edu.wpi.first.units.Units.Seconds;
 import static edu.wpi.first.units.Units.Volts;
 
+import com.revrobotics.CANSparkBase.ExternalFollower;
 import com.revrobotics.CANSparkBase.IdleMode;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -114,8 +115,7 @@ public final class Constants {
         public static final double MAX_POS = 120.0;
 
         // Speeds
-        public static final double HOMING_SPEED = 0.5;
-        public static final double CLIMBING_SPEED = 0.4;
+        public static final double CLIMBING_SPEED = 0.8;
 
         // Misc
         public static final double CLOSED_LOOP_ERR = Math.toRadians(5.0);
@@ -131,21 +131,17 @@ public final class Constants {
                 .clearFaults()
                 .restoreFactoryDefaults()
                 .enableVoltageCompensation(VOLTAGE)
-                .setSmartCurrentLimit(60)
+                .setSmartCurrentLimit(40)
                 .setIdleMode(IdleMode.kBrake)
                 .setInverted(true)
                 .setClosedLoopRampRate(1.5)
                 .setOpenLoopRampRate(1.5);
 
-            public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
-                .setPID(0.1, 0.0, 0.04)
-                .setOutputRange(-0.5, 0.5);
-
             public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
                 .setPositionConversionFactor(REL_ENC_FACTOR)
                 .setVelocityConversionFactor(REL_ENC_FACTOR / 60);
 
-            public static final SparkLimitSwitchConfig LIMIT = new SparkLimitSwitchConfig().enableLimitSwitch(true);
+            public static final SparkLimitSwitchConfig LIMIT = new SparkLimitSwitchConfig().enableLimitSwitch(false);
         }
     }
 
@@ -199,8 +195,8 @@ public final class Constants {
         // Speeds
         public static final double INTAKE_SPEED = 0.9;
         public static final double AMP_HANDOFF_SPEED = -0.25;
-        public static final double AMP_UPPER_SPEED = -0.5;
-        public static final double AMP_LOWER_SPEED = -0.1;
+        public static final double AMP_UPPER_SPEED = -0.6;
+        public static final double AMP_LOWER_SPEED = -0.075;
         public static final double BARF_SPEED = -0.5;
         public static final double OVERRIDE_INTAKE_SPEED = 0.25;
 
@@ -223,7 +219,7 @@ public final class Constants {
             // Relative Encoder Conversion Factor
             private static final double REL_ENC_FACTOR = Math2.TWO_PI;
 
-            public static final SparkFlexConfig MOTOR = new SparkFlexConfig()
+            private static final SparkFlexConfig MOTOR_BASE = new SparkFlexConfig()
                 .clearFaults()
                 .restoreFactoryDefaults()
                 .enableVoltageCompensation(VOLTAGE)
@@ -233,12 +229,16 @@ public final class Constants {
                 .setClosedLoopRampRate(0.35)
                 .setOpenLoopRampRate(0.35);
 
-            private static final SparkAbsoluteEncoderConfig ENCODER_BASE = new SparkAbsoluteEncoderConfig()
-                .setPositionConversionFactor(REL_ENC_FACTOR)
-                .setVelocityConversionFactor(REL_ENC_FACTOR / 60.0);
+            public static final SparkFlexConfig LEFT_MOTOR = MOTOR_BASE.clone();
+            public static final SparkFlexConfig RIGHT_MOTOR = MOTOR_BASE
+                .clone()
+                .follow(ExternalFollower.kFollowerSpark, RobotMap.INTAKE_ARM_LEFT_MOTOR, false);
 
-            public static final SparkAbsoluteEncoderConfig LEFT_ENCODER = ENCODER_BASE.clone().setInverted(true).setZeroOffset(4.83665);
-            public static final SparkAbsoluteEncoderConfig RIGHT_ENCODER = ENCODER_BASE.clone().setInverted(false).setZeroOffset(5.82576);
+            public static final SparkAbsoluteEncoderConfig ENCODER = new SparkAbsoluteEncoderConfig()
+                .setPositionConversionFactor(REL_ENC_FACTOR)
+                .setVelocityConversionFactor(REL_ENC_FACTOR / 60.0)
+                .setInverted(true)
+                .setZeroOffset(4.843);
 
             public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
                 .setPID(1.0, 0.0015, 0.02)
@@ -441,12 +441,11 @@ public final class Constants {
             .setRampRate(0.03, 0.03)
             .setMotorTypes(SwerveMotor.Type.SPARK_FLEX_BRUSHLESS, SwerveMotor.Type.SPARK_FLEX_BRUSHLESS)
             .setMaxSpeeds(4.95, 11.8)
-            .setRatelimits(10.45, 30.75)
+            .setRatelimits(8.52, 29.75)
             .setTrajectoryConstraints(3.8, 2.4)
             .setPowerProperties(VOLTAGE, 60.0, 40.0)
             .setMechanicalProperties(6.75, 150.0 / 7.0, 4.0)
-            .setDiscretizationLookahead(0.020)
-            .setOdometryPeriod(0.040)
+            .setDiscretizationLookahead(0.040)
             .setOdometryStd(0.003, 0.003, 0.0012)
             .setVisionStd(0.0, 0.0, 0.0)
             .setSysIdConfig(new SysIdRoutine.Config(Volts.of(1.0).per(Seconds.of(0.4)), Volts.of(7.0), Seconds.of(5.5)))
@@ -482,11 +481,11 @@ public final class Constants {
         public static final PIDConfig TRAJ_ROT_PID = new PIDConfig(2.1, 0.0, 0.1, 0.0);
         public static final Constraints TRAJ_ROT_CONSTRAINTS = new Constraints(6.5, 7.0);
 
-        public static final PIDConfig XY_PID = new PIDConfig(3.9, 0.0, 0.65, 0.0);
+        public static final PIDConfig XY_PID = new PIDConfig(3.3, 0.012, 0.55, 0.3);
         public static final PIDConfig ROT_PID = new PIDConfig(5.5, 0.0, 0.2, 0.0);
         public static final Constraints ROT_CONSTRAINTS = new Constraints(6.0, 7.0);
 
-        public static final double NOTE_VELOCITY = 4.5;
+        public static final double NOTE_VELOCITY = 5.0;
         public static final double NORM_FUDGE = 0.9;
         public static final double NORM_FUDGE_MIN = 0.1;
         public static final double SPIN_COMPENSATION_X = 0.04;
@@ -508,13 +507,13 @@ public final class Constants {
         public static final Pose3d RED_SPEAKER_3D = new Pose3d(RED_SPEAKER.getX(), RED_SPEAKER.getY(), SPEAKER_HEIGHT, Math2.ROTATION3D_0);
 
         public static final double AMP_X = 1.85;
-        public static final Pose2d AMP_APPROACH_BLUE = new Pose2d(AMP_X, 7.2, Math2.ROTATION2D_HALF_PI);
+        public static final Pose2d AMP_APPROACH_BLUE = new Pose2d(AMP_X, 6.95, Math2.ROTATION2D_HALF_PI);
         public static final Pose2d AMP_APPROACH_RED = new Pose2d(
             AMP_X,
             FIELD_WIDTH - AMP_APPROACH_BLUE.getY(),
             Math2.ROTATION2D_NEG_HALF_PI
         );
-        public static final Pose2d AMP_SCORE_BLUE = new Pose2d(AMP_X, 7.77, Math2.ROTATION2D_HALF_PI);
+        public static final Pose2d AMP_SCORE_BLUE = new Pose2d(AMP_X, 7.7, Math2.ROTATION2D_HALF_PI);
         public static final Pose2d AMP_SCORE_RED = new Pose2d(AMP_X, FIELD_WIDTH - AMP_SCORE_BLUE.getY(), Math2.ROTATION2D_NEG_HALF_PI);
 
         public static final Translation2d STAGE = new Translation2d(4.981067, 4.105783);

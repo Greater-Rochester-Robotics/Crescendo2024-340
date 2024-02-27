@@ -1,7 +1,5 @@
 package org.team340.robot.subsystems;
 
-import static edu.wpi.first.wpilibj2.command.Commands.*;
-
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
@@ -62,48 +60,43 @@ public class Climber extends GRRSubsystem {
         return rightLimit.isPressed();
     }
 
-    public Command balance(Supplier<Double> robotRoll) {
-        return sequence(
-            runEnd(
-                    () -> {
-                        leftMotor.set(ClimberConstants.CLIMBING_SPEED);
-                        rightMotor.set(ClimberConstants.CLIMBING_SPEED);
-                    },
-                    () -> {
-                        leftMotor.stopMotor();
-                        rightMotor.stopMotor();
-                    }
-                )
-                .until(() -> getLeftLimit() || getRightLimit()),
-            runEnd(
-                    () -> {
-                        if (!getLeftLimit()) leftMotor.set(
-                            ClimberConstants.CLIMBING_SPEED * (robotRoll.get() * ClimberConstants.BALANCE_COMPENSATION)
-                        );
-                        if (!getLeftLimit()) rightMotor.set(
-                            ClimberConstants.CLIMBING_SPEED * (-robotRoll.get() * ClimberConstants.BALANCE_COMPENSATION)
-                        );
-                    },
-                    () -> {
-                        leftMotor.stopMotor();
-                        rightMotor.stopMotor();
-                    }
-                )
-                .until(() -> Math.abs(robotRoll.get()) < ClimberConstants.CLOSED_LOOP_ERR)
-        );
+    /**
+     * Climbs the chain while balancing.
+     * @param robotRoll A supplier that returns the robot's roll in radians.
+     */
+    public Command climb(Supplier<Double> robotRoll) {
+        return commandBuilder("climber.climb()")
+            .onExecute(() -> {
+                // leftMotor.set(ClimberConstants.CLIMBING_SPEED + (robotRoll.get() * ClimberConstants.BALANCE_COMPENSATION));
+                // rightMotor.set(ClimberConstants.CLIMBING_SPEED + (-robotRoll.get() * ClimberConstants.BALANCE_COMPENSATION));
+                leftMotor.set(ClimberConstants.CLIMBING_SPEED);
+                rightMotor.set(ClimberConstants.CLIMBING_SPEED);
+            })
+            .onEnd(() -> {
+                leftMotor.stopMotor();
+                rightMotor.stopMotor();
+            });
     }
 
+    /**
+     * Drives the climber motors manually.
+     * @param speed The speed of the climber as duty cycle.
+     */
     public Command driveManual(Supplier<Double> speed) {
         return driveManual(speed, speed);
     }
 
-    public Command driveManual(Supplier<Double> speed, Supplier<Double> speed2) {
+    /**
+     * Drives the climber motors manually.
+     * @param leftSpeed The speed of the left climber as duty cycle.
+     * @param rightSpeed The speed of the right climber as duty cycle.
+     * @return
+     */
+    public Command driveManual(Supplier<Double> leftSpeed, Supplier<Double> rightSpeed) {
         return commandBuilder()
             .onExecute(() -> {
-                double zoom = -speed.get();
-                double zoom2 = -speed2.get();
-                leftMotor.set(zoom);
-                rightMotor.set(zoom2);
+                leftMotor.set(-leftSpeed.get());
+                rightMotor.set(-rightSpeed.get());
             })
             .onEnd(() -> {
                 leftMotor.stopMotor();

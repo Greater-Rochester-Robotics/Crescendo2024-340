@@ -41,7 +41,6 @@ public class SwerveConfig {
     private double turnGearRatio = -1.0;
     private double wheelDiameterInches = -1.0;
     private double discretizationLookahead = -1.0;
-    private double odometryPeriod = -1.0;
     private double[] odometryStd;
     private double[] visionStd;
     private Config sysIdConfig = null;
@@ -420,22 +419,6 @@ public class SwerveConfig {
     }
 
     /**
-     * Sets period in seconds between odometry samples.
-     * @param odometryPeriod Period in seconds.
-     */
-    public SwerveConfig setOdometryPeriod(double odometryPeriod) {
-        this.odometryPeriod = odometryPeriod;
-        return this;
-    }
-
-    /**
-     * Gets period in seconds between odometry samples.
-     */
-    public double getOdometryPeriod() {
-        return odometryPeriod;
-    }
-
-    /**
      * Sets the standard deviations for pose estimation from module odometry.
      * A good starting configuration is all axis with a magnitude of {@code 0.1}.
      * @param x The X axis standard deviation in meters.
@@ -570,7 +553,6 @@ public class SwerveConfig {
         if (turnGearRatio == -1) throwMissing("Turn Gear Ratio");
         if (wheelDiameterInches == -1) throwMissing("Wheel Diameter");
         if (discretizationLookahead == -1) throwMissing("Discretization Lookahead");
-        if (odometryPeriod == -1) throwMissing("Odometry Period");
         if (odometryStd == null) throwMissing("Odometry Standard Deviations");
         if (visionStd == null) throwMissing("Vision Standard Deviations");
         if (sysIdConfig == null) throwMissing("SysId Config");

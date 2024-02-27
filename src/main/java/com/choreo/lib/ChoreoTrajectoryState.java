@@ -13,7 +13,6 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 public class ChoreoTrajectoryState implements Interpolatable<ChoreoTrajectoryState> {
 
     private static final double FIELD_WIDTH_METERS = 8.0136;
-    private static final double FIELD_LENGTH_METERS = 16.55445;
 
     /** The timestamp of this state, relative to the beginning of the trajectory. */
     public final double timestamp;

@@ -10,7 +10,6 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import org.team340.lib.GRRDashboard;
 import org.team340.lib.controller.Controller2;
 import org.team340.lib.util.Math2;
-// Set default commands.
 import org.team340.lib.util.TriggerLockout;
 import org.team340.lib.util.config.rev.RevConfigRegistry;
 import org.team340.robot.Constants.ControllerConstants;
@@ -87,9 +86,10 @@ public final class RobotContainer {
      * arbitrary predicate or from controllers) and their bindings.
      */
     private static void configBindings() {
+        // Set default commands.
         intake.setDefaultCommand(intake.maintainPosition());
         pivot.setDefaultCommand(pivot.maintainPosition());
-        shooter.setDefaultCommand(shooter.targetDistance(swerve::getSpeakerDistance, 2000.0, swerve::inOpponentWing));
+        shooter.setDefaultCommand(shooter.targetDistance(swerve::getSpeakerDistance, 3500.0, swerve::inOpponentWing));
         swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
 
         Routines.onDisable().schedule();
@@ -100,7 +100,10 @@ public final class RobotContainer {
          */
 
         // A => Intake (Tap = Down, Hold = Run roller)
-        driver.a().whileTrue(Routines.intake()).onFalse(parallel(feeder.seat(), intake.safePosition()));
+        driver
+            .a()
+            .whileTrue(Routines.intake())
+            .onFalse(parallel(feeder.seat(), intake.safePosition()).withName("RobotContainer.driver.a().onFalse()"));
 
         // B => Intake from Human Player (Hold)
         driver
@@ -111,6 +114,7 @@ public final class RobotContainer {
                     shooter.setSpeed(0).withTimeout(2.0),
                     parallel(pivot.goTo(0.0), waitUntil(pivot::isSafeForIntake)).andThen(intake.safePosition())
                 )
+                    .withName("RobotContainer.driver.b().onFalse()")
             );
 
         // X => Amp Score (Hold)
@@ -133,11 +137,11 @@ public final class RobotContainer {
                     swerve.driveSpeaker(RobotContainer::getDriveX, RobotContainer::getDriveY),
                     pivot.targetDistance(swerve::getSpeakerDistance)
                 )
+                    .withName("RobotContainer.driver.rightBumper().whileTrue()")
             );
 
         // Left Bumper => Face Stage (Hold)
-        driver.leftBumper().whileTrue(swerve.driveStage(RobotContainer::getDriveX, RobotContainer::getDriveY));
-        // driver.leftBumper().whileTrue(climber.driveManual(driver::getRightY));
+        driver.leftBumper().whileTrue(Routines.prepClimb(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
         // POV Up => Barf Backwards
         driver.povUp().whileTrue(Routines.barfForward());
@@ -151,8 +155,11 @@ public final class RobotContainer {
         // POV Right => Zero pivot
         driver.povRight().whileTrue(pivot.home(true));
 
-        // Start + Back => Toggle Shooter
-        driver.start().and(driver.back()).toggleOnTrue(shooter.setSpeed(0.0));
+        // Start => Toggle Shooter
+        driver.start().toggleOnTrue(shooter.setSpeed(0.0));
+
+        // Back => Dump Odometry
+        driver.back().onTrue(swerve.dumpOdometry());
 
         /**
          * Co-driver bindings.
@@ -181,18 +188,19 @@ public final class RobotContainer {
                 pivot.driveManual(() -> -coDriver.getRightY() * 0.4),
                 shooter.driveManual(() -> -coDriver.getRightX() * 500.0)
             )
+                .withName("RobotContainer.coDriverOverride.whileTrue()")
         );
 
-        // A => Reserved For Climb
-        coDriver.a().whileTrue(climber.balance(swerve::getRoll));
+        // A => Climb
+        coDriver.a().whileTrue(climber.climb(swerve::getRoll));
 
         // B => Overrides intake
         coDriver.b().and(coDriverOverride).whileTrue(Routines.intakeOverride());
 
-        // X => Reserved For Climb
+        // X => Fender Shot
         coDriver.x().onTrue(none());
 
-        // Y => Reserved For Climb
+        // Y => Reserved
         coDriver.y().onTrue(none());
 
         // Both Triggers => Drives climber manually
@@ -201,22 +209,9 @@ public final class RobotContainer {
             .and(coDriver.rightTrigger())
             .whileTrue(climber.driveManual(() -> -coDriver.getLeftY() * 0.3, () -> -coDriver.getRightY() * 0.3));
 
+        // Back / Start => he he rumble rumble
         coDriver.back().toggleOnTrue(setCoDriverRumble(RumbleType.kLeftRumble, 0.5).ignoringDisable(true));
-
         coDriver.start().toggleOnTrue(setCoDriverRumble(RumbleType.kRightRumble, 0.5).ignoringDisable(true));
-        /**
-         * SysId Routines
-         */
-
-        // driver.a().whileTrue(swerve.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
-        // driver.b().whileTrue(swerve.sysIdDynamic(SysIdRoutine.Direction.kForward));
-        // driver.x().whileTrue(swerve.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
-        // driver.y().whileTrue(swerve.sysIdDynamic(SysIdRoutine.Direction.kReverse));
-
-        // driver.a().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
-        // driver.b().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kForward));
-        // driver.x().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
-        // driver.y().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kReverse));
     }
 
     /**
@@ -261,7 +256,12 @@ public final class RobotContainer {
         return driver.getTriggerDifference(ControllerConstants.DRIVE_ROT_MULTIPLIER, ControllerConstants.DRIVE_ROT_EXP);
     }
 
+    /**
+     * Sets the rumble on the Co-Driver's controller.
+     * @param type The rumble type.
+     * @param value The normalized value to set the rumble to ({@code 0.0} to {@code 1.0}).
+     */
     private static Command setCoDriverRumble(RumbleType type, double value) {
-        return runEnd(() -> coDriver.getHID().setRumble(type, 0.5), () -> coDriver.getHID().setRumble(type, 0.0));
+        return runEnd(() -> coDriver.getHID().setRumble(type, value), () -> coDriver.getHID().setRumble(type, 0.0));
     }
 }

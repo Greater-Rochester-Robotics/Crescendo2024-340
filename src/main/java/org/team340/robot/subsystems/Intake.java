@@ -31,11 +31,9 @@ public class Intake extends GRRSubsystem {
     private final CANSparkFlex armRightMotor;
     private final CANSparkMax rollerUpperMotor;
     private final CANSparkMax rollerLowerMotor;
-    private final SparkAbsoluteEncoder armLeftEncoder;
-    private final SparkAbsoluteEncoder armRightEncoder;
+    private final SparkAbsoluteEncoder armEncoder;
     private final DigitalInput noteDetector;
-    private final SparkPIDController armLeftPID;
-    private final SparkPIDController armRightPID;
+    private final SparkPIDController armPID;
 
     private double armMaintain = 0.0;
     private double armTarget = 0.0;
@@ -49,23 +47,18 @@ public class Intake extends GRRSubsystem {
         armRightMotor = createSparkFlex("Arm Right Motor", RobotMap.INTAKE_ARM_RIGHT_MOTOR, MotorType.kBrushless);
         rollerUpperMotor = createSparkMax("Roller Upper Motor", RobotMap.INTAKE_ROLLER_UPPER_MOTOR, MotorType.kBrushless);
         rollerLowerMotor = createSparkMax("Roller Lower Motor", RobotMap.INTAKE_ROLLER_LOWER_MOTOR, MotorType.kBrushless);
-        armLeftEncoder = createSparkFlexAbsoluteEncoder("Arm Left Encoder", armLeftMotor, Type.kDutyCycle);
-        armRightEncoder = createSparkFlexAbsoluteEncoder("Arm Right Encoder", armRightMotor, Type.kDutyCycle);
+        armEncoder = createSparkFlexAbsoluteEncoder("Arm Encoder", armLeftMotor, Type.kDutyCycle);
         noteDetector = createDigitalInput("Note Detector", RobotMap.INTAKE_NOTE_DETECTOR);
-        armLeftPID = armLeftMotor.getPIDController();
-        armRightPID = armRightMotor.getPIDController();
+        armPID = armLeftMotor.getPIDController();
 
-        armLeftPID.setFeedbackDevice(armLeftEncoder);
-        armRightPID.setFeedbackDevice(armRightEncoder);
+        armPID.setFeedbackDevice(armEncoder);
 
-        IntakeConstants.ArmConfigs.MOTOR.apply(armLeftMotor);
-        IntakeConstants.ArmConfigs.MOTOR.apply(armRightMotor);
+        IntakeConstants.ArmConfigs.LEFT_MOTOR.apply(armLeftMotor);
+        IntakeConstants.ArmConfigs.RIGHT_MOTOR.apply(armRightMotor);
         IntakeConstants.RollerConfigs.MOTOR.apply(rollerUpperMotor);
         IntakeConstants.RollerConfigs.MOTOR.apply(rollerLowerMotor);
-        IntakeConstants.ArmConfigs.LEFT_ENCODER.apply(armLeftMotor, armLeftEncoder);
-        IntakeConstants.ArmConfigs.RIGHT_ENCODER.apply(armRightMotor, armRightEncoder);
-        IntakeConstants.ArmConfigs.PID.apply(armLeftMotor, armLeftPID);
-        IntakeConstants.ArmConfigs.PID.apply(armRightMotor, armRightPID);
+        IntakeConstants.ArmConfigs.ENCODER.apply(armLeftMotor, armEncoder);
+        IntakeConstants.ArmConfigs.PID.apply(armLeftMotor, armPID);
     }
 
     @Override
@@ -88,14 +81,11 @@ public class Intake extends GRRSubsystem {
      * @param position The position to check for in radians.
      */
     private boolean atPosition(double position) {
-        return (
-            Math2.epsilonEquals(MathUtil.angleModulus(armLeftEncoder.getPosition()), position, IntakeConstants.CLOSED_LOOP_ERR) &&
-            Math2.epsilonEquals(MathUtil.angleModulus(armRightEncoder.getPosition()), position, IntakeConstants.CLOSED_LOOP_ERR)
-        );
+        return Math2.epsilonEquals(MathUtil.angleModulus(armEncoder.getPosition()), position, IntakeConstants.CLOSED_LOOP_ERR);
     }
 
     /**
-     * Sets the {@link #armLeftPID arms' PIDs} to go to the specified position if it is valid
+     * Sets the {@link #armPID arms' PIDs} to go to the specified position if it is valid
      * (within the intake {@link IntakeConstants#MIN_POS minimum} and
      * {@link IntakeConstants#MAX_POS maximum} angles).
      * @param position The position to set.
@@ -115,16 +105,12 @@ public class Intake extends GRRSubsystem {
             armTarget = position;
             if (
                 position < IntakeConstants.PID_INACTIVE_POSITION &&
-                (
-                    MathUtil.angleModulus(armLeftEncoder.getPosition()) < IntakeConstants.PID_INACTIVE_POSITION ||
-                    MathUtil.angleModulus(armRightEncoder.getPosition()) < IntakeConstants.PID_INACTIVE_POSITION
-                )
+                MathUtil.angleModulus(armEncoder.getPosition()) < IntakeConstants.PID_INACTIVE_POSITION
             ) {
                 armLeftMotor.stopMotor();
                 armRightMotor.stopMotor();
             } else {
-                armLeftPID.setReference(position, ControlType.kPosition);
-                armRightPID.setReference(position, ControlType.kPosition);
+                armPID.setReference(position, ControlType.kPosition);
             }
         }
     }
@@ -146,7 +132,7 @@ public class Intake extends GRRSubsystem {
             })
             .onExecute(() -> {
                 applyPosition(position);
-                armMaintain = (armLeftEncoder.getPosition() + armRightEncoder.getPosition()) / 2.0;
+                armMaintain = armEncoder.getPosition();
             })
             .isFinished(() -> willFinish && atPosition(position))
             .onEnd(interrupted -> {
@@ -269,11 +255,10 @@ public class Intake extends GRRSubsystem {
         return commandBuilder("intake.driveArmManual()")
             .onExecute(() -> {
                 double diff = speed.get() * Constants.PERIOD;
-                double armLeftPos = armLeftEncoder.getPosition();
-                double armRightPos = armRightEncoder.getPosition();
-                if (armLeftPos < IntakeConstants.MIN_POS || armRightPos < IntakeConstants.MIN_POS) {
+                double armPos = armEncoder.getPosition();
+                if (armPos < IntakeConstants.MIN_POS) {
                     diff = Math.max(diff, 0.0);
-                } else if (armLeftPos > IntakeConstants.MAX_POS || armRightPos > IntakeConstants.MAX_POS) {
+                } else if (armPos > IntakeConstants.MAX_POS) {
                     diff = Math.min(diff, 0.0);
                 }
 
@@ -295,7 +280,7 @@ public class Intake extends GRRSubsystem {
                 rollerUpperMotor.stopMotor();
                 rollerLowerMotor.stopMotor();
             })
-            .onExecute(() -> armMaintain = (armLeftEncoder.getPosition() + armRightEncoder.getPosition()) / 2.0)
+            .onExecute(() -> armMaintain = armEncoder.getPosition())
             .onEnd(() -> {
                 armLeftMotor.setIdleMode(IdleMode.kBrake);
                 armRightMotor.setIdleMode(IdleMode.kBrake);

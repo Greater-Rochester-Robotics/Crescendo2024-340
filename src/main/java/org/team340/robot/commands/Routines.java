@@ -4,10 +4,9 @@ import static edu.wpi.first.wpilibj2.command.Commands.*;
 import static org.team340.robot.RobotContainer.*;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import java.util.function.Supplier;
 import org.team340.lib.util.Mutable;
 import org.team340.robot.Constants;
-
-// TODO Discuss bindings and what commands are needed
 
 /**
  * This class is used to declare commands that require multiple subsystems.
@@ -24,10 +23,6 @@ public class Routines {
     public static Command intake() {
         return sequence(waitUntil(pivot::isSafeForIntake), intake.downPosition(), race(feeder.receive(), intake.intake()), feeder.seat())
             .withName("Routines.intake()");
-    }
-
-    public static Command intakeOverride() {
-        return parallel(intake.intakeOverride(), feeder.shoot()).withName("Routines.intakeOverride()");
     }
 
     /**
@@ -52,6 +47,13 @@ public class Routines {
     }
 
     /**
+     * Intakes while ignoring note detectors.
+     */
+    public static Command intakeOverride() {
+        return parallel(intake.intakeOverride(), feeder.shoot()).withName("Routines.intakeOverride()");
+    }
+
+    /**
      * Scores in the amp.
      */
     public static Command scoreAmp() {
@@ -59,7 +61,7 @@ public class Routines {
         return sequence(
             runOnce(() -> approached.set(false)),
             parallel(
-                swerve.approachAmp().finallyDo(() -> approached.set(true)),
+                swerve.driveAmp(true).until(() -> swerve.getAmpDistance() < 0.6).finallyDo(() -> approached.set(true)),
                 sequence(
                     sequence(
                         parallel(
@@ -80,9 +82,19 @@ public class Routines {
                     intake.maintainPosition().until(approached::get)
                 )
             ),
-            parallel(swerve.scoreAmp(), sequence(waitSeconds(1.3), intake.scoreAmp()))
+            sequence(swerve.driveAmp(false).until(() -> swerve.getAmpDistance() < 0.03), intake.scoreAmp())
         )
             .withName("Routines.scoreAmp()");
+    }
+
+    /**
+     * Prepares for a climb by raising the arms and facing the stage.
+     * @param x The desired {@code x} driving speed from {@code -1.0} to {@code 1.0}.
+     * @param y The desired {@code y} driving speed from {@code -1.0} to {@code 1.0}.
+     */
+    public static Command prepClimb(Supplier<Double> x, Supplier<Double> y) {
+        return parallel(swerve.driveStage(x, y), intake.uprightPosition().onlyIf(() -> swerve.getStageDistance() >= 2.4))
+            .withName("Routines.prepClimb()");
     }
 
     /**
