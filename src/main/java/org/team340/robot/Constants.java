@@ -42,8 +42,8 @@ public final class Constants {
     public static final double TELEMETRY_PERIOD = 0.020;
     public static final double POWER_USAGE_PERIOD = 0.020;
     public static final double VOLTAGE = 12.0;
-    public static final double FIELD_LENGTH = 16.5417;
-    public static final double FIELD_WIDTH = 8.0136;
+    public static final double FIELD_LENGTH = 16.541;
+    public static final double FIELD_WIDTH = 8.211;
 
     /**
      * Driver and co-driver controller constants.
@@ -481,14 +481,14 @@ public final class Constants {
         public static final PIDConfig TRAJ_ROT_PID = new PIDConfig(2.1, 0.0, 0.1, 0.0);
         public static final Constraints TRAJ_ROT_CONSTRAINTS = new Constraints(6.5, 7.0);
 
-        public static final PIDConfig XY_PID = new PIDConfig(3.3, 0.012, 0.55, 0.3);
+        public static final PIDConfig XY_PID = new PIDConfig(3.5, 1.4, 0.2, 0.5);
         public static final PIDConfig ROT_PID = new PIDConfig(5.5, 0.0, 0.2, 0.0);
         public static final Constraints ROT_CONSTRAINTS = new Constraints(6.0, 7.0);
 
         public static final double NOTE_VELOCITY = 5.0;
         public static final double NORM_FUDGE = 0.9;
         public static final double NORM_FUDGE_MIN = 0.1;
-        public static final double SPIN_COMPENSATION_X = 0.04;
+        public static final double SPIN_COMPENSATION_X = 0.06;
         public static final double SPIN_COMPENSATION_Y = 0.085;
     }
 
@@ -506,14 +506,14 @@ public final class Constants {
         );
         public static final Pose3d RED_SPEAKER_3D = new Pose3d(RED_SPEAKER.getX(), RED_SPEAKER.getY(), SPEAKER_HEIGHT, Math2.ROTATION3D_0);
 
-        public static final double AMP_X = 1.85;
-        public static final Pose2d AMP_APPROACH_BLUE = new Pose2d(AMP_X, 6.95, Math2.ROTATION2D_HALF_PI);
+        public static final double AMP_X = 1.86;
+        public static final Pose2d AMP_APPROACH_BLUE = new Pose2d(AMP_X, 6.98, Math2.ROTATION2D_HALF_PI);
         public static final Pose2d AMP_APPROACH_RED = new Pose2d(
             AMP_X,
             FIELD_WIDTH - AMP_APPROACH_BLUE.getY(),
             Math2.ROTATION2D_NEG_HALF_PI
         );
-        public static final Pose2d AMP_SCORE_BLUE = new Pose2d(AMP_X, 7.7, Math2.ROTATION2D_HALF_PI);
+        public static final Pose2d AMP_SCORE_BLUE = new Pose2d(AMP_X, 7.73, Math2.ROTATION2D_HALF_PI);
         public static final Pose2d AMP_SCORE_RED = new Pose2d(AMP_X, FIELD_WIDTH - AMP_SCORE_BLUE.getY(), Math2.ROTATION2D_NEG_HALF_PI);
 
         public static final Translation2d STAGE = new Translation2d(4.981067, 4.105783);

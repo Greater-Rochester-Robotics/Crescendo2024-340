@@ -222,13 +222,17 @@ public final class RobotContainer {
         var fourPieceLeft = Choreo.getTrajectoryGroup("FourPieceLeft");
         GRRDashboard.addAutoCommand("Four Piece Left", fourPieceLeft, Autos.fourPieceLeft(fourPieceLeft));
 
+        var fourPieceRight = Choreo.getTrajectoryGroup("FourPieceRight");
+        GRRDashboard.addAutoCommand("Four Piece Right", fourPieceRight, Autos.fourPieceRight(fourPieceRight));
+
         var fourPieceFront = Choreo.getTrajectoryGroup("FourPieceFront");
         GRRDashboard.addAutoCommand("Four Piece Front", fourPieceFront, Autos.fourPieceFront(fourPieceFront));
 
-        var fourPieceRight = Choreo.getTrajectoryGroup("FourPieceRight");
-        GRRDashboard.addAutoCommand("Four Piece Right", fourPieceRight, Autos.fourPieceRight(fourPieceRight));
-        // var fourPieceOld = Choreo.getTrajectoryGroup("FourPieceOld");
-        // GRRDashboard.addAutoCommand("Four Piece Old", fourPieceOld, Autos.fourPieceOld(fourPieceOld));
+        var fourPieceFar = Choreo.getTrajectoryGroup("FourPieceFar");
+        GRRDashboard.addAutoCommand("Four Piece Far", fourPieceFar, Autos.fourPieceFar(fourPieceFar));
+
+        var fourPieceFar2 = Choreo.getTrajectoryGroup("FourPieceFar2");
+        GRRDashboard.addAutoCommand("Four Piece Far 2.0", fourPieceFar2, Autos.fourPieceFar(fourPieceFar2));
     }
 
     /**

@@ -354,14 +354,20 @@ public class Swerve extends SwerveBase {
      * @param pose The pose to translate to.
      */
     public Command pidTo(Pose2d pose) {
+        BiConsumer<Boolean, Pose2d> state = visualizer.addTrajectory(new Pose2d[] { pose });
+
         return commandBuilder("swerve.pidTo(" + pose.toString() + ")")
             .onInitialize(() -> {
                 rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond);
                 xPID.reset();
                 yPID.reset();
+                state.accept(true, pose);
             })
             .onExecute(() -> driveToPose(pose, xPID, yPID, rotPID, false))
-            .onEnd(this::stop);
+            .onEnd(() -> {
+                stop();
+                state.accept(false, Math2.POSE2D_0);
+            });
     }
 
     /**

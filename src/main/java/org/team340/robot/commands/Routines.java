@@ -61,7 +61,7 @@ public class Routines {
         return sequence(
             runOnce(() -> approached.set(false)),
             parallel(
-                swerve.driveAmp(true).until(() -> swerve.getAmpDistance() < 0.6).finallyDo(() -> approached.set(true)),
+                swerve.driveAmp(true).until(() -> swerve.getAmpDistance() < 0.5).finallyDo(() -> approached.set(true)),
                 sequence(
                     sequence(
                         parallel(
@@ -82,7 +82,7 @@ public class Routines {
                     intake.maintainPosition().until(approached::get)
                 )
             ),
-            sequence(swerve.driveAmp(false).until(() -> swerve.getAmpDistance() < 0.03), intake.scoreAmp())
+            sequence(swerve.driveAmp(false).until(() -> swerve.getAmpDistance() < 0.01), intake.scoreAmp())
         )
             .withName("Routines.scoreAmp()");
     }

@@ -321,6 +321,42 @@
         }
       },
       "title": "Pivot Position"
+    },
+    {
+      "type": 1,
+      "legends": {
+        "left": {
+          "lockedRange": null,
+          "unitConversion": {
+            "type": null,
+            "factor": 1
+          },
+          "fields": [
+            {
+              "key": "NT:/GRRDashboard/Subsystems/Shooter/Details/leftTarget",
+              "color": "#2b66a2",
+              "show": true
+            },
+            {
+              "key": "NT:/GRRDashboard/Subsystems/Shooter/Hardware/CAN-32/velocity",
+              "color": "#af2437",
+              "show": true
+            }
+          ]
+        },
+        "discrete": {
+          "fields": []
+        },
+        "right": {
+          "lockedRange": null,
+          "unitConversion": {
+            "type": null,
+            "factor": 1
+          },
+          "fields": []
+        }
+      },
+      "title": "Shooter Speed"
     }
   ]
 }
