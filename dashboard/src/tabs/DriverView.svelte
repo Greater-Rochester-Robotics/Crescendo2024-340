@@ -48,7 +48,7 @@
                 stroke-linejoin="round"
             >
 
-            <g transform="rotate({($RobotBlueAlliance ? Math.PI - $RobotPosition[2] : $RobotPosition[2]) * (180 / Math.PI)}, {($RobotBlueAlliance ? $RobotPosition[0] - ROBOT_SIZE / 2 : FIELD_WIDTH - ($RobotPosition[0] + ROBOT_SIZE / 2)) + ROBOT_SIZE / 2}, {$RobotBlueAlliance ? FIELD_HEIGHT - $RobotPosition[1] : $RobotPosition[1]})">
+            <g transform="rotate({($RobotBlueAlliance ? Math.PI - $RobotPosition[2] : -$RobotPosition[2]) * (180 / Math.PI)}, {($RobotBlueAlliance ? $RobotPosition[0] - ROBOT_SIZE / 2 : FIELD_WIDTH - ($RobotPosition[0] + ROBOT_SIZE / 2)) + ROBOT_SIZE / 2}, {$RobotBlueAlliance ? FIELD_HEIGHT - $RobotPosition[1] : $RobotPosition[1]})">
                 <rect x="{$RobotBlueAlliance ? $RobotPosition[0] - ROBOT_SIZE / 2 : FIELD_WIDTH - ($RobotPosition[0] + ROBOT_SIZE / 2)}" y="{($RobotBlueAlliance ? FIELD_HEIGHT - $RobotPosition[1] : $RobotPosition[1]) - ROBOT_SIZE / 2}" width="{ROBOT_SIZE}" height="{ROBOT_SIZE}"></rect>
                 <circle cx="{$RobotBlueAlliance ? $RobotPosition[0] - ROBOT_SIZE / 2 : FIELD_WIDTH - ($RobotPosition[0] + ROBOT_SIZE / 2)}" cy="{$RobotBlueAlliance ? FIELD_HEIGHT - $RobotPosition[1] : $RobotPosition[1]}" r="0.1"></circle>
             </g>
