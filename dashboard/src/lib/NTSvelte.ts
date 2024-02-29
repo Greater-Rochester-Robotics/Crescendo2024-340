@@ -615,9 +615,9 @@ export class NTSvelteClient {
      */
     public subscribe<T extends NTType>(
         key: string,
-        defaultValue: T | null = null,
+        defaultValue: T,
         settings?: Partial<NTSubscriberSettings>,
-    ): Readable<T | null> {
+    ): Readable<T> {
         return readable(defaultValue, (set) => {
             const listener = (value: any) => set(value ?? defaultValue);
 

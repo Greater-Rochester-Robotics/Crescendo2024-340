@@ -49,6 +49,7 @@ public class Pivot extends GRRSubsystem {
     public void initSendable(SendableBuilder builder) {
         super.initSendable(builder);
         builder.addBooleanProperty("atLimit", this::getLimit, null);
+        builder.addBooleanProperty("atPosition", this::atPosition, null);
         builder.addBooleanProperty("isHomed", () -> isHomed, null);
         builder.addDoubleProperty("maintain", () -> maintain, null);
         builder.addDoubleProperty("target", () -> target, null);
@@ -56,10 +57,10 @@ public class Pivot extends GRRSubsystem {
     }
 
     /**
-     * Returns {@code true} if the limit is pressed.
+     * Returns {@code true} if the pivot is at its targeted position.
      */
-    private boolean getLimit() {
-        return !limit.get();
+    public boolean atPosition() {
+        return Math2.epsilonEquals(target, pivotEncoder.getPosition(), PivotConstants.CLOSED_LOOP_ERR);
     }
 
     /**
@@ -67,6 +68,13 @@ public class Pivot extends GRRSubsystem {
      */
     public boolean isSafeForIntake() {
         return pivotEncoder.getPosition() <= PivotConstants.INTAKE_SAFE_POSITION;
+    }
+
+    /**
+     * Returns {@code true} if the limit is pressed.
+     */
+    private boolean getLimit() {
+        return !limit.get();
     }
 
     /**
@@ -150,7 +158,7 @@ public class Pivot extends GRRSubsystem {
                     .onExecute(() -> applyPosition(position.get()))
                     .isFinished(() ->
                         (getLimit() && pivotMotor.getAppliedOutput() - PivotConstants.AT_LIMIT_SPEED_ALLOWANCE <= 0.0) ||
-                        (willFinish && Math.abs(pivotEncoder.getPosition() - position.get()) < PivotConstants.CLOSED_LOOP_ERR)
+                        (willFinish && atPosition())
                     )
                     .onEnd(interrupted -> {
                         if (interrupted || getLimit()) {

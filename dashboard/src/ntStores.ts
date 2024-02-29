@@ -17,4 +17,11 @@ export const AutosActive = nt.subscribe<string>(`/GRRDashboard/Autos/active`, ``
 export const AutosOptions = nt.subscribe<string[]>(`/GRRDashboard/Autos/options`, []);
 export const AutosSelected = nt.publish<string>(`/GRRDashboard/Autos/selected`, `string`, ``);
 
+export const FacingSpeaker = nt.subscribe<boolean>(`/GRRDashboard/Subsystems/Swerve/Details/facingSpeaker`, false);
+export const PivotAtPosition = nt.subscribe<boolean>(`/GRRDashboard/Subsystems/Pivot/Details/atPosition`, false);
+export const AtSpeed = nt.subscribe<boolean>(`/GRRDashboard/Subsystems/Shooter/Details/atSpeed`, false);
+export const HasNote = nt.subscribe<boolean>(`/GRRDashboard/Subsystems/Pivot/Details/hasNote`, false);
+
+export const RobotPosition = nt.subscribe<number[]>(`/GRRDashboard/Subsystems/Swerve/Visualizations/robot`, [0, 0, 0]);
+
 nt.connect();

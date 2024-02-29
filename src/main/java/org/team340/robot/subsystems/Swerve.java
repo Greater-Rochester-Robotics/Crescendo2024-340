@@ -114,6 +114,7 @@ public class Swerve extends SwerveBase {
     @Override
     public void initSendable(SendableBuilder builder) {
         super.initSendable(builder);
+        builder.addBooleanProperty("facingSpeaker", this::facingSpeaker, null);
         builder.addDoubleProperty("speakerX", () -> getSpeakerPosition().getX(), null);
         builder.addDoubleProperty("speakerY", () -> getSpeakerPosition().getY(), null);
         builder.addDoubleProperty("speakerDistance", this::getSpeakerDistance, null);
@@ -197,6 +198,17 @@ public class Swerve extends SwerveBase {
         return getPosition()
             .getTranslation()
             .getDistance((Alliance.isBlue() ? FieldPositions.AMP_SCORE_BLUE : FieldPositions.AMP_SCORE_RED).getTranslation());
+    }
+
+    /**
+     * Returns {@code true} if the robot is facing the speaker and on target.
+     */
+    public boolean facingSpeaker() {
+        return Math2.epsilonEquals(
+            getPosition().getRotation().minus(new Rotation2d(getSpeakerAngle())).getRadians(),
+            0.0,
+            SwerveConstants.FACING_SPEAKER_EPSILON
+        );
     }
 
     /**

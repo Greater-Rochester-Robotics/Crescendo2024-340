@@ -490,6 +490,7 @@ public final class Constants {
         public static final double NORM_FUDGE_MIN = 0.1;
         public static final double SPIN_COMPENSATION_X = 0.06;
         public static final double SPIN_COMPENSATION_Y = 0.085;
+        public static final double FACING_SPEAKER_EPSILON = Math.toRadians(5.0);
     }
 
     public static final class FieldPositions {
