@@ -24,4 +24,9 @@ export const HasNote = nt.subscribe<boolean>(`/GRRDashboard/Subsystems/Pivot/Det
 
 export const RobotPosition = nt.subscribe<number[]>(`/GRRDashboard/Subsystems/Swerve/Visualizations/robot`, [0, 0, 0]);
 
+export const TunableNoteVelocity = nt.subscribe<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableNoteVelocity`, 5);
+export const TunableNoteVelocityPub = nt.publish<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableNoteVelocity`, `double`, 5);
+export const TunableNormFudge = nt.subscribe<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableNormFudge`, 0.9);
+export const TunableNormFudgePub = nt.publish<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableNormFudge`, `double`, 0.9);
+
 nt.connect();
