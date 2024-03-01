@@ -51,7 +51,7 @@ public final class Constants {
     public static final class ControllerConstants {
 
         public static final double DRIVE_EXP = 1.0;
-        public static final double DRIVE_MULTIPLIER = 0.9;
+        public static final double DRIVE_MULTIPLIER = 0.85;
         public static final double DRIVE_MULTIPLIER_MODIFIED = 0.975;
 
         public static final double DRIVE_ROT_EXP = 2.0;
@@ -115,7 +115,7 @@ public final class Constants {
         public static final double MAX_POS = 120.0;
 
         // Speeds
-        public static final double CLIMBING_SPEED = 0.8;
+        public static final double CLIMBING_SPEED = 1.0;
 
         // Misc
         public static final double CLOSED_LOOP_ERR = Math.toRadians(5.0);
@@ -495,7 +495,7 @@ public final class Constants {
 
     public static final class FieldPositions {
 
-        public static final Translation2d BLUE_SPEAKER = new Translation2d(0.033, 5.834);
+        public static final Translation2d BLUE_SPEAKER = new Translation2d(0.03, 5.914);
         public static final Translation2d RED_SPEAKER = new Translation2d(BLUE_SPEAKER.getX(), FIELD_WIDTH - BLUE_SPEAKER.getY());
 
         public static final double SPEAKER_HEIGHT = 2.08;
@@ -507,14 +507,14 @@ public final class Constants {
         );
         public static final Pose3d RED_SPEAKER_3D = new Pose3d(RED_SPEAKER.getX(), RED_SPEAKER.getY(), SPEAKER_HEIGHT, Math2.ROTATION3D_0);
 
-        public static final double AMP_X = 1.86;
+        public static final double AMP_X = 1.9;
         public static final Pose2d AMP_APPROACH_BLUE = new Pose2d(AMP_X, 6.98, Math2.ROTATION2D_HALF_PI);
         public static final Pose2d AMP_APPROACH_RED = new Pose2d(
             AMP_X,
             FIELD_WIDTH - AMP_APPROACH_BLUE.getY(),
             Math2.ROTATION2D_NEG_HALF_PI
         );
-        public static final Pose2d AMP_SCORE_BLUE = new Pose2d(AMP_X, 7.73, Math2.ROTATION2D_HALF_PI);
+        public static final Pose2d AMP_SCORE_BLUE = new Pose2d(AMP_X, 7.78, Math2.ROTATION2D_HALF_PI);
         public static final Pose2d AMP_SCORE_RED = new Pose2d(AMP_X, FIELD_WIDTH - AMP_SCORE_BLUE.getY(), Math2.ROTATION2D_NEG_HALF_PI);
 
         public static final Translation2d STAGE = new Translation2d(4.981067, 4.105783);

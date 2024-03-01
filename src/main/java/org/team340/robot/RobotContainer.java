@@ -225,6 +225,9 @@ public final class RobotContainer {
         var fourPieceRight = Choreo.getTrajectoryGroup("FourPieceRight");
         GRRDashboard.addAutoCommand("Four Piece Right", fourPieceRight, Autos.fourPieceRight(fourPieceRight));
 
+        var fourPieceRight2 = Choreo.getTrajectoryGroup("FourPieceRight2");
+        GRRDashboard.addAutoCommand("Four Piece Right 2.0", fourPieceRight2, Autos.fourPieceRight(fourPieceRight2));
+
         var fourPieceFront = Choreo.getTrajectoryGroup("FourPieceFront");
         GRRDashboard.addAutoCommand("Four Piece Front", fourPieceFront, Autos.fourPieceFront(fourPieceFront));
 

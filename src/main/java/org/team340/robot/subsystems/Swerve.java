@@ -16,6 +16,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.trajectory.Trajectory;
@@ -67,6 +68,10 @@ public class Swerve extends SwerveBase {
     private double[] speaker = new double[0];
     private double tunableNoteVelocity = SwerveConstants.NOTE_VELOCITY;
     private double tunableNormFudge = SwerveConstants.NORM_FUDGE;
+    private double tunableSpeakerXFudge = 0.0;
+    private double tunableSpeakerYFudge = 0.0;
+    private double tunableAmpXFudge = 0.0;
+    private double tunableAmpYFudge = 0.0;
 
     /**
      * Create the swerve subsystem.
@@ -120,8 +125,13 @@ public class Swerve extends SwerveBase {
         builder.addDoubleProperty("speakerDistance", this::getSpeakerDistance, null);
         builder.addBooleanProperty("inOpponentWing", this::inOpponentWing, null);
         builder.addDoubleArrayProperty("speaker", () -> speaker, null);
-        builder.addDoubleProperty("tunableNoteVelocity", () -> tunableNoteVelocity, velocity -> tunableNoteVelocity = velocity);
-        builder.addDoubleProperty("tunableNormFudge", () -> tunableNormFudge, fudge -> tunableNormFudge = fudge);
+
+        builder.addDoubleProperty("tunableNoteVelocity", null, velocity -> tunableNoteVelocity = velocity);
+        builder.addDoubleProperty("tunableNormFudge", null, fudge -> tunableNormFudge = fudge);
+        builder.addDoubleProperty("tunableSpeakerXFudge", null, fudge -> tunableSpeakerXFudge = fudge);
+        builder.addDoubleProperty("tunableSpeakerYFudge", null, fudge -> tunableSpeakerYFudge = fudge);
+        builder.addDoubleProperty("tunableAmpXFudge", null, fudge -> tunableAmpXFudge = fudge);
+        builder.addDoubleProperty("tunableAmpYFudge", null, fudge -> tunableAmpYFudge = fudge);
     }
 
     @Override
@@ -238,8 +248,13 @@ public class Swerve extends SwerveBase {
             );
         // if (Math.random() > 0.9) System.out.println((1.0 - (tunableNormFudge * normFactor))); lol
         double x =
-            goalPose.getX() - (robotVel.vxMetersPerSecond * (distance / tunableNoteVelocity) * (1.0 - (tunableNormFudge * normFactor)));
-        double y = goalPose.getY() - (robotVel.vyMetersPerSecond * (distance / tunableNoteVelocity));
+            goalPose.getX() +
+            tunableSpeakerXFudge -
+            (robotVel.vxMetersPerSecond * (distance / tunableNoteVelocity) * (1.0 - (tunableNormFudge * normFactor)));
+        double y =
+            goalPose.getY() +
+            (Alliance.isBlue() ? tunableSpeakerYFudge : -tunableSpeakerYFudge) -
+            (robotVel.vyMetersPerSecond * (distance / tunableNoteVelocity));
         return new Translation2d(x, y);
     }
 
@@ -328,10 +343,20 @@ public class Swerve extends SwerveBase {
     public Command driveAmp(boolean useTrajectory) {
         return either(
             useTrajectory
-                ? defer(() -> followTrajectory(generateTrajectory(FieldPositions.AMP_APPROACH_BLUE, FieldPositions.AMP_SCORE_BLUE)))
+                ? defer(() -> {
+                    Transform2d fudge = new Transform2d(tunableAmpXFudge, tunableAmpYFudge, Math2.ROTATION2D_0);
+                    return followTrajectory(
+                        generateTrajectory(FieldPositions.AMP_APPROACH_BLUE.plus(fudge), FieldPositions.AMP_SCORE_BLUE.plus(fudge))
+                    );
+                })
                 : pidTo(FieldPositions.AMP_SCORE_BLUE),
             useTrajectory
-                ? defer(() -> followTrajectory(generateTrajectory(FieldPositions.AMP_APPROACH_RED, FieldPositions.AMP_SCORE_RED)))
+                ? defer(() -> {
+                    Transform2d fudge = new Transform2d(tunableAmpXFudge, -tunableAmpYFudge, Math2.ROTATION2D_0);
+                    return followTrajectory(
+                        generateTrajectory(FieldPositions.AMP_APPROACH_RED.plus(fudge), FieldPositions.AMP_SCORE_RED.plus(fudge))
+                    );
+                })
                 : pidTo(FieldPositions.AMP_SCORE_RED),
             Alliance::isBlue
         )

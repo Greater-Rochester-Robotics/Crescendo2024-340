@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { TunableNoteVelocity, TunableNoteVelocityPub, TunableNormFudge, TunableNormFudgePub } from '../ntStores';
+    import { TunableNoteVelocity, TunableNoteVelocityPub, TunableNormFudge, TunableNormFudgePub, TunableSpeakerXFudge, TunableSpeakerXFudgePub, TunableSpeakerYFudge, TunableSpeakerYFudgePub, TunableAmpXFudge, TunableAmpXFudgePub, TunableAmpYFudge, TunableAmpYFudgePub } from '../ntStores';
 
     const onNoteVelocityBlur = (e: FocusEvent) => {
         $TunableNoteVelocityPub = Number(decodeURIComponent((e.target as any)?.innerText).trim());
@@ -7,6 +7,22 @@
 
     const onNormFudgeBlur = (e: FocusEvent) => {
         $TunableNormFudgePub = Number(decodeURIComponent((e.target as any)?.innerText).trim());;
+    };
+
+    const onSpeakerXBlur = (e: FocusEvent) => {
+        $TunableSpeakerXFudgePub = Number(decodeURIComponent((e.target as any)?.innerText).trim());;
+    };
+
+    const onSpeakerYBlur = (e: FocusEvent) => {
+        $TunableSpeakerYFudgePub = Number(decodeURIComponent((e.target as any)?.innerText).trim());;
+    };
+
+    const onAmpXBlur = (e: FocusEvent) => {
+        $TunableAmpXFudgePub = Number(decodeURIComponent((e.target as any)?.innerText).trim());;
+    };
+
+    const onAmpYBlur = (e: FocusEvent) => {
+        $TunableAmpYFudgePub = Number(decodeURIComponent((e.target as any)?.innerText).trim());;
     };
 </script>
 
@@ -16,8 +32,20 @@
         <p>Note Velocity:</p>
         <code contenteditable on:blur="{onNoteVelocityBlur}">{$TunableNoteVelocity}</code>
         <br><br>
-    <p>Norm Fudge:</p>
-    <code contenteditable on:blur="{onNormFudgeBlur}">{$TunableNormFudge}</code>
+        <p>Norm Fudge:</p>
+        <code contenteditable on:blur="{onNormFudgeBlur}">{$TunableNormFudge}</code>
+        <br><br>
+        <p>Speaker X:</p>
+        <code contenteditable on:blur="{onSpeakerXBlur}">{$TunableSpeakerXFudge}</code>
+        <br><br>
+        <p>Speaker Y:</p>
+        <code contenteditable on:blur="{onSpeakerYBlur}">{$TunableSpeakerYFudge}</code>
+        <br><br>
+        <p>Amp X:</p>
+        <code contenteditable on:blur="{onAmpXBlur}">{$TunableAmpXFudge}</code>
+        <br><br>
+        <p>Amp Y:</p>
+        <code contenteditable on:blur="{onAmpYBlur}">{$TunableAmpYFudge}</code>
     </div>
     
     
