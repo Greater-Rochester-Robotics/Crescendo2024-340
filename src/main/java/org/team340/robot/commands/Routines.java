@@ -5,7 +5,7 @@ import static org.team340.robot.RobotContainer.*;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.Supplier;
-import org.team340.robot.Constants;
+import org.team340.robot.Constants.PivotConstants;
 
 /**
  * This class is used to declare commands that require multiple subsystems.
@@ -20,8 +20,21 @@ public class Routines {
      * Deploys and runs the intake. After a note is collected, it is seated by the feeder.
      */
     public static Command intake() {
-        return sequence(waitUntil(pivot::isSafeForIntake), intake.downPosition(), race(feeder.receive(), intake.intake()), feeder.seat())
+        return sequence(
+            waitUntil(pivot::isSafeForIntake),
+            intake.downPosition(),
+            race(feeder.receive(), intake.intake()),
+            feeder.seat(),
+            lights.hasNote()
+        )
             .withName("Routines.intake()");
+    }
+
+    /**
+     * Finishes the intake sequence.
+     */
+    public static Command finishIntake() {
+        return parallel(feeder.seat(), intake.safePosition()).withName("Routines.finishIntake()");
     }
 
     /**
@@ -29,20 +42,26 @@ public class Routines {
      */
     public static Command intakeHuman() {
         return parallel(
+            deadline(waitUntil(feeder::hasNote).andThen(waitSeconds(0.1)), shooter.intakeHuman(), feeder.intakeHuman()),
             sequence(
-                deadline(
-                    sequence(waitUntil(feeder::hasNote), waitUntil(() -> !feeder.hasNote())),
-                    parallel(shooter.intakeHuman(), feeder.intakeHuman())
-                ),
-                feeder.seat()
-            ),
-            sequence(
-                pivot.goTo(Constants.PivotConstants.INTAKE_SAFE_POSITION).unless(pivot::isSafeForIntake),
+                pivot.goTo(PivotConstants.INTAKE_SAFE_POSITION).unless(pivot::isSafeForIntake),
                 intake.uprightPosition(),
-                pivot.goTo(Constants.PivotConstants.MAX_POS)
+                pivot.goTo(PivotConstants.MAX_POS)
             )
         )
             .withName("Routines.intakeHuman()");
+    }
+
+    /**
+     * Finishes the human player intake sequence.
+     */
+    public static Command finishIntakeHuman() {
+        return parallel(
+            shooter.setSpeed(0).withTimeout(2.0),
+            pivot.goTo(PivotConstants.DOWN_POSITION),
+            sequence(waitUntil(pivot::isSafeForIntake), parallel(intake.safePosition(), sequence(feeder.reverseSeat(), feeder.seat())))
+        )
+            .withName("Routines.finishIntakeHuman()");
     }
 
     /**
@@ -50,6 +69,26 @@ public class Routines {
      */
     public static Command intakeOverride() {
         return parallel(intake.intakeOverride(), feeder.shoot()).withName("Routines.intakeOverride()");
+    }
+
+    /**
+     * Fixes the position of the note if it is in a deadzone.
+     */
+    public static Command fixDeadzone() {
+        return sequence(
+            deadline(feeder.reverseSeat(), shooter.barfForward(), pivot.goTo(PivotConstants.FIX_DEADZONE_POSITION)),
+            parallel(feeder.seat(), pivot.goTo(PivotConstants.DOWN_POSITION))
+        )
+            .withName("Routines.fixDeadzone()");
+    }
+
+    /**
+     * Prepares to score in speaker by facing the speaker and moving the pivot.
+     * @param x The desired {@code x} driving speed from {@code -1.0} to {@code 1.0}.
+     * @param y The desired {@code y} driving speed from {@code -1.0} to {@code 1.0}.
+     */
+    public static Command prepSpeaker(Supplier<Double> x, Supplier<Double> y) {
+        return parallel(swerve.driveSpeaker(x, y), pivot.targetDistance(swerve::getSpeakerDistance)).withName("Routines.prepSpeaker()");
     }
 
     /**
@@ -63,7 +102,7 @@ public class Routines {
             sequence(
                 sequence(
                     parallel(
-                        pivot.goTo(Constants.PivotConstants.AMP_HANDOFF_POSITION),
+                        pivot.goTo(PivotConstants.AMP_HANDOFF_POSITION),
                         sequence(waitUntil(pivot::isSafeForIntake), intake.downPosition())
                     ),
                     sequence(
@@ -89,11 +128,23 @@ public class Routines {
      */
     public static Command prepClimb(Supplier<Double> x, Supplier<Double> y) {
         return parallel(
-            swerve.driveStage(x, y),
+            swerve.driveClimb(x, y),
             intake.uprightPosition().onlyIf(() -> swerve.getStageDistance() >= 1.9),
-            pivot.goTo(Math.toRadians(3.0))
+            pivot.goTo(PivotConstants.DOWN_POSITION)
         )
             .withName("Routines.prepClimb()");
+    }
+
+    /**
+     * Rock skip :)
+     */
+    public static Command rockSkip(Supplier<Double> x, Supplier<Double> y) {
+        return parallel(
+            swerve.driveRockSkip(x, y),
+            shooter.rockSkip(),
+            pivot.goTo(PivotConstants.ROCK_SKIP_POSITION),
+            sequence(waitSeconds(0.35), feeder.shoot())
+        );
     }
 
     /**
@@ -101,8 +152,8 @@ public class Routines {
      */
     public static Command barfForward() {
         return sequence(
-            parallel(pivot.goTo(Constants.PivotConstants.BARF_FORWARD_POSITION), intake.barfPosition()),
-            parallel(feeder.barfForward(), intake.barf())
+            parallel(pivot.goTo(PivotConstants.BARF_FORWARD_POSITION), intake.barfPosition()),
+            parallel(shooter.barfForward(), feeder.barfForward(), intake.barf())
         )
             .withName("Routines.barfForward()");
     }
@@ -112,7 +163,7 @@ public class Routines {
      * @return
      */
     public static Command barfBackward() {
-        return parallel(shooter.barf(), sequence(waitSeconds(0.35), parallel(feeder.barfBackward(), intake.intake())))
+        return parallel(shooter.barfBackward(), sequence(waitSeconds(0.35), parallel(feeder.barfBackward(), intake.intake())))
             .withName("Routines.barfBackward()");
     }
 

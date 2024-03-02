@@ -101,8 +101,7 @@ public final class Constants {
         public static final int CLIMBER_LEFT_MOTOR = 40;
         public static final int CLIMBER_RIGHT_MOTOR = 41;
 
-        public static final int CLIMBER_LEFT_LIMIT = 2;
-        public static final int CLIMBER_RIGHT_LIMIT = 3;
+        public static final int LIGHTS = 6;
         public static final int PIVOT_LOWER_LIMIT = 7;
         public static final int SHOOTER_NOTE_DETECTOR = 8;
         public static final int INTAKE_NOTE_DETECTOR = 9;
@@ -149,8 +148,9 @@ public final class Constants {
 
         // Speeds
         public static final double RECEIVE_SPEED = 0.5;
-        public static final double INTAKE_HUMAN_SPEED = -0.25;
+        public static final double INTAKE_HUMAN_SPEED = -0.1;
         public static final double SEAT_SPEED = 0.05;
+        public static final double REVERSE_SEAT_SPEED = -0.04;
         public static final double SHOOT_SPEED = 1.0;
         public static final double BARF_FORWARD_SPEED = -0.5;
         public static final double BARF_BACKWARD_SPEED = 0.5;
@@ -201,7 +201,7 @@ public final class Constants {
         public static final double OVERRIDE_INTAKE_SPEED = 0.25;
 
         // Positions
-        public static final double DOWN_POSITION = 0.0;
+        public static final double DOWN_POSITION = Math.toRadians(0.0);
         public static final double SAFE_POSITION = Math.toRadians(30.0);
         public static final double RETRACT_POSITION = Math.toRadians(65.0);
         public static final double UPRIGHT_POSITION = Math.toRadians(90.0);
@@ -272,8 +272,11 @@ public final class Constants {
         public static final double HOMING_SPEED = -0.2;
 
         // Positions
-        public static final double BARF_FORWARD_POSITION = 0.0;
+        public static final double BARF_FORWARD_POSITION = Math.toRadians(0.0);
+        public static final double DOWN_POSITION = Math.toRadians(2.0);
+        public static final double ROCK_SKIP_POSITION = Math.toRadians(0.25);
         public static final double AMP_HANDOFF_POSITION = Math.toRadians(0.0);
+        public static final double FIX_DEADZONE_POSITION = Math.toRadians(57.5);
         public static final double INTAKE_SAFE_POSITION = Math.toRadians(60.0);
 
         // Misc
@@ -356,8 +359,10 @@ public final class Constants {
 
         // Speeds
         public static final double RAMP_SPEED = 0.95;
-        public static final double INTAKE_HUMAN_SPEED = -0.3;
-        public static final double BARF_SPEED = 0.5;
+        public static final double INTAKE_HUMAN_SPEED = -0.175;
+        public static final double FORWARD_BARF_SPEED = -0.5;
+        public static final double BACKWARD_BARF_SPEED = 0.5;
+        public static final double ROCK_SKIP_SPEED = 0.75;
 
         // Misc
         public static final double CLOSED_LOOP_ERR = 40.0;
@@ -519,8 +524,10 @@ public final class Constants {
 
         public static final Translation2d STAGE = new Translation2d(4.981067, 4.105783);
 
-        public static final double OPPONENT_WING_LINE = 10.66;
+        public static final Translation2d ROCK_SKIP_BLUE = new Translation2d(0.0, 7.4);
+        public static final Translation2d ROCK_SKIP_RED = new Translation2d(ROCK_SKIP_BLUE.getX(), FIELD_WIDTH - ROCK_SKIP_BLUE.getY());
 
+        public static final double OPPONENT_WING_LINE = 10.66;
         public static final double FENDER_SHOT_DISTANCE = 1.4;
     }
 }

@@ -10,15 +10,16 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import org.team340.lib.GRRDashboard;
 import org.team340.lib.controller.Controller2;
 import org.team340.lib.util.Math2;
-import org.team340.lib.util.TriggerLockout;
 import org.team340.lib.util.config.rev.RevConfigRegistry;
 import org.team340.robot.Constants.ControllerConstants;
 import org.team340.robot.Constants.FieldPositions;
+import org.team340.robot.Constants.PivotConstants;
 import org.team340.robot.commands.Autos;
 import org.team340.robot.commands.Routines;
 import org.team340.robot.subsystems.Climber;
 import org.team340.robot.subsystems.Feeder;
 import org.team340.robot.subsystems.Intake;
+import org.team340.robot.subsystems.Lights;
 import org.team340.robot.subsystems.Pivot;
 import org.team340.robot.subsystems.Shooter;
 import org.team340.robot.subsystems.Swerve;
@@ -38,6 +39,7 @@ public final class RobotContainer {
     public static Climber climber;
     public static Feeder feeder;
     public static Intake intake;
+    public static Lights lights;
     public static Pivot pivot;
     public static Shooter shooter;
     public static Swerve swerve;
@@ -58,6 +60,7 @@ public final class RobotContainer {
         climber = new Climber();
         feeder = new Feeder();
         intake = new Intake();
+        lights = new Lights();
         pivot = new Pivot();
         shooter = new Shooter();
         swerve = new Swerve();
@@ -101,24 +104,12 @@ public final class RobotContainer {
          */
 
         // A => Intake (Tap = Down, Hold = Run roller)
-        driver
-            .a()
-            .whileTrue(Routines.intake())
-            .onFalse(parallel(feeder.seat(), intake.safePosition()).withName("RobotContainer.driver.a().onFalse()"));
+        driver.a().whileTrue(Routines.intake()).onFalse(Routines.finishIntake());
 
         // B => Intake from Human Player (Hold)
-        driver
-            .b()
-            .onTrue(Routines.intakeHuman())
-            .onFalse(
-                parallel(
-                    shooter.setSpeed(0).withTimeout(2.0),
-                    parallel(pivot.goTo(0.0), waitUntil(pivot::isSafeForIntake)).andThen(intake.safePosition())
-                )
-                    .withName("RobotContainer.driver.b().onFalse()")
-            );
+        driver.b().onTrue(Routines.intakeHuman()).onFalse(Routines.finishIntakeHuman());
 
-        // X => Amp Score (Hold)
+        // X => Prep Amp (Hold)
         driver.x().whileTrue(Routines.prepAmp(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
         // Y => Shoot (Tap)
@@ -130,31 +121,23 @@ public final class RobotContainer {
         // Right Joystick Down => Intake down
         driver.rightJoystickDown().onTrue(intake.safePosition());
 
-        // Right Bumper => Target Speaker (Hold)
-        driver
-            .rightBumper()
-            .whileTrue(
-                parallel(
-                    swerve.driveSpeaker(RobotContainer::getDriveX, RobotContainer::getDriveY),
-                    pivot.targetDistance(swerve::getSpeakerDistance)
-                )
-                    .withName("RobotContainer.driver.rightBumper().whileTrue()")
-            );
+        // Right Bumper => Prep Speaker (Hold)
+        driver.rightBumper().whileTrue(Routines.prepSpeaker(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
-        // Left Bumper => Face Stage (Hold)
+        // Left Bumper => Prep Climb (Hold)
         driver.leftBumper().whileTrue(Routines.prepClimb(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
         // POV Up => Barf Backwards (Hold)
         driver.povUp().whileTrue(Routines.barfForward());
 
-        // POV Down => Barf Forward (Hold)
-        driver.povDown().whileTrue(Routines.barfBackward());
+        // POV Down => Rock Skip (Hold)
+        driver.povDown().whileTrue(Routines.rockSkip(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
         // POV Left => Zero swerve
         driver.povLeft().onTrue(swerve.zeroIMU(Math2.ROTATION2D_0));
 
         // POV Right => Zero pivot (Hold)
-        driver.povRight().onTrue(pivot.goTo(Math.toRadians(3.0)));
+        driver.povRight().onTrue(pivot.goTo(PivotConstants.DOWN_POSITION));
 
         // Start => Toggle Shooter
         driver.start().toggleOnTrue(shooter.setSpeed(0.0));
@@ -166,22 +149,7 @@ public final class RobotContainer {
          * Co-driver bindings.
          */
 
-        Trigger coDriverOverride = TriggerLockout
-            .of(
-                driver.a(),
-                driver.b(),
-                // driver.x(),
-                driver.y(),
-                driver.rightJoystickUp(),
-                driver.rightJoystickDown(),
-                driver.povUp(),
-                driver.povDown(),
-                driver.povLeft(),
-                driver.povRight(),
-                driver.rightBumper()
-            )
-            .and(coDriver.leftBumper())
-            .and(coDriver.rightBumper());
+        Trigger coDriverOverride = coDriver.leftBumper().and(coDriver.rightBumper());
 
         coDriverOverride.whileTrue(
             parallel(
@@ -210,8 +178,14 @@ public final class RobotContainer {
             .and(coDriver.rightTrigger())
             .whileTrue(climber.driveManual(() -> -coDriver.getLeftY() * 0.3, () -> -coDriver.getRightY() * 0.3));
 
-        // POV => Pivot home (Hold)
+        // POV Up => Pivot home (Hold)
         coDriver.povUp().whileTrue(pivot.home(true));
+
+        // POV Left => Prep Speaker (Hold)
+        coDriver.povLeft().whileTrue(Routines.prepSpeaker(RobotContainer::getDriveX, RobotContainer::getDriveY));
+
+        // POV Right => Fix deadzone (Hold)
+        coDriver.povRight().onTrue(Routines.fixDeadzone());
 
         // Back / Start => he he rumble rumble
         coDriver.back().toggleOnTrue(setCoDriverRumble(RumbleType.kLeftRumble, 0.5).ignoringDisable(true));

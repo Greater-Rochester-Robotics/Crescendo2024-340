@@ -226,13 +226,43 @@ public class Shooter extends GRRSubsystem {
     }
 
     /**
-     * Spits the note out of the shooter.
+     * Sets the shooter to rock skip.
      */
-    public Command barf() {
+    public Command rockSkip() {
+        return commandBuilder("shooter.rockSkip()")
+            .onInitialize(() -> {
+                leftShootMotor.set(ShooterConstants.ROCK_SKIP_SPEED);
+                rightShootMotor.set(ShooterConstants.ROCK_SKIP_SPEED);
+            })
+            .onEnd(() -> {
+                leftShootMotor.stopMotor();
+                rightShootMotor.stopMotor();
+            });
+    }
+
+    /**
+     * Spits the note back towards the intake.
+     */
+    public Command barfForward() {
         return commandBuilder("shooter.barf()")
             .onInitialize(() -> {
-                leftShootMotor.set(ShooterConstants.BARF_SPEED);
-                rightShootMotor.set(ShooterConstants.BARF_SPEED);
+                leftShootMotor.set(ShooterConstants.FORWARD_BARF_SPEED);
+                rightShootMotor.set(ShooterConstants.FORWARD_BARF_SPEED);
+            })
+            .onEnd(() -> {
+                leftShootMotor.stopMotor();
+                rightShootMotor.stopMotor();
+            });
+    }
+
+    /**
+     * Spits the note out of the shooter.
+     */
+    public Command barfBackward() {
+        return commandBuilder("shooter.barf()")
+            .onInitialize(() -> {
+                leftShootMotor.set(ShooterConstants.BACKWARD_BARF_SPEED);
+                rightShootMotor.set(ShooterConstants.BACKWARD_BARF_SPEED);
             })
             .onEnd(() -> {
                 leftShootMotor.stopMotor();

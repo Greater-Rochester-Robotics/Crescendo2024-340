@@ -102,12 +102,12 @@ public class Swerve extends SwerveBase {
                     new PhotonCamera("BackRight"),
                     SwerveConstants.BACK_RIGHT_CAMERA
                 ),
-                new PhotonPoseEstimator(
-                    blueAprilTags,
-                    PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-                    new PhotonCamera("FrontRight"),
-                    SwerveConstants.FRONT_RIGHT_CAMERA
-                ),
+                // new PhotonPoseEstimator(
+                //     blueAprilTags,
+                //     PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+                //     new PhotonCamera("FrontRight"),
+                // SwerveConstants.FRONT_RIGHT_CAMERA
+                // ),
             };
     }
 
@@ -346,8 +346,8 @@ public class Swerve extends SwerveBase {
      * @param x The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
      * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
      */
-    public Command driveStage(Supplier<Double> x, Supplier<Double> y) {
-        return commandBuilder("swerve.driveStage()")
+    public Command driveClimb(Supplier<Double> x, Supplier<Double> y) {
+        return commandBuilder("swerve.driveClimb()")
             .onInitialize(() -> rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
             .onExecute(() -> {
                 double stageAngle = FieldPositions.STAGE.minus(getPosition().getTranslation()).getAngle().getRadians();
@@ -362,6 +362,25 @@ public class Swerve extends SwerveBase {
 
                 driveAngle(x.get(), y.get(), faceStageAngle, rotPID, false);
             });
+    }
+
+    /**
+     * Allows the driver to keep driving, but forces the robot to face the rock skip location.
+     * @param x The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
+     * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
+     */
+    public Command driveRockSkip(Supplier<Double> x, Supplier<Double> y) {
+        return commandBuilder("swerve.rockSkip()")
+            .onExecute(() ->
+                driveAroundPoint(
+                    x.get(),
+                    y.get(),
+                    Math.PI,
+                    Alliance.isBlue() ? FieldPositions.ROCK_SKIP_BLUE : FieldPositions.ROCK_SKIP_RED,
+                    rotPID,
+                    false
+                )
+            );
     }
 
     /**

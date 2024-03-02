@@ -82,7 +82,7 @@ public class Feeder extends GRRSubsystem {
         return sequence(
             commandBuilder()
                 .onInitialize(() -> feedMotor.set(FeederConstants.SEAT_SPEED))
-                .isFinished(() -> hasNote())
+                .isFinished(this::hasNote)
                 .onEnd(() -> feedEncoder.setPosition(0.0)),
             commandBuilder()
                 .onInitialize(() -> feedPID.setReference(FeederConstants.SEAT_POSITION, ControlType.kPosition))
@@ -94,6 +94,16 @@ public class Feeder extends GRRSubsystem {
             .onlyIf(() -> !hasNote())
             .withTimeout(2.0)
             .withName("feeder.seat()");
+    }
+
+    /**
+     * Backs the note out of the shooter until the note detector is clear.
+     */
+    public Command reverseSeat() {
+        return commandBuilder("feeder.reverseSeat()")
+            .onInitialize(() -> feedMotor.set(FeederConstants.REVERSE_SEAT_SPEED))
+            .isFinished(() -> !hasNote())
+            .onEnd(() -> feedMotor.stopMotor());
     }
 
     /**
