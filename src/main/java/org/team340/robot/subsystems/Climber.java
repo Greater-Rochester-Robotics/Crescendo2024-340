@@ -1,8 +1,8 @@
 package org.team340.robot.subsystems;
 
 import com.revrobotics.CANSparkBase.IdleMode;
+import com.revrobotics.CANSparkFlex;
 import com.revrobotics.CANSparkLowLevel.MotorType;
-import com.revrobotics.CANSparkMax;
 import com.revrobotics.SparkLimitSwitch;
 import com.revrobotics.SparkLimitSwitch.Type;
 import edu.wpi.first.util.sendable.SendableBuilder;
@@ -18,8 +18,8 @@ import org.team340.robot.Constants.RobotMap;
  */
 public class Climber extends GRRSubsystem {
 
-    private final CANSparkMax leftMotor;
-    private final CANSparkMax rightMotor;
+    private final CANSparkFlex leftMotor;
+    private final CANSparkFlex rightMotor;
     private final SparkLimitSwitch leftLimit;
     private final SparkLimitSwitch rightLimit;
 
@@ -28,8 +28,8 @@ public class Climber extends GRRSubsystem {
      */
     public Climber() {
         super("Climber");
-        leftMotor = createSparkMax("Left Motor", RobotMap.CLIMBER_LEFT_MOTOR, MotorType.kBrushless);
-        rightMotor = createSparkMax("Right Motor", RobotMap.CLIMBER_RIGHT_MOTOR, MotorType.kBrushless);
+        leftMotor = createSparkFlex("Left Motor", RobotMap.CLIMBER_LEFT_MOTOR, MotorType.kBrushless);
+        rightMotor = createSparkFlex("Right Motor", RobotMap.CLIMBER_RIGHT_MOTOR, MotorType.kBrushless);
         leftLimit = leftMotor.getForwardLimitSwitch(Type.kNormallyOpen);
         rightLimit = rightMotor.getForwardLimitSwitch(Type.kNormallyOpen);
 

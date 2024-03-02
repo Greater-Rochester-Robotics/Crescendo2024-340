@@ -13,6 +13,7 @@ import org.team340.lib.util.Math2;
 import org.team340.lib.util.TriggerLockout;
 import org.team340.lib.util.config.rev.RevConfigRegistry;
 import org.team340.robot.Constants.ControllerConstants;
+import org.team340.robot.Constants.FieldPositions;
 import org.team340.robot.commands.Autos;
 import org.team340.robot.commands.Routines;
 import org.team340.robot.subsystems.Climber;
@@ -118,7 +119,7 @@ public final class RobotContainer {
             );
 
         // X => Amp Score (Hold)
-        driver.x().whileTrue(Routines.scoreAmp());
+        driver.x().whileTrue(Routines.prepAmp(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
         // Y => Shoot (Tap)
         driver.y().whileTrue(feeder.shoot());
@@ -143,17 +144,17 @@ public final class RobotContainer {
         // Left Bumper => Face Stage (Hold)
         driver.leftBumper().whileTrue(Routines.prepClimb(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
-        // POV Up => Barf Backwards
+        // POV Up => Barf Backwards (Hold)
         driver.povUp().whileTrue(Routines.barfForward());
 
-        // POV Down => Barf Forward
+        // POV Down => Barf Forward (Hold)
         driver.povDown().whileTrue(Routines.barfBackward());
 
         // POV Left => Zero swerve
         driver.povLeft().onTrue(swerve.zeroIMU(Math2.ROTATION2D_0));
 
-        // POV Right => Zero pivot
-        driver.povRight().whileTrue(pivot.home(true));
+        // POV Right => Zero pivot (Hold)
+        driver.povRight().onTrue(pivot.goTo(Math.toRadians(3.0)));
 
         // Start => Toggle Shooter
         driver.start().toggleOnTrue(shooter.setSpeed(0.0));
@@ -169,7 +170,7 @@ public final class RobotContainer {
             .of(
                 driver.a(),
                 driver.b(),
-                driver.x(),
+                // driver.x(),
                 driver.y(),
                 driver.rightJoystickUp(),
                 driver.rightJoystickDown(),
@@ -191,23 +192,26 @@ public final class RobotContainer {
                 .withName("RobotContainer.coDriverOverride.whileTrue()")
         );
 
-        // A => Climb
+        // A => Climb (Hold)
         coDriver.a().whileTrue(climber.climb(swerve::getRoll));
 
-        // B => Overrides intake
+        // B => Overrides intake (Hold)
         coDriver.b().and(coDriverOverride).whileTrue(Routines.intakeOverride());
 
-        // X => Fender Shot
-        coDriver.x().onTrue(none());
+        // X => Fender Shot (Hold)
+        coDriver.x().whileTrue(pivot.targetDistance(() -> FieldPositions.FENDER_SHOT_DISTANCE));
 
-        // Y => Reserved
-        coDriver.y().onTrue(none());
+        // Y => Score Amp (Hold)
+        coDriver.y().whileTrue(intake.scoreAmp());
 
         // Both Triggers => Drives climber manually
         coDriver
             .leftTrigger()
             .and(coDriver.rightTrigger())
             .whileTrue(climber.driveManual(() -> -coDriver.getLeftY() * 0.3, () -> -coDriver.getRightY() * 0.3));
+
+        // POV => Pivot home (Hold)
+        coDriver.povUp().whileTrue(pivot.home(true));
 
         // Back / Start => he he rumble rumble
         coDriver.back().toggleOnTrue(setCoDriverRumble(RumbleType.kLeftRumble, 0.5).ignoringDisable(true));

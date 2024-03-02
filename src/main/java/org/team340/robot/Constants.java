@@ -51,7 +51,7 @@ public final class Constants {
     public static final class ControllerConstants {
 
         public static final double DRIVE_EXP = 1.0;
-        public static final double DRIVE_MULTIPLIER = 0.85;
+        public static final double DRIVE_MULTIPLIER = 0.8;
         public static final double DRIVE_MULTIPLIER_MODIFIED = 0.975;
 
         public static final double DRIVE_ROT_EXP = 2.0;
@@ -127,7 +127,7 @@ public final class Constants {
             // Relative Encoder Conversion Factor
             private static final double REL_ENC_FACTOR = 1.0;
 
-            public static final SparkMaxConfig MOTOR = new SparkMaxConfig()
+            public static final SparkFlexConfig MOTOR = new SparkFlexConfig()
                 .clearFaults()
                 .restoreFactoryDefaults()
                 .enableVoltageCompensation(VOLTAGE)
@@ -441,7 +441,7 @@ public final class Constants {
             .setRampRate(0.03, 0.03)
             .setMotorTypes(SwerveMotor.Type.SPARK_FLEX_BRUSHLESS, SwerveMotor.Type.SPARK_FLEX_BRUSHLESS)
             .setMaxSpeeds(4.95, 11.8)
-            .setRatelimits(8.52, 29.75)
+            .setRatelimits(8.1, 29.75)
             .setTrajectoryConstraints(3.8, 2.4)
             .setPowerProperties(VOLTAGE, 60.0, 40.0)
             .setMechanicalProperties(6.75, 150.0 / 7.0, 4.0)
@@ -507,18 +507,20 @@ public final class Constants {
         );
         public static final Pose3d RED_SPEAKER_3D = new Pose3d(RED_SPEAKER.getX(), RED_SPEAKER.getY(), SPEAKER_HEIGHT, Math2.ROTATION3D_0);
 
-        public static final double AMP_X = 1.9;
+        public static final double AMP_X = 1.775;
         public static final Pose2d AMP_APPROACH_BLUE = new Pose2d(AMP_X, 6.98, Math2.ROTATION2D_HALF_PI);
         public static final Pose2d AMP_APPROACH_RED = new Pose2d(
             AMP_X,
             FIELD_WIDTH - AMP_APPROACH_BLUE.getY(),
             Math2.ROTATION2D_NEG_HALF_PI
         );
-        public static final Pose2d AMP_SCORE_BLUE = new Pose2d(AMP_X, 7.78, Math2.ROTATION2D_HALF_PI);
+        public static final Pose2d AMP_SCORE_BLUE = new Pose2d(AMP_X, 7.82, Math2.ROTATION2D_HALF_PI);
         public static final Pose2d AMP_SCORE_RED = new Pose2d(AMP_X, FIELD_WIDTH - AMP_SCORE_BLUE.getY(), Math2.ROTATION2D_NEG_HALF_PI);
 
         public static final Translation2d STAGE = new Translation2d(4.981067, 4.105783);
 
         public static final double OPPONENT_WING_LINE = 10.66;
+
+        public static final double FENDER_SHOT_DISTANCE = 1.4;
     }
 }

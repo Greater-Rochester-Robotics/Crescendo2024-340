@@ -1,7 +1,5 @@
 package org.team340.robot.subsystems;
 
-import static edu.wpi.first.wpilibj2.command.Commands.*;
-
 import com.choreo.lib.Choreo;
 import com.choreo.lib.ChoreoTrajectory;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
@@ -16,7 +14,6 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
-import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.trajectory.Trajectory;
@@ -70,8 +67,6 @@ public class Swerve extends SwerveBase {
     private double tunableNormFudge = SwerveConstants.NORM_FUDGE;
     private double tunableSpeakerXFudge = 0.0;
     private double tunableSpeakerYFudge = 0.0;
-    private double tunableAmpXFudge = 0.0;
-    private double tunableAmpYFudge = 0.0;
 
     /**
      * Create the swerve subsystem.
@@ -130,8 +125,6 @@ public class Swerve extends SwerveBase {
         builder.addDoubleProperty("tunableNormFudge", null, fudge -> tunableNormFudge = fudge);
         builder.addDoubleProperty("tunableSpeakerXFudge", null, fudge -> tunableSpeakerXFudge = fudge);
         builder.addDoubleProperty("tunableSpeakerYFudge", null, fudge -> tunableSpeakerYFudge = fudge);
-        builder.addDoubleProperty("tunableAmpXFudge", null, fudge -> tunableAmpXFudge = fudge);
-        builder.addDoubleProperty("tunableAmpYFudge", null, fudge -> tunableAmpYFudge = fudge);
     }
 
     @Override
@@ -335,32 +328,17 @@ public class Swerve extends SwerveBase {
     }
 
     /**
-     * Drives to the amp.
-     * If PID is being used, the command will not end.
-     * If a trajectory is being used, the command ends after the trajectory is completed.
-     * @param useTrajectory If a trajectory should be used to translate to the amp. Otherwise, PID is used,
+     * Allows the driver to keep driving, but forces the robot to face the amp.
+     * @param x The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
+     * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
      */
-    public Command driveAmp(boolean useTrajectory) {
-        return either(
-            useTrajectory
-                ? defer(() -> {
-                    Transform2d fudge = new Transform2d(tunableAmpXFudge, tunableAmpYFudge, Math2.ROTATION2D_0);
-                    return followTrajectory(
-                        generateTrajectory(FieldPositions.AMP_APPROACH_BLUE.plus(fudge), FieldPositions.AMP_SCORE_BLUE.plus(fudge))
-                    );
-                })
-                : pidTo(FieldPositions.AMP_SCORE_BLUE),
-            useTrajectory
-                ? defer(() -> {
-                    Transform2d fudge = new Transform2d(tunableAmpXFudge, -tunableAmpYFudge, Math2.ROTATION2D_0);
-                    return followTrajectory(
-                        generateTrajectory(FieldPositions.AMP_APPROACH_RED.plus(fudge), FieldPositions.AMP_SCORE_RED.plus(fudge))
-                    );
-                })
-                : pidTo(FieldPositions.AMP_SCORE_RED),
-            Alliance::isBlue
-        )
-            .withName("swerve.driveAmp(" + useTrajectory + ")");
+    public Command driveAmp(Supplier<Double> x, Supplier<Double> y) {
+        return commandBuilder("swerve.driveAmp()")
+            .onInitialize(() -> rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
+            .onExecute(() -> {
+                double angle = Alliance.isBlue() ? Math2.HALF_PI : -Math2.HALF_PI;
+                driveAngle(x.get(), y.get(), angle, rotPID, false);
+            });
     }
 
     /**
@@ -369,7 +347,7 @@ public class Swerve extends SwerveBase {
      * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
      */
     public Command driveStage(Supplier<Double> x, Supplier<Double> y) {
-        return commandBuilder("swerve.alignWithStage")
+        return commandBuilder("swerve.driveStage()")
             .onInitialize(() -> rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
             .onExecute(() -> {
                 double stageAngle = FieldPositions.STAGE.minus(getPosition().getTranslation()).getAngle().getRadians();
