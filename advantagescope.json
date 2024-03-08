@@ -41,28 +41,23 @@
               "show": true
             },
             {
-              "key": "NT:/GRRDashboard/Subsystems/Pivot/Details/command",
+              "key": "NT:/GRRDashboard/Subsystems/Lights/Details/command",
               "color": "#aacaee",
               "show": true
             },
             {
-              "key": "NT:/GRRDashboard/Subsystems/Shooter/Details/command",
+              "key": "NT:/GRRDashboard/Subsystems/Pivot/Details/command",
               "color": "#c0b487",
               "show": true
             },
             {
-              "key": "NT:/GRRDashboard/Subsystems/Swerve/Details/command",
+              "key": "NT:/GRRDashboard/Subsystems/Shooter/Details/command",
               "color": "#858584",
               "show": true
             },
             {
-              "key": "NT:/GRRDashboard/Autos/active",
+              "key": "NT:/GRRDashboard/Subsystems/Swerve/Details/command",
               "color": "#3b875a",
-              "show": true
-            },
-            {
-              "key": "NT:/GRRDashboard/Autos/default",
-              "color": "#d993aa",
               "show": true
             }
           ]
@@ -73,7 +68,13 @@
             "type": null,
             "factor": 1
           },
-          "fields": []
+          "fields": [
+            {
+              "key": "NT:/GRRDashboard/Subsystems/Swerve/Details/readErrors",
+              "color": "#d993aa",
+              "show": true
+            }
+          ]
         }
       },
       "title": "Voltage"
@@ -244,6 +245,44 @@
       },
       "configHidden": false,
       "title": "Field"
+    },
+    {
+      "type": 5,
+      "fields": [],
+      "listFields": [
+        [
+          {
+            "type": "Robot",
+            "key": "NT:/GRRDashboard/Subsystems/Swerve/Visualizations/robot",
+            "sourceTypeIndex": 0,
+            "sourceType": 5
+          },
+          {
+            "type": "Ghost",
+            "key": "NT:/GRRDashboard/Subsystems/Swerve/Visualizations/trajectoryTarget",
+            "sourceTypeIndex": 0,
+            "sourceType": 5
+          },
+          {
+            "type": "Trajectory",
+            "key": "NT:/GRRDashboard/Subsystems/Swerve/Visualizations/trajectory",
+            "sourceTypeIndex": 0,
+            "sourceType": 5
+          }
+        ]
+      ],
+      "options": {
+        "game": "2024 Field",
+        "unitDistance": "meters",
+        "unitRotation": "radians",
+        "origin": "right",
+        "size": 0.8382,
+        "allianceBumpers": "auto",
+        "allianceOrigin": "blue",
+        "orientation": "blue left, red right"
+      },
+      "configHidden": false,
+      "title": "Odometry"
     },
     {
       "type": 9,
@@ -500,7 +539,18 @@
             "type": null,
             "factor": 1
           },
-          "fields": []
+          "fields": [
+            {
+              "key": "NT:/GRRDashboard/Subsystems/Shooter/Hardware/CAN-32/current",
+              "color": "#c0b487",
+              "show": true
+            },
+            {
+              "key": "NT:/GRRDashboard/Subsystems/Shooter/Hardware/CAN-33/current",
+              "color": "#858584",
+              "show": true
+            }
+          ]
         }
       },
       "title": "Shooter"

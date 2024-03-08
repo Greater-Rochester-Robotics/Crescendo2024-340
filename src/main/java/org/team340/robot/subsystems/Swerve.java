@@ -65,6 +65,7 @@ public class Swerve extends SwerveBase {
     private double[] speaker = new double[0];
     private double tunableNoteVelocity = SwerveConstants.NOTE_VELOCITY;
     private double tunableNormFudge = SwerveConstants.NORM_FUDGE;
+    private double tunableSpinCompensation = SwerveConstants.SPIN_COMPENSATION;
     private double tunableSpeakerXFudge = 0.0;
     private double tunableSpeakerYFudge = 0.0;
 
@@ -123,6 +124,7 @@ public class Swerve extends SwerveBase {
 
         builder.addDoubleProperty("tunableNoteVelocity", null, velocity -> tunableNoteVelocity = velocity);
         builder.addDoubleProperty("tunableNormFudge", null, fudge -> tunableNormFudge = fudge);
+        builder.addDoubleProperty("tunableSpinCompensation", null, compensation -> tunableSpinCompensation = compensation);
         builder.addDoubleProperty("tunableSpeakerXFudge", null, fudge -> tunableSpeakerXFudge = fudge);
         builder.addDoubleProperty("tunableSpeakerYFudge", null, fudge -> tunableSpeakerYFudge = fudge);
     }
@@ -239,7 +241,7 @@ public class Swerve extends SwerveBase {
                 ) /
                 Math.PI
             );
-        // if (Math.random() > 0.9) System.out.println((1.0 - (tunableNormFudge * normFactor))); lol
+
         double x =
             goalPose.getX() +
             tunableSpeakerXFudge -
@@ -248,6 +250,8 @@ public class Swerve extends SwerveBase {
             goalPose.getY() +
             (Alliance.isBlue() ? tunableSpeakerYFudge : -tunableSpeakerYFudge) -
             (robotVel.vyMetersPerSecond * (distance / tunableNoteVelocity));
+
+        speaker = SwerveVisualizer.pose3d(new Pose3d(x, y, FieldPositions.SPEAKER_HEIGHT, Math2.ROTATION3D_0));
         return new Translation2d(x, y);
     }
 
@@ -257,24 +261,8 @@ public class Swerve extends SwerveBase {
      */
     private double getSpeakerAngle() {
         Translation2d speakerPosition = getSpeakerPosition();
-        double speakerDistance = getSpeakerDistance();
         Translation2d robotPoint = getPosition().getTranslation();
-        Rotation2d shotRot = speakerPosition.minus(robotPoint).getAngle();
-
-        Translation2d targetPosition = new Translation2d(
-            speakerPosition.getX() + shotRot.getSin() * SwerveConstants.SPIN_COMPENSATION_X * speakerDistance,
-            speakerPosition.getY() +
-            shotRot.getCos() *
-            SwerveConstants.SPIN_COMPENSATION_Y *
-            speakerDistance *
-            (Alliance.isBlue() ? 1.0 : -1.0)
-        );
-
-        speaker =
-            SwerveVisualizer.pose3d(
-                new Pose3d(targetPosition.getX(), targetPosition.getY(), FieldPositions.SPEAKER_HEIGHT, Math2.ROTATION3D_0)
-            );
-        return MathUtil.angleModulus(targetPosition.minus(robotPoint).getAngle().getRadians() + Math.PI);
+        return MathUtil.angleModulus(speakerPosition.minus(robotPoint).getAngle().getRadians() + Math.PI + tunableSpinCompensation);
     }
 
     /**

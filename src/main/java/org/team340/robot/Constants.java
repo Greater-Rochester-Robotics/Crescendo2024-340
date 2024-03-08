@@ -101,10 +101,11 @@ public final class Constants {
         public static final int CLIMBER_LEFT_MOTOR = 40;
         public static final int CLIMBER_RIGHT_MOTOR = 41;
 
-        public static final int LIGHTS = 6;
         public static final int PIVOT_LOWER_LIMIT = 7;
         public static final int SHOOTER_NOTE_DETECTOR = 8;
         public static final int INTAKE_NOTE_DETECTOR = 9;
+
+        public static final int LIGHTS = 9;
     }
 
     public static final class ClimberConstants {
@@ -260,6 +261,11 @@ public final class Constants {
                 .setClosedLoopRampRate(0.0)
                 .setOpenLoopRampRate(0.0);
         }
+    }
+
+    public static final class LightsConstants {
+
+        public static final int LENGTH = 22;
     }
 
     public static final class PivotConstants {
@@ -451,6 +457,7 @@ public final class Constants {
             .setPowerProperties(VOLTAGE, 60.0, 40.0)
             .setMechanicalProperties(6.75, 150.0 / 7.0, 4.0)
             .setDiscretizationLookahead(0.040)
+            .setOdometryPeriod(PERIOD)
             .setOdometryStd(0.003, 0.003, 0.0012)
             .setVisionStd(0.0, 0.0, 0.0)
             .setSysIdConfig(new SysIdRoutine.Config(Volts.of(1.0).per(Seconds.of(0.4)), Volts.of(7.0), Seconds.of(5.5)))
@@ -491,16 +498,15 @@ public final class Constants {
         public static final Constraints ROT_CONSTRAINTS = new Constraints(6.0, 7.0);
 
         public static final double NOTE_VELOCITY = 5.0;
-        public static final double NORM_FUDGE = 0.9;
-        public static final double NORM_FUDGE_MIN = 0.1;
-        public static final double SPIN_COMPENSATION_X = 0.06;
-        public static final double SPIN_COMPENSATION_Y = 0.085;
+        public static final double NORM_FUDGE = 0.0;
+        public static final double NORM_FUDGE_MIN = 0.075;
+        public static final double SPIN_COMPENSATION = Math.toRadians(-2.0);
         public static final double FACING_SPEAKER_EPSILON = Math.toRadians(5.0);
     }
 
     public static final class FieldPositions {
 
-        public static final Translation2d BLUE_SPEAKER = new Translation2d(0.03, 5.914);
+        public static final Translation2d BLUE_SPEAKER = new Translation2d(0.03, 5.5479);
         public static final Translation2d RED_SPEAKER = new Translation2d(BLUE_SPEAKER.getX(), FIELD_WIDTH - BLUE_SPEAKER.getY());
 
         public static final double SPEAKER_HEIGHT = 2.08;

@@ -20,13 +20,7 @@ public class Routines {
      * Deploys and runs the intake. After a note is collected, it is seated by the feeder.
      */
     public static Command intake() {
-        return sequence(
-            waitUntil(pivot::isSafeForIntake),
-            intake.downPosition(),
-            race(feeder.receive(), intake.intake()),
-            feeder.seat(),
-            lights.hasNote()
-        )
+        return sequence(waitUntil(pivot::isSafeForIntake), intake.downPosition(), race(feeder.receive(), intake.intake()), feeder.seat())
             .withName("Routines.intake()");
     }
 
@@ -172,7 +166,10 @@ public class Routines {
      * Calls {@code onDisable()} for all subsystems.
      */
     public static Command onDisable() {
-        return sequence(waitSeconds(6.0), parallel(climber.onDisable(), feeder.onDisable(), intake.onDisable(), pivot.onDisable()))
+        return parallel(
+            sequence(waitSeconds(6.0), parallel(climber.onDisable(), feeder.onDisable(), intake.onDisable(), pivot.onDisable())),
+            lights.onDisable()
+        )
             .withName("Routines.onDisable()");
     }
 }

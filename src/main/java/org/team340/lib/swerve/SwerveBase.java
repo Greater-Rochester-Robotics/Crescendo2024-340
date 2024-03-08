@@ -57,6 +57,7 @@ import org.team340.lib.swerve.hardware.motors.vendors.SwerveSparkFlex;
 import org.team340.lib.swerve.hardware.motors.vendors.SwerveSparkMax;
 import org.team340.lib.swerve.hardware.motors.vendors.SwerveTalonFX;
 import org.team340.lib.swerve.util.SwerveConversions;
+import org.team340.lib.swerve.util.SwerveOdometryThread;
 import org.team340.lib.swerve.util.SwerveRatelimiter;
 import org.team340.lib.swerve.util.SwerveVisualizer;
 import org.team340.lib.util.Math2;
@@ -100,6 +101,7 @@ public abstract class SwerveBase extends GRRSubsystem {
     protected final SwerveVisualizer visualizer;
 
     private final Translation2d[] moduleTranslations;
+    private final SwerveOdometryThread odometryThread;
     private final SwerveRatelimiter ratelimiter;
 
     private final MutableMeasure<Voltage> sysIdAppliedVoltage = mutable(Volts.of(0));
@@ -128,6 +130,7 @@ public abstract class SwerveBase extends GRRSubsystem {
 
         conversions = new SwerveConversions(config);
         kinematics = new SwerveDriveKinematics(moduleTranslations);
+        odometryThread = new SwerveOdometryThread(modules, imu, config);
         ratelimiter = new SwerveRatelimiter(config, kinematics, getModuleStates());
         visualizer = new SwerveVisualizer(this::getPosition, this::getModuleStates, this::getDesiredModuleStates);
 
@@ -198,6 +201,8 @@ public abstract class SwerveBase extends GRRSubsystem {
         builder.addDoubleProperty("odometryX", () -> getPosition().getX(), null);
         builder.addDoubleProperty("odometryY", () -> getPosition().getY(), null);
         builder.addDoubleProperty("odometryRot", () -> getPosition().getRotation().getRadians(), null);
+
+        builder.addIntegerProperty("readErrors", odometryThread::readErrorCount, null);
 
         for (SwerveModule module : modules) {
             GRRDashboard.addSubsystemSendable(
@@ -287,7 +292,7 @@ public abstract class SwerveBase extends GRRSubsystem {
      */
     protected void updateOdometry(Consumer<SwerveDrivePoseEstimator> poseEstimatorConsumer) {
         poseEstimatorConsumer.accept(poseEstimator);
-        poseEstimator.update(imu.getYaw(), getModulePositions());
+        odometryThread.update(poseEstimator);
     }
 
     /**
@@ -619,6 +624,7 @@ public abstract class SwerveBase extends GRRSubsystem {
 
                     encoder =
                         new SwerveSparkEncoder(
+                            turnSparkMax,
                             createSparkMaxAbsoluteEncoder(
                                 moduleConfig.getLabel() + " Absolute Encoder",
                                 turnSparkMax,
@@ -637,6 +643,7 @@ public abstract class SwerveBase extends GRRSubsystem {
 
                     encoder =
                         new SwerveSparkEncoder(
+                            turnSparkFlex,
                             createSparkFlexAbsoluteEncoder(
                                 moduleConfig.getLabel() + " Absolute Encoder",
                                 turnSparkFlex,

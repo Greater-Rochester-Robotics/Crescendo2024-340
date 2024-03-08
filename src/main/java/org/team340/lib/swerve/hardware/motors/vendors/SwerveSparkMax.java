@@ -2,6 +2,7 @@ package org.team340.lib.swerve.hardware.motors.vendors;
 
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkMax;
+import com.revrobotics.REVLibError;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkAbsoluteEncoder;
 import com.revrobotics.SparkPIDController;
@@ -131,5 +132,10 @@ public class SwerveSparkMax implements SwerveMotor {
     @Override
     public void setVoltage(double voltage) {
         sparkMax.setVoltage(voltage);
+    }
+
+    @Override
+    public boolean readError() {
+        return !sparkMax.getLastError().equals(REVLibError.kOk);
     }
 }

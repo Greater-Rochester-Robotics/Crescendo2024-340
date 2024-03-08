@@ -37,5 +37,4 @@ export const TunableAmpXFudgePub = nt.publish<number>(`/GRRDashboard/Subsystems/
 export const TunableAmpYFudge = nt.subscribe<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableAmpYFudge`, 0.0);
 export const TunableAmpYFudgePub = nt.publish<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableAmpYFudge`, `double`, 0.0);
 
-
 nt.connect();

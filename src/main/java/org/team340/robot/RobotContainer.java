@@ -69,6 +69,7 @@ public final class RobotContainer {
         climber.addToDashboard();
         feeder.addToDashboard();
         intake.addToDashboard();
+        lights.addToDashboard();
         pivot.addToDashboard();
         shooter.addToDashboard();
         swerve.addToDashboard();
@@ -95,6 +96,8 @@ public final class RobotContainer {
         pivot.setDefaultCommand(pivot.maintainPosition());
         shooter.setDefaultCommand(shooter.targetDistance(swerve::getSpeakerDistance, 3500.0, swerve::inOpponentWing));
         swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
+
+        new Trigger(feeder::hasNote).whileTrue(lights.hasNote());
 
         Routines.onDisable().schedule();
         RobotModeTriggers.disabled().whileTrue(Routines.onDisable());

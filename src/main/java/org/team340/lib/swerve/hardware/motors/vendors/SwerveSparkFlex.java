@@ -2,6 +2,7 @@ package org.team340.lib.swerve.hardware.motors.vendors;
 
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkFlex;
+import com.revrobotics.REVLibError;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkAbsoluteEncoder;
 import com.revrobotics.SparkPIDController;
@@ -130,5 +131,10 @@ public class SwerveSparkFlex implements SwerveMotor {
     @Override
     public void setVoltage(double voltage) {
         sparkFlex.setVoltage(voltage);
+    }
+
+    @Override
+    public boolean readError() {
+        return !sparkFlex.getLastError().equals(REVLibError.kOk);
     }
 }

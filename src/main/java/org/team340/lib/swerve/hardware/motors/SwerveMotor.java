@@ -47,4 +47,11 @@ public interface SwerveMotor {
      * @param voltage The voltage to apply.
      */
     public abstract void setVoltage(double voltage);
+
+    /**
+     * If the device has encountered an error while reading inputs.
+     */
+    public default boolean readError() {
+        return false;
+    }
 }

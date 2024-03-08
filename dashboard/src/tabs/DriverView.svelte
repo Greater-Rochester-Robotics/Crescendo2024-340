@@ -1,13 +1,11 @@
 <script lang="ts">
     import field24 from "../assets/field24.png";
     import { FIELD_HEIGHT, FIELD_WIDTH, ROBOT_SIZE } from "../constants";
-    import { RobotBlueAlliance, HasNote, FacingSpeaker, PivotAtPosition, AtSpeed, RobotPosition } from '../ntStores';
+    import { RobotBlueAlliance, HasNote, FacingSpeaker, PivotAtPosition, AtSpeed, RobotPosition } from "../ntStores";
 
     // import field22 from '../assets/field22.png';
     // import field23 from '../assets/field23.png';
     const field = field24;
-
-    
 </script>
 
 <main>
@@ -38,7 +36,7 @@
 
         <div class="field">
             <img src="{field}" alt="field" />
-    
+
             <svg
                 viewBox="{0} {0} {FIELD_WIDTH} {FIELD_HEIGHT}"
                 fill="none"
@@ -47,11 +45,25 @@
                 stroke-linecap="round"
                 stroke-linejoin="round"
             >
-
-            <g transform="rotate({($RobotBlueAlliance ? Math.PI - $RobotPosition[2] : -$RobotPosition[2]) * (180 / Math.PI)}, {($RobotBlueAlliance ? $RobotPosition[0] - ROBOT_SIZE / 2 : FIELD_WIDTH - ($RobotPosition[0] + ROBOT_SIZE / 2)) + ROBOT_SIZE / 2}, {$RobotBlueAlliance ? FIELD_HEIGHT - $RobotPosition[1] : $RobotPosition[1]})">
-                <rect x="{$RobotBlueAlliance ? $RobotPosition[0] - ROBOT_SIZE / 2 : FIELD_WIDTH - ($RobotPosition[0] + ROBOT_SIZE / 2)}" y="{($RobotBlueAlliance ? FIELD_HEIGHT - $RobotPosition[1] : $RobotPosition[1]) - ROBOT_SIZE / 2}" width="{ROBOT_SIZE}" height="{ROBOT_SIZE}"></rect>
-                <circle cx="{$RobotBlueAlliance ? $RobotPosition[0] - ROBOT_SIZE / 2 : FIELD_WIDTH - ($RobotPosition[0] + ROBOT_SIZE / 2)}" cy="{$RobotBlueAlliance ? FIELD_HEIGHT - $RobotPosition[1] : $RobotPosition[1]}" r="0.1"></circle>
-            </g>
+                <g
+                    transform="rotate({($RobotBlueAlliance ? Math.PI - $RobotPosition[2] : -$RobotPosition[2]) *
+                        (180 / Math.PI)}, {($RobotBlueAlliance
+                        ? $RobotPosition[0] - ROBOT_SIZE / 2
+                        : FIELD_WIDTH - ($RobotPosition[0] + ROBOT_SIZE / 2)) +
+                        ROBOT_SIZE / 2}, {$RobotBlueAlliance ? FIELD_HEIGHT - $RobotPosition[1] : $RobotPosition[1]})"
+                >
+                    <rect
+                        x="{$RobotBlueAlliance ? $RobotPosition[0] - ROBOT_SIZE / 2 : FIELD_WIDTH - ($RobotPosition[0] + ROBOT_SIZE / 2)}"
+                        y="{($RobotBlueAlliance ? FIELD_HEIGHT - $RobotPosition[1] : $RobotPosition[1]) - ROBOT_SIZE / 2}"
+                        width="{ROBOT_SIZE}"
+                        height="{ROBOT_SIZE}"
+                    ></rect>
+                    <circle
+                        cx="{$RobotBlueAlliance ? $RobotPosition[0] - ROBOT_SIZE / 2 : FIELD_WIDTH - ($RobotPosition[0] + ROBOT_SIZE / 2)}"
+                        cy="{$RobotBlueAlliance ? FIELD_HEIGHT - $RobotPosition[1] : $RobotPosition[1]}"
+                        r="0.1"
+                    ></circle>
+                </g>
             </svg>
         </div>
     </div>
@@ -64,7 +76,7 @@
         height: 100%;
         flex-direction: column;
         justify-content: center;
-        align-items: center; 
+        align-items: center;
         gap: 3rem;
     }
 
@@ -80,7 +92,7 @@
         flex-basis: 15%;
         flex-direction: column;
         justify-content: center;
-        align-items: center; 
+        align-items: center;
         gap: 1rem;
     }
 

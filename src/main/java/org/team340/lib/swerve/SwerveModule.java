@@ -186,4 +186,16 @@ public class SwerveModule {
         lastMoveSpeed = RobotBase.isSimulation() ? simVelocity : getVelocity();
         controlTimer.restart();
     }
+
+    /**
+     * Returns an integer representing the number of devices with a read error.
+     * Minimum of {@code 0}, maximum of {@code 3} (Move Motor, Turn Motor, Encoder).
+     */
+    public int readErrorCount() {
+        int errors = 0;
+        if (moveMotor.readError()) errors++;
+        if (turnMotor.readError()) errors++;
+        if (encoder.readError()) errors++;
+        return errors;
+    }
 }

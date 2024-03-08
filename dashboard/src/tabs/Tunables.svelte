@@ -1,58 +1,68 @@
 <script lang="ts">
-    import { TunableNoteVelocity, TunableNoteVelocityPub, TunableNormFudge, TunableNormFudgePub, TunableSpeakerXFudge, TunableSpeakerXFudgePub, TunableSpeakerYFudge, TunableSpeakerYFudgePub, TunableAmpXFudge, TunableAmpXFudgePub, TunableAmpYFudge, TunableAmpYFudgePub } from '../ntStores';
+    import {
+        TunableNoteVelocity,
+        TunableNoteVelocityPub,
+        TunableNormFudge,
+        TunableNormFudgePub,
+        TunableSpeakerXFudge,
+        TunableSpeakerXFudgePub,
+        TunableSpeakerYFudge,
+        TunableSpeakerYFudgePub,
+        TunableAmpXFudge,
+        TunableAmpXFudgePub,
+        TunableAmpYFudge,
+        TunableAmpYFudgePub,
+    } from "../ntStores";
 
     const onNoteVelocityBlur = (e: FocusEvent) => {
         $TunableNoteVelocityPub = Number(decodeURIComponent((e.target as any)?.innerText).trim());
     };
 
     const onNormFudgeBlur = (e: FocusEvent) => {
-        $TunableNormFudgePub = Number(decodeURIComponent((e.target as any)?.innerText).trim());;
+        $TunableNormFudgePub = Number(decodeURIComponent((e.target as any)?.innerText).trim());
     };
 
     const onSpeakerXBlur = (e: FocusEvent) => {
-        $TunableSpeakerXFudgePub = Number(decodeURIComponent((e.target as any)?.innerText).trim());;
+        $TunableSpeakerXFudgePub = Number(decodeURIComponent((e.target as any)?.innerText).trim());
     };
 
     const onSpeakerYBlur = (e: FocusEvent) => {
-        $TunableSpeakerYFudgePub = Number(decodeURIComponent((e.target as any)?.innerText).trim());;
+        $TunableSpeakerYFudgePub = Number(decodeURIComponent((e.target as any)?.innerText).trim());
     };
 
     const onAmpXBlur = (e: FocusEvent) => {
-        $TunableAmpXFudgePub = Number(decodeURIComponent((e.target as any)?.innerText).trim());;
+        $TunableAmpXFudgePub = Number(decodeURIComponent((e.target as any)?.innerText).trim());
     };
 
     const onAmpYBlur = (e: FocusEvent) => {
-        $TunableAmpYFudgePub = Number(decodeURIComponent((e.target as any)?.innerText).trim());;
+        $TunableAmpYFudgePub = Number(decodeURIComponent((e.target as any)?.innerText).trim());
     };
 </script>
 
 <main>
     <div class="tunable-container">
-        <br>
+        <br />
         <p>Note Velocity:</p>
         <code contenteditable on:blur="{onNoteVelocityBlur}">{$TunableNoteVelocity}</code>
-        <br><br>
+        <br /><br />
         <p>Norm Fudge:</p>
         <code contenteditable on:blur="{onNormFudgeBlur}">{$TunableNormFudge}</code>
-        <br><br>
+        <br /><br />
         <p>Speaker X:</p>
         <code contenteditable on:blur="{onSpeakerXBlur}">{$TunableSpeakerXFudge}</code>
-        <br><br>
+        <br /><br />
         <p>Speaker Y:</p>
         <code contenteditable on:blur="{onSpeakerYBlur}">{$TunableSpeakerYFudge}</code>
-        <br><br>
+        <br /><br />
         <p>Amp X:</p>
         <code contenteditable on:blur="{onAmpXBlur}">{$TunableAmpXFudge}</code>
-        <br><br>
+        <br /><br />
         <p>Amp Y:</p>
         <code contenteditable on:blur="{onAmpYBlur}">{$TunableAmpYFudge}</code>
     </div>
-    
-    
 </main>
 
 <style>
-
     .tunable-container {
         font-size: 1.2rem;
     }
@@ -75,5 +85,4 @@
     .tunable-container code:focus {
         outline: 2px solid var(--accent-color);
     }
-    
 </style>

@@ -21,7 +21,7 @@ public final class RevConfigRegistry {
 
     public static final double EPSILON = 1e-4;
 
-    private static final double BURN_FLASH_START_SLEEP = 1000.0;
+    private static final double BURN_FLASH_START_SLEEP = 2500.0;
     private static final double BURN_FLASH_INTERVAL = 7.5;
     private static final double PERIODIC_INTERVAL = 500.0;
 

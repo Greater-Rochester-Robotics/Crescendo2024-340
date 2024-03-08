@@ -6,7 +6,7 @@
 
     import AutoSelection from "./tabs/AutoSelection.svelte";
     import DriverView from "./tabs/DriverView.svelte";
-    import Tunables from './tabs/Tunables.svelte';
+    import Tunables from "./tabs/Tunables.svelte";
 
     import { NTConnected } from "./ntStores";
     import { NTSvelteClientState } from "./lib/NTSvelte";
@@ -18,7 +18,7 @@
     const tabs = {
         "Driver View": DriverView,
         "Auto Selection": AutoSelection,
-        "Tunables": Tunables
+        Tunables: Tunables,
     };
 
     // Helpers for tab selection.
