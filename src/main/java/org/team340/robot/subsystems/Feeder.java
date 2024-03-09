@@ -121,6 +121,15 @@ public class Feeder extends GRRSubsystem {
     /**
      * Spits the note out of the feeder towards the intake.
      */
+    public Command poop() {
+        return commandBuilder("feeder.poop()")
+            .onInitialize(() -> feedMotor.set(FeederConstants.POOP_SPEED))
+            .onEnd(() -> feedMotor.stopMotor());
+    }
+
+    /**
+     * Spits the note out of the feeder towards the intake.
+     */
     public Command barfForward() {
         return commandBuilder("feeder.barfForward()")
             .onInitialize(() -> feedMotor.set(FeederConstants.BARF_FORWARD_SPEED))

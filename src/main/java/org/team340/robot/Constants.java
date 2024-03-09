@@ -134,8 +134,8 @@ public final class Constants {
                 .setSmartCurrentLimit(40)
                 .setIdleMode(IdleMode.kBrake)
                 .setInverted(true)
-                .setClosedLoopRampRate(1.5)
-                .setOpenLoopRampRate(1.5);
+                .setClosedLoopRampRate(0.2)
+                .setOpenLoopRampRate(0.2);
 
             public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
                 .setPositionConversionFactor(REL_ENC_FACTOR)
@@ -154,6 +154,7 @@ public final class Constants {
         public static final double REVERSE_SEAT_SPEED = -0.04;
         public static final double SHOOT_SPEED = 1.0;
         public static final double BARF_FORWARD_SPEED = -0.5;
+        public static final double POOP_SPEED = -1.0;
         public static final double BARF_BACKWARD_SPEED = 0.5;
 
         // Positions
@@ -199,11 +200,13 @@ public final class Constants {
         public static final double AMP_UPPER_SPEED = -0.6;
         public static final double AMP_LOWER_SPEED = -0.075;
         public static final double BARF_SPEED = -0.5;
+        public static final double POOP_SPEED = -1.0;
         public static final double OVERRIDE_INTAKE_SPEED = 0.25;
 
         // Positions
         public static final double DOWN_POSITION = Math.toRadians(0.0);
         public static final double SAFE_POSITION = Math.toRadians(30.0);
+        public static final double POOP_POSITION = Math.toRadians(25.0);
         public static final double RETRACT_POSITION = Math.toRadians(65.0);
         public static final double UPRIGHT_POSITION = Math.toRadians(90.0);
         public static final double BARF_POSITION = Math.toRadians(10.0);

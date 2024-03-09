@@ -21,39 +21,48 @@ public class Autos {
         return parallel(
             sequence(
                 pivot.goTo(PivotConstants.BARF_FORWARD_POSITION),
-                pivot.maintainPosition().withTimeout(2.0),
+                pivot.maintainPosition().withTimeout(1.7),
                 pivot.targetDistance(swerve::getSpeakerDistance)
             ),
             sequence(
                 deadline(
                     swerve.followTrajectory(traj.get(0), true),
                     sequence(
-                        sequence(
-                            deadline(waitSeconds(1.25), intake.safePosition()),
-                            parallel(feeder.barfForward(), intake.barf()).withTimeout(0.25)
+                        deadline(
+                            waitSeconds(1.7),
+                            sequence(
+                                intake.downPosition(),
+                                deadline(
+                                    sequence(waitUntil(() -> intake.hasNote() && !feeder.hasNote()), waitSeconds(0.1)),
+                                    feeder.barfForward(),
+                                    intake.ampHandoff()
+                                ),
+                                intake.poopPosition()
+                            )
                         ),
+                        intake.poop().withTimeout(0.5),
                         Routines.intake()
                     )
                 ),
                 Routines.intake().withTimeout(0.3),
                 deadline(
-                    swerve.followTrajectory(traj.get(1), 0.9),
-                    sequence(sequence(waitSeconds(1.7), feeder.shoot().withTimeout(0.6)), Routines.intake())
+                    swerve.followTrajectory(traj.get(1), 0.95),
+                    sequence(sequence(waitSeconds(1.9), feeder.shoot().withTimeout(0.6)), Routines.intake())
                 ),
                 Routines.intake().withTimeout(0.3),
                 deadline(
-                    swerve.followTrajectory(traj.get(2), 1.65),
-                    sequence(sequence(waitSeconds(2.55), feeder.shoot().withTimeout(0.6)), Routines.intake())
+                    swerve.followTrajectory(traj.get(2), 1.75),
+                    sequence(sequence(waitSeconds(2.75), feeder.shoot().withTimeout(0.6)), Routines.intake())
                 ),
                 Routines.intake().withTimeout(0.3),
                 deadline(
-                    swerve.followTrajectory(traj.get(3), 0.1),
-                    sequence(sequence(waitSeconds(1.15), feeder.shoot().withTimeout(0.6)), Routines.intake())
+                    swerve.followTrajectory(traj.get(3), 0.0),
+                    sequence(sequence(waitSeconds(0.8), feeder.shoot().withTimeout(0.6)), Routines.intake())
                 ),
                 Routines.intake().withTimeout(0.3),
                 deadline(
-                    swerve.followTrajectory(traj.get(4), 0.05),
-                    sequence(sequence(waitSeconds(0.15), feeder.shoot().withTimeout(0.6)), Routines.intake())
+                    swerve.followTrajectory(traj.get(4), 0.0),
+                    sequence(sequence(waitSeconds(0.35), feeder.shoot().withTimeout(0.6)), Routines.intake())
                 ),
                 Routines.intake().withTimeout(0.3),
                 waitSeconds(0.25),

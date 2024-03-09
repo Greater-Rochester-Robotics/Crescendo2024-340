@@ -180,6 +180,13 @@ public class Intake extends GRRSubsystem {
     }
 
     /**
+     * Moves to the barf position. Runs until the arm is at the position.
+     */
+    public Command poopPosition() {
+        return useState(IntakeConstants.POOP_POSITION, 0, 0, true).withName("intake.poopPosition()");
+    }
+
+    /**
      * Moves to the amp position. Runs until the arm is at the position.
      */
     public Command ampPosition() {
@@ -217,6 +224,14 @@ public class Intake extends GRRSubsystem {
     public Command barf() {
         return useState(IntakeConstants.BARF_POSITION, IntakeConstants.BARF_SPEED, IntakeConstants.BARF_SPEED, false)
             .withName("intake.barf()");
+    }
+
+    /**
+     * Spits the note out of the intake. Does not end.
+     */
+    public Command poop() {
+        return useState(IntakeConstants.POOP_POSITION, IntakeConstants.POOP_SPEED, IntakeConstants.POOP_SPEED, false)
+            .withName("intake.poop()");
     }
 
     /**
