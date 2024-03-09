@@ -471,7 +471,7 @@ public final class Constants {
             .setRatelimits(8.5, 29.75)
             .setTrajectoryConstraints(3.8, 2.4)
             .setPowerProperties(VOLTAGE, 60.0, 40.0)
-            .setMechanicalProperties(6.75, 150.0 / 7.0, 4.0)
+            .setMechanicalProperties(6.75, 150.0 / 7.0, 3.81)
             .setDiscretizationLookahead(0.040)
             .setOdometryPeriod(PERIOD)
             .setOdometryStd(0.003, 0.003, 0.0012)
@@ -505,7 +505,7 @@ public final class Constants {
         public static final double VISION_STD_XY_SCALE = 0.006;
         public static final double VISION_STD_ROT_SCALE = 0.015;
 
-        public static final PIDConfig TRAJ_XY_PID = new PIDConfig(8.5, 0.0, 0.0, 0.0);
+        public static final PIDConfig TRAJ_XY_PID = new PIDConfig(10.0, 0.0, 0.1, 0.0);
         public static final PIDConfig TRAJ_ROT_PID = new PIDConfig(2.1, 0.0, 0.1, 0.0);
         public static final Constraints TRAJ_ROT_CONSTRAINTS = new Constraints(6.5, 7.0);
 
