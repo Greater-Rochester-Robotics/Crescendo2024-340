@@ -62,49 +62,6 @@ public class Autos {
         );
     }
 
-    public static Command fourPieceAmp(List<ChoreoTrajectory> traj) {
-        return parallel(
-            pivot.targetDistance(swerve::getSpeakerDistance),
-            sequence(
-                deadline(swerve.followTrajectory(traj.get(0), true), intake.downPosition()),
-                waitUntil(shooter::atSpeed).withTimeout(4.0),
-                feeder.shoot().withTimeout(0.6),
-                deadline(swerve.followTrajectory(traj.get(1)), Routines.intake()),
-                Routines.intake().withTimeout(0.3),
-                deadline(
-                    swerve.followTrajectory(traj.get(2), 1.2),
-                    sequence(sequence(waitSeconds(1.8), feeder.shoot().withTimeout(0.6)), Routines.intake())
-                ),
-                Routines.intake().withTimeout(0.3),
-                deadline(
-                    swerve.followTrajectory(traj.get(3), 1.65),
-                    sequence(sequence(waitSeconds(2.55), feeder.shoot().withTimeout(0.6)), Routines.intake())
-                ),
-                Routines.intake().withTimeout(0.3),
-                deadline(sequence(waitSeconds(0.25), feeder.shoot()), swerve.driveSpeaker())
-            )
-        );
-    }
-
-    public static Command fourPieceSource(List<ChoreoTrajectory> traj) {
-        return parallel(
-            pivot.targetDistance(swerve::getSpeakerDistance),
-            sequence(
-                deadline(swerve.followTrajectory(traj.get(0), -1.0, true), intake.downPosition()),
-                deadline(sequence(waitSeconds(1.1), feeder.shoot().withTimeout(0.75)), swerve.driveSpeaker()),
-                deadline(swerve.followTrajectory(traj.get(1)), Routines.intake()),
-                deadline(swerve.followTrajectory(traj.get(2)), Routines.intake().withTimeout(0.3)),
-                deadline(sequence(waitSeconds(0.25), feeder.shoot().withTimeout(0.75)), swerve.driveSpeaker()),
-                deadline(swerve.followTrajectory(traj.get(3)), Routines.intake()),
-                deadline(swerve.followTrajectory(traj.get(4)), Routines.intake().withTimeout(0.3)),
-                deadline(sequence(waitSeconds(0.25), feeder.shoot().withTimeout(0.75)), swerve.driveSpeaker()),
-                deadline(swerve.followTrajectory(traj.get(5)), Routines.intake()),
-                deadline(swerve.followTrajectory(traj.get(6)), Routines.intake().withTimeout(0.3)),
-                deadline(sequence(waitSeconds(0.25), feeder.shoot().withTimeout(0.6)), swerve.driveSpeaker())
-            )
-        );
-    }
-
     public static Command fourPieceClose(List<ChoreoTrajectory> traj) {
         return parallel(
             pivot.targetDistance(swerve::getSpeakerDistance),
