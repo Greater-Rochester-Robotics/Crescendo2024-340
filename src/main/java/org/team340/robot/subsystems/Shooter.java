@@ -38,7 +38,8 @@ public class Shooter extends GRRSubsystem {
     private final RelativeEncoder rightEncoder;
     private final SparkPIDController leftShootPID;
     private final SparkPIDController rightShootPID;
-    private final SimpleMotorFeedforward feedforward;
+    private final SimpleMotorFeedforward leftFeedForward;
+    private final SimpleMotorFeedforward rightFeedForward;
 
     private final SysIdRoutine sysIdRoutine;
     private final MutableMeasure<Voltage> sysIdAppliedVoltage = mutable(Volts.of(0));
@@ -58,12 +59,8 @@ public class Shooter extends GRRSubsystem {
         rightEncoder = rightShootMotor.getEncoder();
         leftShootPID = leftShootMotor.getPIDController();
         rightShootPID = rightShootMotor.getPIDController();
-        feedforward =
-            new SimpleMotorFeedforward(
-                ShooterConstants.Configs.FEED_FORWARD.s(),
-                ShooterConstants.Configs.FEED_FORWARD.v(),
-                ShooterConstants.Configs.FEED_FORWARD.a()
-            );
+        leftFeedForward = ShooterConstants.Configs.FEED_FORWARD_LEFT.simpleMotorFeedForward();
+        rightFeedForward = ShooterConstants.Configs.FEED_FORWARD_RIGHT.simpleMotorFeedForward();
 
         sysIdRoutine =
             new SysIdRoutine(
@@ -144,7 +141,7 @@ public class Shooter extends GRRSubsystem {
         } else {
             double leftDelta = leftSpeed - leftEncoder.getVelocity();
             if (Math.abs(leftDelta) < ShooterConstants.PID_ACTIVE_RANGE) {
-                leftShootPID.setReference(leftSpeed, ControlType.kVelocity, 0, feedforward.calculate(leftSpeed));
+                leftShootPID.setReference(leftSpeed, ControlType.kVelocity, 0, leftFeedForward.calculate(leftSpeed));
                 leftPIDActive = true;
             } else {
                 leftShootMotor.set(ShooterConstants.RAMP_SPEED * Math.signum(leftDelta));
@@ -153,7 +150,7 @@ public class Shooter extends GRRSubsystem {
 
             double rightDelta = rightSpeed - rightEncoder.getVelocity();
             if (Math.abs(rightDelta) < ShooterConstants.PID_ACTIVE_RANGE) {
-                rightShootPID.setReference(rightSpeed, ControlType.kVelocity, 0, feedforward.calculate(rightSpeed));
+                rightShootPID.setReference(rightSpeed, ControlType.kVelocity, 0, rightFeedForward.calculate(rightSpeed));
                 rightPIDActive = true;
             } else {
                 rightShootMotor.set(ShooterConstants.RAMP_SPEED * Math.signum(rightDelta));
@@ -226,13 +223,15 @@ public class Shooter extends GRRSubsystem {
     }
 
     /**
-     * Sets the shooter to rock skip.
+     * Sets the shooter to feed.
+     * @param pastMidline A supplier that returns {@code true} when the robot is past the midline.
      */
-    public Command rockSkip() {
-        return commandBuilder("shooter.rockSkip()")
-            .onInitialize(() -> {
-                leftShootMotor.set(ShooterConstants.ROCK_SKIP_SPEED);
-                rightShootMotor.set(ShooterConstants.ROCK_SKIP_SPEED);
+    public Command feed(Supplier<Boolean> pastMidline) {
+        return commandBuilder("shooter.feed()")
+            .onExecute(() -> {
+                double speed = pastMidline.get() ? ShooterConstants.MARY_POPPINS_SPEED : ShooterConstants.ROCK_SKIP_SPEED;
+                leftShootMotor.set(speed);
+                rightShootMotor.set(speed);
             })
             .onEnd(() -> {
                 leftShootMotor.stopMotor();

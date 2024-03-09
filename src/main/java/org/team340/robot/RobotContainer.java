@@ -127,22 +127,22 @@ public final class RobotContainer {
         // Right Bumper => Prep Speaker (Hold)
         driver.rightBumper().whileTrue(Routines.prepSpeaker(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
-        // Left Bumper => Prep Climb (Hold)
-        driver.leftBumper().whileTrue(Routines.prepClimb(RobotContainer::getDriveX, RobotContainer::getDriveY));
+        // Left Bumper => Prep Feed (Hold)
+        driver.leftBumper().whileTrue(Routines.prepFeed(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
         // POV Up => Barf Backwards (Hold)
         driver.povUp().whileTrue(Routines.barfForward());
 
-        // POV Down => Rock Skip (Hold)
-        driver.povDown().whileTrue(Routines.rockSkip(RobotContainer::getDriveX, RobotContainer::getDriveY));
+        // POV Down => Pivot Down (Tap)
+        driver.povDown().onTrue(pivot.goTo(PivotConstants.DOWN_POSITION));
 
         // POV Left => Zero swerve
         driver.povLeft().onTrue(swerve.zeroIMU(Math2.ROTATION2D_0));
 
-        // POV Right => Zero pivot (Hold)
-        driver.povRight().onTrue(pivot.goTo(PivotConstants.DOWN_POSITION));
+        // POV Right => Prep Climb (Hold)
+        driver.povRight().whileTrue(Routines.prepClimb(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
-        // Start => Toggle Shooter
+        // St\art => Toggle Shooter
         driver.start().toggleOnTrue(shooter.setSpeed(0.0));
 
         // Back => Dump Odometry
@@ -200,17 +200,20 @@ public final class RobotContainer {
      * added to {@link GRRDashboard}.
      */
     private static void configAutos() {
-        var fourPieceLeft = Choreo.getTrajectoryGroup("FourPieceLeft");
-        GRRDashboard.addAutoCommand("Four Piece Left", fourPieceLeft, Autos.fourPieceLeft(fourPieceLeft));
+        var fivePieceAmp = Choreo.getTrajectoryGroup("FivePieceAmp");
+        GRRDashboard.addAutoCommand("Five Piece Amp Side", fivePieceAmp, Autos.fivePieceAmp(fivePieceAmp));
 
-        var fourPieceRight = Choreo.getTrajectoryGroup("FourPieceRight");
-        GRRDashboard.addAutoCommand("Four Piece Right", fourPieceRight, Autos.fourPieceRight(fourPieceRight));
+        var fourPieceAmp = Choreo.getTrajectoryGroup("FourPieceAmp");
+        GRRDashboard.addAutoCommand("Four Piece Amp Side", fourPieceAmp, Autos.fourPieceAmp(fourPieceAmp));
 
-        var fourPieceRight2 = Choreo.getTrajectoryGroup("FourPieceRight2");
-        GRRDashboard.addAutoCommand("Four Piece Right 2.0", fourPieceRight2, Autos.fourPieceRight(fourPieceRight2));
+        var fourPieceSource = Choreo.getTrajectoryGroup("FourPieceSource");
+        GRRDashboard.addAutoCommand("Four Piece Source side", fourPieceSource, Autos.fourPieceSource(fourPieceSource));
 
-        var fourPieceFront = Choreo.getTrajectoryGroup("FourPieceFront");
-        GRRDashboard.addAutoCommand("Four Piece Front", fourPieceFront, Autos.fourPieceFront(fourPieceFront));
+        var fourPieceSource2 = Choreo.getTrajectoryGroup("FourPieceSource2");
+        GRRDashboard.addAutoCommand("Four Piece Source Side 2.0", fourPieceSource2, Autos.fourPieceSource(fourPieceSource2));
+
+        var fourPieceClose = Choreo.getTrajectoryGroup("FourPieceClose");
+        GRRDashboard.addAutoCommand("Four Piece Close", fourPieceClose, Autos.fourPieceClose(fourPieceClose));
 
         var fourPieceFar = Choreo.getTrajectoryGroup("FourPieceFar");
         GRRDashboard.addAutoCommand("Four Piece Far", fourPieceFar, Autos.fourPieceFar(fourPieceFar));

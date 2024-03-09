@@ -2,6 +2,7 @@ package org.team340.lib.swerve.util;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.util.sendable.Sendable;
 import edu.wpi.first.util.sendable.SendableBuilder;
@@ -13,14 +14,17 @@ import java.util.function.Supplier;
  */
 public class SwerveVisualizer implements Sendable {
 
+    private static final double[] EMPTY_DOUBLE = new double[0];
+
     private final Supplier<Pose2d> robot;
     private final Supplier<SwerveModuleState[]> moduleStates;
     private final Supplier<SwerveModuleState[]> desiredModuleStates;
 
-    private double[] trajectory = new double[0];
-    private double[] trajectoryTarget = new double[0];
-    private double[] visionMeasurements = new double[0];
-    private double[] visionTargets = new double[0];
+    private Supplier<double[]> target = () -> EMPTY_DOUBLE;
+    private double[] trajectory = EMPTY_DOUBLE;
+    private double[] trajectoryTarget = EMPTY_DOUBLE;
+    private double[] visionMeasurements = EMPTY_DOUBLE;
+    private double[] visionTargets = EMPTY_DOUBLE;
 
     /**
      * Create the visualizer.
@@ -43,6 +47,7 @@ public class SwerveVisualizer implements Sendable {
         builder.addDoubleArrayProperty("robot", () -> pose2d(robot.get()), null);
         builder.addDoubleArrayProperty("moduleStates", () -> moduleStates(moduleStates.get()), null);
         builder.addDoubleArrayProperty("desiredModuleStates", () -> moduleStates(desiredModuleStates.get()), null);
+        builder.addDoubleArrayProperty("target", () -> target.get(), null);
         builder.addDoubleArrayProperty("trajectory", () -> trajectory, null);
         builder.addDoubleArrayProperty("trajectoryTarget", () -> trajectoryTarget, null);
         builder.addDoubleArrayProperty("visionMeasurements", () -> visionMeasurements, null);
@@ -63,8 +68,8 @@ public class SwerveVisualizer implements Sendable {
                 this.trajectory = serialized;
                 trajectoryTarget = pose2d(target);
             } else if (this.trajectory == serialized) {
-                this.trajectory = new double[0];
-                trajectoryTarget = new double[0];
+                this.trajectory = EMPTY_DOUBLE;
+                trajectoryTarget = EMPTY_DOUBLE;
             }
         };
         return consumer;
@@ -78,6 +83,46 @@ public class SwerveVisualizer implements Sendable {
     public void updateVision(Pose2d[] measurements, Pose3d[] targets) {
         visionMeasurements = pose2d(measurements);
         visionTargets = pose3d(targets);
+    }
+
+    /**
+     * Disables the target visualization.
+     */
+    public void removeTarget() {
+        target = () -> EMPTY_DOUBLE;
+    }
+
+    /**
+     * Updates the target visualization.
+     * @param pose A target {@link Pose2d}.
+     */
+    public void updateTarget(Pose2d pose) {
+        double[] array = pose2d(pose);
+        target = () -> array;
+    }
+
+    /**
+     * Updates the target visualization.
+     * @param rotation A target {@link Rotation2d} for the robot to face.
+     */
+    public void updateTarget(Rotation2d rotation) {
+        target =
+            () -> {
+                Pose2d pose = robot.get();
+                return new double[] { pose.getX(), pose.getY(), rotation.getRadians() };
+            };
+    }
+
+    /**
+     * Updates the target visualization.
+     * @param rotation A target rotation in radians (CCW positive) for the robot to face.
+     */
+    public void updateTarget(double rotation) {
+        target =
+            () -> {
+                Pose2d pose = robot.get();
+                return new double[] { pose.getX(), pose.getY(), rotation };
+            };
     }
 
     /**

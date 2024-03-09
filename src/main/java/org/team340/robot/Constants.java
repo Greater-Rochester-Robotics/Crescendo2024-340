@@ -51,7 +51,7 @@ public final class Constants {
     public static final class ControllerConstants {
 
         public static final double DRIVE_EXP = 1.0;
-        public static final double DRIVE_MULTIPLIER = 0.8;
+        public static final double DRIVE_MULTIPLIER = 0.9;
         public static final double DRIVE_MULTIPLIER_MODIFIED = 0.975;
 
         public static final double DRIVE_ROT_EXP = 2.0;
@@ -281,13 +281,14 @@ public final class Constants {
         public static final double BARF_FORWARD_POSITION = Math.toRadians(0.0);
         public static final double DOWN_POSITION = Math.toRadians(2.0);
         public static final double ROCK_SKIP_POSITION = Math.toRadians(0.25);
+        public static final double MARY_POPPINS_POSITION = Math.toRadians(45.0);
         public static final double AMP_HANDOFF_POSITION = Math.toRadians(0.0);
         public static final double FIX_DEADZONE_POSITION = Math.toRadians(57.5);
         public static final double INTAKE_SAFE_POSITION = Math.toRadians(60.0);
 
         // Misc
         public static final double CLOSED_LOOP_ERR = Math.toRadians(0.015);
-        public static final double AT_LIMIT_SPEED_ALLOWANCE = -0.025;
+        public static final double AT_LIMIT_SPEED_ALLOWANCE = -0.075;
 
         // Hardware Configs
         public static final class Configs {
@@ -368,7 +369,8 @@ public final class Constants {
         public static final double INTAKE_HUMAN_SPEED = -0.175;
         public static final double FORWARD_BARF_SPEED = -0.5;
         public static final double BACKWARD_BARF_SPEED = 0.5;
-        public static final double ROCK_SKIP_SPEED = 0.75;
+        public static final double ROCK_SKIP_SPEED = 0.6;
+        public static final double MARY_POPPINS_SPEED = 0.24;
 
         // Misc
         public static final double CLOSED_LOOP_ERR = 40.0;
@@ -393,13 +395,24 @@ public final class Constants {
             public static final SparkFlexConfig LEFT_MOTOR = MOTOR_BASE.clone().setInverted(true);
             public static final SparkFlexConfig RIGHT_MOTOR = MOTOR_BASE.clone().setInverted(false);
 
-            public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig().setPID(0.001, 0.0, 0.0);
+            public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
+                .setPID(0.00075, 0.0001, 0.0003)
+                .setIZone(10.0);
 
             public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
                 .setPositionConversionFactor(REL_ENC_CONVERSION)
                 .setVelocityConversionFactor(REL_ENC_CONVERSION);
 
-            public static final FeedForwardConfig FEED_FORWARD = new FeedForwardConfig(0.11331 / 60.0, 0.060404 / 60.0, 0.064897 / 60.0);
+            public static final FeedForwardConfig FEED_FORWARD_LEFT = new FeedForwardConfig(
+                0.11331 / 60.0,
+                0.065448 / 60.0,
+                0.076179 / 60.0
+            );
+            public static final FeedForwardConfig FEED_FORWARD_RIGHT = new FeedForwardConfig(
+                0.11331 / 60.0,
+                0.064905 / 60.0,
+                0.071392 / 60.0
+            );
             public static final SysIdRoutine.Config SYSID = new SysIdRoutine.Config();
         }
 
@@ -452,7 +465,7 @@ public final class Constants {
             .setRampRate(0.03, 0.03)
             .setMotorTypes(SwerveMotor.Type.SPARK_FLEX_BRUSHLESS, SwerveMotor.Type.SPARK_FLEX_BRUSHLESS)
             .setMaxSpeeds(4.95, 11.8)
-            .setRatelimits(8.1, 29.75)
+            .setRatelimits(8.5, 29.75)
             .setTrajectoryConstraints(3.8, 2.4)
             .setPowerProperties(VOLTAGE, 60.0, 40.0)
             .setMechanicalProperties(6.75, 150.0 / 7.0, 4.0)
@@ -494,8 +507,8 @@ public final class Constants {
         public static final Constraints TRAJ_ROT_CONSTRAINTS = new Constraints(6.5, 7.0);
 
         public static final PIDConfig XY_PID = new PIDConfig(3.5, 1.4, 0.2, 0.5);
-        public static final PIDConfig ROT_PID = new PIDConfig(5.5, 0.0, 0.2, 0.0);
-        public static final Constraints ROT_CONSTRAINTS = new Constraints(6.0, 7.0);
+        public static final PIDConfig ROT_PID = new PIDConfig(4.9, 0.5, 0.2, 0.2);
+        public static final Constraints ROT_CONSTRAINTS = new Constraints(8.0, 37.5);
 
         public static final double NOTE_VELOCITY = 5.0;
         public static final double NORM_FUDGE = 0.0;
@@ -530,10 +543,12 @@ public final class Constants {
 
         public static final Translation2d STAGE = new Translation2d(4.981067, 4.105783);
 
-        public static final Translation2d ROCK_SKIP_BLUE = new Translation2d(0.0, 7.4);
-        public static final Translation2d ROCK_SKIP_RED = new Translation2d(ROCK_SKIP_BLUE.getX(), FIELD_WIDTH - ROCK_SKIP_BLUE.getY());
+        public static final Translation2d FEED_BLUE = new Translation2d(0.0, 7.4);
+        public static final Translation2d FEED_RED = new Translation2d(FEED_BLUE.getX(), FIELD_WIDTH - FEED_BLUE.getY());
 
         public static final double OPPONENT_WING_LINE = 10.66;
+        public static final double MIDLINE = FIELD_LENGTH / 2.0;
+
         public static final double FENDER_SHOT_DISTANCE = 1.4;
     }
 }

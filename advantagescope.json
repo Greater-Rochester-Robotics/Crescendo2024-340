@@ -227,6 +227,12 @@
             "sourceType": 5
           },
           {
+            "type": "Yellow Ghost",
+            "key": "NT:/GRRDashboard/Subsystems/Swerve/Visualizations/target",
+            "sourceTypeIndex": 0,
+            "sourceType": 5
+          },
+          {
             "type": "Green Ghost",
             "key": "NT:/GRRDashboard/Subsystems/Swerve/Visualizations/visionMeasurements",
             "sourceTypeIndex": 0,
@@ -258,14 +264,20 @@
             "sourceType": 5
           },
           {
+            "type": "Trajectory",
+            "key": "NT:/GRRDashboard/Subsystems/Swerve/Visualizations/trajectory",
+            "sourceTypeIndex": 0,
+            "sourceType": 5
+          },
+          {
             "type": "Ghost",
             "key": "NT:/GRRDashboard/Subsystems/Swerve/Visualizations/trajectoryTarget",
             "sourceTypeIndex": 0,
             "sourceType": 5
           },
           {
-            "type": "Trajectory",
-            "key": "NT:/GRRDashboard/Subsystems/Swerve/Visualizations/trajectory",
+            "type": "Ghost",
+            "key": "NT:/GRRDashboard/Subsystems/Swerve/Visualizations/target",
             "sourceTypeIndex": 0,
             "sourceType": 5
           }

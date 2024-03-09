@@ -190,6 +190,13 @@ public class Swerve extends SwerveBase {
     }
 
     /**
+     * Returns {@code true} if the robot is past the midline.
+     */
+    public boolean pastMidline() {
+        return getPosition().getX() > FieldPositions.MIDLINE;
+    }
+
+    /**
      * Returns the distance from the speaker in meters, adjusted for the robot's movement.
      */
     public double getSpeakerDistance() {
@@ -312,7 +319,12 @@ public class Swerve extends SwerveBase {
     public Command driveSpeaker(Supplier<Double> x, Supplier<Double> y) {
         return commandBuilder("swerve.driveSpeaker()")
             .onInitialize(() -> rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
-            .onExecute(() -> driveAngle(x.get(), y.get(), getSpeakerAngle(), rotPID, false));
+            .onExecute(() -> {
+                double angle = getSpeakerAngle();
+                visualizer.updateTarget(angle);
+                driveAngle(x.get(), y.get(), angle, rotPID, false);
+            })
+            .onEnd(() -> visualizer.removeTarget());
     }
 
     /**
@@ -325,8 +337,10 @@ public class Swerve extends SwerveBase {
             .onInitialize(() -> rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
             .onExecute(() -> {
                 double angle = Alliance.isBlue() ? Math2.HALF_PI : -Math2.HALF_PI;
+                visualizer.updateTarget(angle);
                 driveAngle(x.get(), y.get(), angle, rotPID, false);
-            });
+            })
+            .onEnd(() -> visualizer.removeTarget());
     }
 
     /**
@@ -348,27 +362,28 @@ public class Swerve extends SwerveBase {
                     faceStageAngle = -Math.PI;
                 }
 
+                visualizer.updateTarget(faceStageAngle);
                 driveAngle(x.get(), y.get(), faceStageAngle, rotPID, false);
-            });
+            })
+            .onEnd(() -> visualizer.removeTarget());
     }
 
     /**
-     * Allows the driver to keep driving, but forces the robot to face the rock skip location.
+     * Allows the driver to keep driving, but forces the robot to face the feed location.
      * @param x The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
      * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
      */
-    public Command driveRockSkip(Supplier<Double> x, Supplier<Double> y) {
-        return commandBuilder("swerve.rockSkip()")
-            .onExecute(() ->
-                driveAroundPoint(
-                    x.get(),
-                    y.get(),
-                    Math.PI,
-                    Alliance.isBlue() ? FieldPositions.ROCK_SKIP_BLUE : FieldPositions.ROCK_SKIP_RED,
-                    rotPID,
-                    false
-                )
-            );
+    public Command driveFeed(Supplier<Double> x, Supplier<Double> y) {
+        return commandBuilder("swerve.driveFeed()")
+            .onExecute(() -> {
+                Translation2d feedPoint = Alliance.isBlue() ? FieldPositions.FEED_BLUE : FieldPositions.FEED_RED;
+                double faceFeedAngle = MathUtil.angleModulus(
+                    feedPoint.minus(getPosition().getTranslation()).getAngle().getRadians() + Math.PI
+                );
+                visualizer.updateTarget(faceFeedAngle);
+                driveAngle(x.get(), y.get(), faceFeedAngle, rotPID, false);
+            })
+            .onEnd(() -> visualizer.removeTarget());
     }
 
     /**
@@ -376,19 +391,17 @@ public class Swerve extends SwerveBase {
      * @param pose The pose to translate to.
      */
     public Command pidTo(Pose2d pose) {
-        BiConsumer<Boolean, Pose2d> state = visualizer.addTrajectory(new Pose2d[] { pose });
-
         return commandBuilder("swerve.pidTo(" + pose.toString() + ")")
             .onInitialize(() -> {
+                visualizer.updateTarget(pose);
                 rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond);
                 xPID.reset();
                 yPID.reset();
-                state.accept(true, pose);
             })
             .onExecute(() -> driveToPose(pose, xPID, yPID, rotPID, false))
             .onEnd(() -> {
                 stop();
-                state.accept(false, Math2.POSE2D_0);
+                visualizer.removeTarget();
             });
     }
 

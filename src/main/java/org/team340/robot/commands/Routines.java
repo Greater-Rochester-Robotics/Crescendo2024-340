@@ -130,15 +130,12 @@ public class Routines {
     }
 
     /**
-     * Rock skip :)
+     * Prepares to feed a note to our alliance.
+     * @param x The desired {@code x} driving speed from {@code -1.0} to {@code 1.0}.
+     * @param y The desired {@code y} driving speed from {@code -1.0} to {@code 1.0}.
      */
-    public static Command rockSkip(Supplier<Double> x, Supplier<Double> y) {
-        return parallel(
-            swerve.driveRockSkip(x, y),
-            shooter.rockSkip(),
-            pivot.goTo(PivotConstants.ROCK_SKIP_POSITION),
-            sequence(waitSeconds(0.35), feeder.shoot())
-        );
+    public static Command prepFeed(Supplier<Double> x, Supplier<Double> y) {
+        return parallel(swerve.driveFeed(x, y), shooter.feed(swerve::pastMidline), pivot.feed(swerve::pastMidline));
     }
 
     /**

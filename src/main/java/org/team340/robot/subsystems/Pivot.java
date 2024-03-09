@@ -138,6 +138,15 @@ public class Pivot extends GRRSubsystem {
     }
 
     /**
+     * Sets the pivot to feed.
+     * @param pastMidline A supplier that returns {@code true} when the robot is past the midline.
+     */
+    public Command feed(Supplier<Boolean> pastMidline) {
+        return goTo(() -> pastMidline.get() ? PivotConstants.MARY_POPPINS_POSITION : PivotConstants.ROCK_SKIP_POSITION, false)
+            .withName("pivot.feed()");
+    }
+
+    /**
      * Moves to a position. Ends after the position is reached.
      * @param position The position for the pivot to move to in radians.
      */
