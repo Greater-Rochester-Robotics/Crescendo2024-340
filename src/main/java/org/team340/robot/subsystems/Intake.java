@@ -180,7 +180,7 @@ public class Intake extends GRRSubsystem {
     }
 
     /**
-     * Moves to the barf position. Runs until the arm is at the position.
+     * Moves to the poop position. Runs until the arm is at the position.
      */
     public Command poopPosition() {
         return useState(IntakeConstants.POOP_POSITION, 0, 0, true).withName("intake.poopPosition()");
@@ -219,7 +219,7 @@ public class Intake extends GRRSubsystem {
     }
 
     /**
-     * Spits the note out of the intake. Does not end.
+     * Barfs the note out of the intake. Does not end.
      */
     public Command barf() {
         return useState(IntakeConstants.BARF_POSITION, IntakeConstants.BARF_SPEED, IntakeConstants.BARF_SPEED, false)
@@ -227,7 +227,7 @@ public class Intake extends GRRSubsystem {
     }
 
     /**
-     * Spits the note out of the intake. Does not end.
+     * Poops the note out of the intake. Does not end.
      */
     public Command poop() {
         return useState(IntakeConstants.POOP_POSITION, IntakeConstants.POOP_SPEED, IntakeConstants.POOP_SPEED, false)

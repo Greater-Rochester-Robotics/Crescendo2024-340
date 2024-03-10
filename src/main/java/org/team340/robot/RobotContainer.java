@@ -130,8 +130,9 @@ public final class RobotContainer {
         // Left Bumper => Prep Feed (Hold)
         driver.leftBumper().whileTrue(Routines.prepFeed(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
-        // POV Up => Barf Backwards (Hold)
-        driver.povUp().whileTrue(Routines.barfForward());
+        // POV Up => Barf Forwards (Hold)
+        driver.povUp().whileTrue(Routines.poop(true));
+        // driver.povUp().whileTrue(Routines.barfForward());
 
         // POV Down => Pivot Down (Tap)
         driver.povDown().onTrue(pivot.goTo(PivotConstants.DOWN_POSITION));

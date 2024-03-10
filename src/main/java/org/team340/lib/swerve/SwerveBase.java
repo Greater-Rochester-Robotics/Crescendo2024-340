@@ -172,7 +172,7 @@ public abstract class SwerveBase extends GRRSubsystem {
         imu.setZero(Math2.ROTATION2D_0);
 
         System.out.println(
-            "\nGRRSwerve Conversions:" +
+            "\nSwerve Conversions:" +
             "\n\tModule Count: " +
             modules.length +
             "\n\tMove Rotations/Meter: " +

@@ -505,8 +505,8 @@ public final class Constants {
         public static final double VISION_STD_XY_SCALE = 0.006;
         public static final double VISION_STD_ROT_SCALE = 0.015;
 
-        public static final PIDConfig TRAJ_XY_PID = new PIDConfig(10.75, 0.0, 0.0, 0.0);
-        public static final PIDConfig TRAJ_ROT_PID = new PIDConfig(4.8, 0.0, 0.0, 0.0);
+        public static final PIDConfig TRAJ_XY_PID = new PIDConfig(25.25, 0.0, 0.0, 0.0);
+        public static final PIDConfig TRAJ_ROT_PID = new PIDConfig(3.95, 0.0, 0.0, 0.0);
         public static final Constraints TRAJ_ROT_CONSTRAINTS = new Constraints(6.5, 7.0);
 
         public static final PIDConfig XY_PID = new PIDConfig(3.5, 1.4, 0.2, 0.5);

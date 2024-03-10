@@ -27,23 +27,12 @@ public class Autos {
             sequence(
                 deadline(
                     swerve.followTrajectory(traj.get(0), true),
-                    sequence(
-                        deadline(
-                            waitSeconds(1.7),
-                            sequence(
-                                intake.downPosition(),
-                                deadline(waitUntil(() -> intake.hasNote() && !feeder.hasNote()), feeder.barfForward(), intake.ampHandoff()),
-                                intake.poopPosition()
-                            )
-                        ),
-                        intake.poop().withTimeout(0.5),
-                        Routines.intake()
-                    )
+                    sequence(deadline(waitSeconds(1.7), Routines.prepPoop()), Routines.poop(false), Routines.intake())
                 ),
                 Routines.intake().withTimeout(0.3),
                 deadline(
                     swerve.followTrajectory(traj.get(1), 1.15),
-                    sequence(sequence(waitSeconds(1.85), feeder.shoot().withTimeout(0.6)), Routines.intake())
+                    sequence(sequence(waitSeconds(1.92), feeder.shoot().withTimeout(0.6)), Routines.intake())
                 ),
                 Routines.intake().withTimeout(0.3),
                 deadline(
@@ -53,7 +42,7 @@ public class Autos {
                 Routines.intake().withTimeout(0.3),
                 deadline(
                     swerve.followTrajectory(traj.get(3), 0.2),
-                    sequence(sequence(waitSeconds(1.2), feeder.shoot().withTimeout(0.6)), Routines.intake())
+                    sequence(sequence(waitSeconds(0.95), feeder.shoot().withTimeout(0.6)), Routines.intake())
                 ),
                 Routines.intake().withTimeout(0.3),
                 deadline(

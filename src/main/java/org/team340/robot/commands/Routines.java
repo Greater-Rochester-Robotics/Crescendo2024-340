@@ -150,6 +150,34 @@ public class Routines {
     }
 
     /**
+     * Prepares to poop the note forwards out of the intake.
+     */
+    public static Command prepPoop() {
+        return sequence(
+            intake.downPosition(),
+            deadline(
+                sequence(waitUntil(() -> intake.hasNote() && !feeder.hasNote()), waitSeconds(0.1)),
+                feeder.barfForward(),
+                intake.ampHandoff()
+            ),
+            intake.poopPosition()
+        )
+            .withName("Routines.prepPoop()");
+    }
+
+    /**
+     * Poops the note out of the intake.
+     * @param includePrep If {@link Routines#prepPoop()} should be called first.
+     */
+    public static Command poop(boolean includePrep) {
+        return sequence(
+            includePrep ? Routines.prepPoop() : none(),
+            deadline(sequence(waitUntil(() -> !intake.hasNote()), waitSeconds(0.15)), intake.poop())
+        )
+            .withName("Routines.poop(" + includePrep + ")");
+    }
+
+    /**
      * Barfs the note backwards out of the shooter.
      * @return
      */
