@@ -462,7 +462,7 @@ public final class Constants {
         public static final SwerveConfig CONFIG = new SwerveConfig()
             .useADIS16470(IMUAxis.kZ, IMUAxis.kX, IMUAxis.kY, Port.kOnboardCS0, CalibrationTime._4s)
             .setPeriod(PERIOD)
-            .setMovePID(0.069, 0.001, 0.032, 0.075)
+            .setMovePID(0.202, 0.0017, 0.005, 0.075)
             .setMoveFF(0.13312, 2.3443, 0.3159)
             .setTurnPID(0.65, 0.001, 3.0, 0.01)
             .setRampRate(0.03, 0.03)
@@ -505,8 +505,8 @@ public final class Constants {
         public static final double VISION_STD_XY_SCALE = 0.006;
         public static final double VISION_STD_ROT_SCALE = 0.015;
 
-        public static final PIDConfig TRAJ_XY_PID = new PIDConfig(25.25, 0.0, 0.0, 0.0);
-        public static final PIDConfig TRAJ_ROT_PID = new PIDConfig(3.95, 0.0, 0.0, 0.0);
+        public static final PIDConfig TRAJ_XY_PID = new PIDConfig(12.0, 0.0, 0.0, 0.0);
+        public static final PIDConfig TRAJ_ROT_PID = new PIDConfig(4.20, 0.0, 0.0, 0.0);
         public static final Constraints TRAJ_ROT_CONSTRAINTS = new Constraints(6.5, 7.0);
 
         public static final PIDConfig XY_PID = new PIDConfig(3.5, 1.4, 0.2, 0.5);

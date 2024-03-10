@@ -31,22 +31,22 @@ public class Autos {
                 ),
                 Routines.intake().withTimeout(0.3),
                 deadline(
-                    swerve.followTrajectory(traj.get(1), 1.15),
+                    swerve.followTrajectory(traj.get(1), 1.15, -1.0),
                     sequence(sequence(waitSeconds(1.92), feeder.shoot().withTimeout(0.6)), Routines.intake())
                 ),
                 Routines.intake().withTimeout(0.3),
                 deadline(
-                    swerve.followTrajectory(traj.get(2), 2.4),
-                    sequence(sequence(waitSeconds(2.95), feeder.shoot().withTimeout(0.6)), Routines.intake())
+                    swerve.followTrajectory(traj.get(2), 2.4, -1.0),
+                    sequence(sequence(waitSeconds(2.88), feeder.shoot().withTimeout(0.6)), Routines.intake())
                 ),
                 Routines.intake().withTimeout(0.3),
                 deadline(
-                    swerve.followTrajectory(traj.get(3), 0.2),
-                    sequence(sequence(waitSeconds(0.95), feeder.shoot().withTimeout(0.6)), Routines.intake())
+                    swerve.followTrajectory(traj.get(3), 0.2, 1.1),
+                    sequence(sequence(waitSeconds(0.88), feeder.shoot().withTimeout(0.6)), Routines.intake())
                 ),
                 Routines.intake().withTimeout(0.3),
                 deadline(
-                    swerve.followTrajectory(traj.get(4), 0.1),
+                    swerve.followTrajectory(traj.get(4), 0.3, -1.0),
                     sequence(sequence(waitSeconds(0.6), feeder.shoot().withTimeout(0.6)), Routines.intake())
                 ),
                 parallel(swerve.driveSpeaker(), sequence(deadline(waitSeconds(0.25), Routines.intake()), feeder.shoot()))
@@ -58,7 +58,7 @@ public class Autos {
         return parallel(
             pivot.targetDistance(swerve::getSpeakerDistance),
             sequence(
-                deadline(swerve.followTrajectory(traj.get(0), -1.0, true), intake.downPosition()),
+                deadline(swerve.followTrajectory(traj.get(0), -1.0, -1.0, true), intake.downPosition()),
                 deadline(sequence(waitSeconds(1.1), feeder.shoot().withTimeout(0.75)), swerve.driveSpeaker()),
                 deadline(swerve.followTrajectory(traj.get(1)), Routines.intake()),
                 Routines.intake().withTimeout(0.3),
@@ -77,7 +77,7 @@ public class Autos {
         return parallel(
             pivot.targetDistance(swerve::getSpeakerDistance),
             sequence(
-                deadline(swerve.followTrajectory(traj.get(0), -1.0, true), intake.downPosition()),
+                deadline(swerve.followTrajectory(traj.get(0), -1.0, -1.0, true), intake.downPosition()),
                 deadline(sequence(waitSeconds(1.15), feeder.shoot().withTimeout(0.75)), swerve.driveSpeaker()),
                 deadline(swerve.followTrajectory(traj.get(1)), Routines.intake()),
                 deadline(swerve.followTrajectory(traj.get(2)), Routines.intake().withTimeout(0.3)),

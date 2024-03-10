@@ -249,7 +249,7 @@
         "cameraIndex": -1,
         "fov": 50
       },
-      "configHidden": false,
+      "configHidden": true,
       "title": "Field"
     },
     {
@@ -613,6 +613,25 @@
         }
       },
       "title": "Climb"
+    },
+    {
+      "type": 8,
+      "fields": [],
+      "listFields": [],
+      "options": {
+        "ids": [
+          0,
+          1,
+          2
+        ],
+        "layouts": [
+          "Xbox Controller (White)",
+          "Xbox Controller (Blue)",
+          "None"
+        ]
+      },
+      "configHidden": false,
+      "title": "Controllers"
     }
   ]
 }

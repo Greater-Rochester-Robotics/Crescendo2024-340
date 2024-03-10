@@ -115,7 +115,8 @@ public class Choreo {
     public static Command choreoSwerveCommand(
         ChoreoTrajectory trajectory,
         Supplier<Pose2d> poseSupplier,
-        double targetTime,
+        double targetTimeStart,
+        double targetTimeEnd,
         Supplier<Double> targetAngle,
         ProfiledPIDController targetController,
         PIDController xController,
@@ -135,7 +136,7 @@ public class Choreo {
                 ChoreoTrajectoryState sample = trajectory.sample(timer.get(), mirrorTrajectory.getAsBoolean());
                 ChassisSpeeds speeds = controller.apply(pose, sample);
                 Pose2d targetOutput = sample.getPose();
-                if (targetTime >= 0 && timer.get() >= targetTime) {
+                if (targetTimeStart >= 0 && timer.get() >= targetTimeStart && (targetTimeEnd >= 0 ? timer.get() <= targetTimeEnd : true)) {
                     double angle = targetAngle.get();
                     speeds =
                         new ChassisSpeeds(

@@ -410,16 +410,17 @@ public class Swerve extends SwerveBase {
      * @param traj The trajectory to follow.
      */
     public Command followTrajectory(ChoreoTrajectory traj) {
-        return followTrajectory(traj, -1.0, false);
+        return followTrajectory(traj, -1.0, -1.0, false);
     }
 
     /**
      * Follows a trajectory.
      * @param traj The trajectory to follow.
-     * @param targetTime Time in seconds after the path starts to start targeting the speaker.
+     * @param targetTimeStart Time in seconds after the path starts to start targeting the speaker. {@code -1.0} will disable speaker targeting.
+     * @param targetTimeEnd Time in seconds after the path starts to stop targeting the speaker. Only applied if {@code targetTimeStart} is greater than {@code 0.0}. {@code -1.0} will cause the robot to target the speaker indefinitely.
      */
-    public Command followTrajectory(ChoreoTrajectory traj, double targetTime) {
-        return followTrajectory(traj, targetTime, false);
+    public Command followTrajectory(ChoreoTrajectory traj, double targetTimeStart, double targetTimeEnd) {
+        return followTrajectory(traj, targetTimeStart, targetTimeEnd, false);
     }
 
     /**
@@ -428,23 +429,25 @@ public class Swerve extends SwerveBase {
      * @param resetOdometry If the odometry should be reset to the first pose in the trajectory.
      */
     public Command followTrajectory(ChoreoTrajectory traj, boolean resetOdometry) {
-        return followTrajectory(traj, -1.0, resetOdometry);
+        return followTrajectory(traj, -1.0, -1.0, resetOdometry);
     }
 
     /**
      * Follows a trajectory.
      * @param traj The trajectory to follow.
-     * @param targetTime Time in seconds after the path starts to start targeting the speaker.
+     * @param targetTimeStart Time in seconds after the path starts to start targeting the speaker. {@code -1.0} will disable speaker targeting.
+     * @param targetTimeEnd Time in seconds after the path starts to stop targeting the speaker. Only applied if {@code targetTimeStart} is greater than {@code 0.0}. {@code -1.0} will cause the robot to target the speaker indefinitely.
      * @param resetOdometry If the odometry should be reset to the first pose in the trajectory.
      */
-    public Command followTrajectory(ChoreoTrajectory traj, double targetTime, boolean resetOdometry) {
+    public Command followTrajectory(ChoreoTrajectory traj, double targetTimeStart, double targetTimeEnd, boolean resetOdometry) {
         BiConsumer<Boolean, Pose2d> state = visualizer.addTrajectory(traj.getPoses());
 
         return Choreo
             .choreoSwerveCommand(
                 traj,
                 this::getPosition,
-                targetTime,
+                targetTimeStart,
+                targetTimeEnd,
                 this::getSpeakerAngle,
                 rotPID,
                 xPIDTraj,
