@@ -193,6 +193,23 @@ public final class Math2 {
     }
 
     /**
+     * Returns a random double from {@code 0.0} to {@code max}.
+     * @param max The maximum value to return.
+     */
+    public static double random(double max) {
+        return Math.random() * max;
+    }
+
+    /**
+     * Returns a random double from {@code min} to {@code max}.
+     * @param min The minimum value to return.
+     * @param max The maximum value to return.
+     */
+    public static double random(double min, double max) {
+        return (Math.random() * (max - min)) + min;
+    }
+
+    /**
      * Definition of a 2D parametric function.
      */
     @FunctionalInterface

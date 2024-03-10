@@ -24,17 +24,15 @@ export const HasNote = nt.subscribe<boolean>(`/GRRDashboard/Subsystems/Pivot/Det
 
 export const RobotPosition = nt.subscribe<number[]>(`/GRRDashboard/Subsystems/Swerve/Visualizations/robot`, [0, 0, 0]);
 
-export const TunableNoteVelocity = nt.subscribe<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableNoteVelocity`, 5);
-export const TunableNoteVelocityPub = nt.publish<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableNoteVelocity`, `double`, 5);
-export const TunableNormFudge = nt.subscribe<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableNormFudge`, 0.9);
-export const TunableNormFudgePub = nt.publish<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableNormFudge`, `double`, 0.9);
-export const TunableSpeakerXFudge = nt.subscribe<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableSpeakerXFudge`, 0.0);
-export const TunableSpeakerXFudgePub = nt.publish<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableSpeakerXFudge`, `double`, 0.0);
-export const TunableSpeakerYFudge = nt.subscribe<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableSpeakerYFudge`, 0.0);
-export const TunableSpeakerYFudgePub = nt.publish<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableSpeakerYFudge`, `double`, 0.0);
-export const TunableAmpXFudge = nt.subscribe<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableAmpXFudge`, 0.0);
-export const TunableAmpXFudgePub = nt.publish<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableAmpXFudge`, `double`, 0.0);
-export const TunableAmpYFudge = nt.subscribe<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableAmpYFudge`, 0.0);
-export const TunableAmpYFudgePub = nt.publish<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableAmpYFudge`, `double`, 0.0);
+export const TunableNoteVelocity = nt.publish<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableNoteVelocity`, `double`, 6);
+export const TunableNormFudge = nt.publish<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableNormFudge`, `double`, 0.475);
+export const TunableStrafeFudge = nt.publish<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableStrafeFudge`, `double`, 0.95);
+export const TunableSpinCompensation = nt.publish<number>(
+    `/GRRDashboard/Subsystems/Swerve/Details/tunableSpinCompensation`,
+    `double`,
+    -2 * (Math.PI / 180),
+);
+export const TunableSpeakerXFudge = nt.publish<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableSpeakerXFudge`, `double`, 0.0);
+export const TunableSpeakerYFudge = nt.publish<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableSpeakerYFudge`, `double`, 0.0);
 
 nt.connect();

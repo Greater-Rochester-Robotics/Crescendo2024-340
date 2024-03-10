@@ -1,41 +1,35 @@
 <script lang="ts">
     import {
         TunableNoteVelocity,
-        TunableNoteVelocityPub,
         TunableNormFudge,
-        TunableNormFudgePub,
+        TunableStrafeFudge,
+        TunableSpinCompensation,
         TunableSpeakerXFudge,
-        TunableSpeakerXFudgePub,
         TunableSpeakerYFudge,
-        TunableSpeakerYFudgePub,
-        TunableAmpXFudge,
-        TunableAmpXFudgePub,
-        TunableAmpYFudge,
-        TunableAmpYFudgePub,
     } from "../ntStores";
 
     const onNoteVelocityBlur = (e: FocusEvent) => {
-        $TunableNoteVelocityPub = Number(decodeURIComponent((e.target as any)?.innerText).trim());
+        $TunableNoteVelocity = Number(decodeURIComponent((e.target as any)?.innerText).trim());
     };
 
     const onNormFudgeBlur = (e: FocusEvent) => {
-        $TunableNormFudgePub = Number(decodeURIComponent((e.target as any)?.innerText).trim());
+        $TunableNormFudge = Number(decodeURIComponent((e.target as any)?.innerText).trim());
+    };
+
+    const onStrafeFudgeBlur = (e: FocusEvent) => {
+        $TunableStrafeFudge = Number(decodeURIComponent((e.target as any)?.innerText).trim());
+    };
+
+    const onSpinCompensationBlur = (e: FocusEvent) => {
+        $TunableSpinCompensation = Number(decodeURIComponent((e.target as any)?.innerText).trim());
     };
 
     const onSpeakerXBlur = (e: FocusEvent) => {
-        $TunableSpeakerXFudgePub = Number(decodeURIComponent((e.target as any)?.innerText).trim());
+        $TunableSpeakerXFudge = Number(decodeURIComponent((e.target as any)?.innerText).trim());
     };
 
     const onSpeakerYBlur = (e: FocusEvent) => {
-        $TunableSpeakerYFudgePub = Number(decodeURIComponent((e.target as any)?.innerText).trim());
-    };
-
-    const onAmpXBlur = (e: FocusEvent) => {
-        $TunableAmpXFudgePub = Number(decodeURIComponent((e.target as any)?.innerText).trim());
-    };
-
-    const onAmpYBlur = (e: FocusEvent) => {
-        $TunableAmpYFudgePub = Number(decodeURIComponent((e.target as any)?.innerText).trim());
+        $TunableSpeakerYFudge = Number(decodeURIComponent((e.target as any)?.innerText).trim());
     };
 </script>
 
@@ -48,17 +42,17 @@
         <p>Norm Fudge:</p>
         <code contenteditable on:blur="{onNormFudgeBlur}">{$TunableNormFudge}</code>
         <br /><br />
+        <p>Strafe Fudge:</p>
+        <code contenteditable on:blur="{onStrafeFudgeBlur}">{$TunableStrafeFudge}</code>
+        <br /><br />
+        <p>Spin Compensation:</p>
+        <code contenteditable on:blur="{onSpinCompensationBlur}">{$TunableSpinCompensation}</code>
+        <br /><br />
         <p>Speaker X:</p>
         <code contenteditable on:blur="{onSpeakerXBlur}">{$TunableSpeakerXFudge}</code>
         <br /><br />
         <p>Speaker Y:</p>
         <code contenteditable on:blur="{onSpeakerYBlur}">{$TunableSpeakerYFudge}</code>
-        <br /><br />
-        <p>Amp X:</p>
-        <code contenteditable on:blur="{onAmpXBlur}">{$TunableAmpXFudge}</code>
-        <br /><br />
-        <p>Amp Y:</p>
-        <code contenteditable on:blur="{onAmpYBlur}">{$TunableAmpYFudge}</code>
     </div>
 </main>
 

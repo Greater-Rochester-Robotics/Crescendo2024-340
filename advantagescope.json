@@ -205,6 +205,12 @@
             "key": "NT:/GRRDashboard/Subsystems/Swerve/Visualizations/visionTargets",
             "sourceTypeIndex": 0,
             "sourceType": 5
+          },
+          {
+            "type": "Green Ghost",
+            "key": "NT:/GRRDashboard/Subsystems/Swerve/Details/speaker",
+            "sourceTypeIndex": 0,
+            "sourceType": 5
           }
         ],
         [
@@ -249,7 +255,7 @@
         "cameraIndex": -1,
         "fov": 50
       },
-      "configHidden": true,
+      "configHidden": false,
       "title": "Field"
     },
     {

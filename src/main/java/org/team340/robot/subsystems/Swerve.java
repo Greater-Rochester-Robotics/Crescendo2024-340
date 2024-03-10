@@ -48,6 +48,7 @@ public class Swerve extends SwerveBase {
     private final PIDController xPIDTraj = SwerveConstants.TRAJ_XY_PID.pidController();
     private final PIDController yPIDTraj = SwerveConstants.TRAJ_XY_PID.pidController();
     private final PIDController rotPIDTraj = SwerveConstants.TRAJ_ROT_PID.pidController();
+    private final PIDController targetPIDTraj = SwerveConstants.TRAJ_TARGET_PID.pidController();
     private final ProfiledPIDController rotPIDTrajProfiled = SwerveConstants.TRAJ_ROT_PID.profiledPIDController(
         SwerveConstants.TRAJ_ROT_CONSTRAINTS
     );
@@ -65,6 +66,7 @@ public class Swerve extends SwerveBase {
     private double[] speaker = new double[0];
     private double tunableNoteVelocity = SwerveConstants.NOTE_VELOCITY;
     private double tunableNormFudge = SwerveConstants.NORM_FUDGE;
+    private double tunableStrafeFudge = SwerveConstants.STRAFE_FUDGE;
     private double tunableSpinCompensation = SwerveConstants.SPIN_COMPENSATION;
     private double tunableSpeakerXFudge = 0.0;
     private double tunableSpeakerYFudge = 0.0;
@@ -124,6 +126,7 @@ public class Swerve extends SwerveBase {
 
         builder.addDoubleProperty("tunableNoteVelocity", null, velocity -> tunableNoteVelocity = velocity);
         builder.addDoubleProperty("tunableNormFudge", null, fudge -> tunableNormFudge = fudge);
+        builder.addDoubleProperty("tunableStrafeFudge", null, fudge -> tunableStrafeFudge = fudge);
         builder.addDoubleProperty("tunableSpinCompensation", null, compensation -> tunableSpinCompensation = compensation);
         builder.addDoubleProperty("tunableSpeakerXFudge", null, fudge -> tunableSpeakerXFudge = fudge);
         builder.addDoubleProperty("tunableSpeakerYFudge", null, fudge -> tunableSpeakerYFudge = fudge);
@@ -256,8 +259,9 @@ public class Swerve extends SwerveBase {
         double y =
             goalPose.getY() +
             (Alliance.isBlue() ? tunableSpeakerYFudge : -tunableSpeakerYFudge) -
-            (robotVel.vyMetersPerSecond * (distance / tunableNoteVelocity));
+            (robotVel.vyMetersPerSecond * (distance / tunableNoteVelocity) * tunableStrafeFudge);
 
+        if (Math.random() > 0.9) System.out.println(tunableNormFudge);
         speaker = SwerveVisualizer.pose3d(new Pose3d(x, y, FieldPositions.SPEAKER_HEIGHT, Math2.ROTATION3D_0));
         return new Translation2d(x, y);
     }
@@ -337,6 +341,22 @@ public class Swerve extends SwerveBase {
             .onInitialize(() -> rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
             .onExecute(() -> {
                 double angle = Alliance.isBlue() ? Math2.HALF_PI : -Math2.HALF_PI;
+                visualizer.updateTarget(angle);
+                driveAngle(x.get(), y.get(), angle, rotPID, false);
+            })
+            .onEnd(() -> visualizer.removeTarget());
+    }
+
+    /**
+     * Allows the driver to keep driving, but forces the robot to face the feeder.
+     * @param x The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
+     * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
+     */
+    public Command driveIntakeHuman(Supplier<Double> x, Supplier<Double> y) {
+        return commandBuilder("swerve.driveIntakeHuman()")
+            .onInitialize(() -> rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
+            .onExecute(() -> {
+                double angle = Alliance.isBlue() ? -Math2.THIRD_PI : Math2.THIRD_PI;
                 visualizer.updateTarget(angle);
                 driveAngle(x.get(), y.get(), angle, rotPID, false);
             })
@@ -450,7 +470,7 @@ public class Swerve extends SwerveBase {
                 targetTimeStart,
                 targetTimeEnd,
                 this::getSpeakerAngle,
-                rotPID,
+                targetPIDTraj,
                 xPIDTraj,
                 yPIDTraj,
                 rotPIDTraj,

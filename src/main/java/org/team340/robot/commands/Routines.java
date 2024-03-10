@@ -33,15 +33,18 @@ public class Routines {
 
     /**
      * Intakes from the human player.
+     * @param x The desired {@code x} driving speed from {@code -1.0} to {@code 1.0}.
+     * @param y The desired {@code y} driving speed from {@code -1.0} to {@code 1.0}.
      */
-    public static Command intakeHuman() {
+    public static Command intakeHuman(Supplier<Double> x, Supplier<Double> y) {
         return parallel(
             deadline(waitUntil(feeder::hasNote).andThen(waitSeconds(0.1)), shooter.intakeHuman(), feeder.intakeHuman()),
             sequence(
                 pivot.goTo(PivotConstants.INTAKE_SAFE_POSITION).unless(pivot::isSafeForIntake),
                 intake.uprightPosition(),
                 pivot.goTo(PivotConstants.MAX_POS)
-            )
+            ),
+            swerve.driveIntakeHuman(x, y)
         )
             .withName("Routines.intakeHuman()");
     }

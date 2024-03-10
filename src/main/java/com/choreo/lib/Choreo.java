@@ -6,7 +6,6 @@ package com.choreo.lib;
 import com.google.gson.Gson;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
-import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -118,7 +117,7 @@ public class Choreo {
         double targetTimeStart,
         double targetTimeEnd,
         Supplier<Double> targetAngle,
-        ProfiledPIDController targetController,
+        PIDController targetController,
         PIDController xController,
         PIDController yController,
         PIDController rotationController,

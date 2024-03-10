@@ -505,18 +505,21 @@ public final class Constants {
         public static final double VISION_STD_XY_SCALE = 0.006;
         public static final double VISION_STD_ROT_SCALE = 0.015;
 
-        public static final PIDConfig TRAJ_XY_PID = new PIDConfig(16.0, 0.0, 0.0, 0.0);
-        public static final PIDConfig TRAJ_ROT_PID = new PIDConfig(4.7, 0.0, 0.0, 0.0);
+        public static final PIDConfig TRAJ_XY_PID = new PIDConfig(16.5, 0.0, 0.0);
+        public static final PIDConfig TRAJ_ROT_PID = new PIDConfig(4.7, 0.0, 0.0);
         public static final Constraints TRAJ_ROT_CONSTRAINTS = new Constraints(6.5, 7.0);
+        public static final PIDConfig TRAJ_TARGET_PID = new PIDConfig(5.2, 0.0, 0.0);
 
         public static final PIDConfig XY_PID = new PIDConfig(3.5, 1.4, 0.2, 0.5);
         public static final PIDConfig ROT_PID = new PIDConfig(4.9, 0.5, 0.2, 0.2);
         public static final Constraints ROT_CONSTRAINTS = new Constraints(8.0, 37.5);
 
-        public static final double NOTE_VELOCITY = 5.0;
-        public static final double NORM_FUDGE = 0.0;
-        public static final double NORM_FUDGE_MIN = 0.075;
+        public static final double NOTE_VELOCITY = 6.0; // 5
+        public static final double NORM_FUDGE = 0.475; // .9
+        public static final double STRAFE_FUDGE = 0.95;
         public static final double SPIN_COMPENSATION = Math.toRadians(-2.0);
+
+        public static final double NORM_FUDGE_MIN = 0.075; // .1
         public static final double FACING_SPEAKER_EPSILON = Math.toRadians(5.0);
     }
 

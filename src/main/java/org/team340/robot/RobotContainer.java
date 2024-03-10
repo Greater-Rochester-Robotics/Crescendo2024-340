@@ -109,7 +109,7 @@ public final class RobotContainer {
         driver.a().whileTrue(Routines.intake()).onFalse(Routines.finishIntake());
 
         // B => Intake from Human Player (Hold)
-        driver.b().onTrue(Routines.intakeHuman()).onFalse(Routines.finishIntakeHuman());
+        driver.b().onTrue(Routines.intakeHuman(RobotContainer::getDriveX, RobotContainer::getDriveY)).onFalse(Routines.finishIntakeHuman());
 
         // X => Prep Amp (Hold)
         driver.x().whileTrue(Routines.prepAmp(RobotContainer::getDriveX, RobotContainer::getDriveY));

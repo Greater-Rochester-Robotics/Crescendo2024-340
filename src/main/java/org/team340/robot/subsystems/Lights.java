@@ -31,28 +31,51 @@ public class Lights extends GRRSubsystem {
         timer = new Timer();
 
         lights.setLength(buffer.getLength());
-        lights.setData(buffer);
+        apply();
         lights.start();
         timer.start();
     }
 
     /**
-     * Sets the entire LED strip to a solid color.
+     * Applies the buffer to the LED strip.
+     */
+    private void apply() {
+        lights.setData(buffer);
+    }
+
+    /**
+     * Modifies the buffer to be a single color.
      * @param r Red value from {@code 0} to {@code 255}.
      * @param g Green value from {@code 0} to {@code 255}.
      * @param b Blue value from {@code 0} to {@code 255}.
      */
-    private void setRGB(int r, int g, int b) {
+    private void set(int r, int g, int b) {
         for (int i = 0; i < buffer.getLength(); i++) {
             buffer.setRGB(i, r, g, b);
         }
-        lights.setData(buffer);
+    }
+
+    /**
+     * Modifies the buffer with values mirrored across the center of the LED strip.
+     * @param i The index of the buffer to modify.
+     * @param r Red value from {@code 0} to {@code 255}.
+     * @param g Green value from {@code 0} to {@code 255}.
+     * @param b Blue value from {@code 0} to {@code 255}.
+     */
+    private void setMirrored(int i, int r, int g, int b) {
+        buffer.setRGB(i, r, g, b);
+        buffer.setRGB(buffer.getLength() - i - 1, r, g, b);
     }
 
     /**
      * The default command for the lights.
      */
     public Command defaultCommand(Supplier<Boolean> hasNote) {
+        int[] state = new int[buffer.getLength()];
+        for (int i = 0; i < state.length; i++) {
+            state[i] = 0;
+        }
+
         return commandBuilder()
             .onExecute(() -> {
                 if (DriverStation.isTeleopEnabled()) {
@@ -60,38 +83,54 @@ public class Lights extends GRRSubsystem {
                         double time = timer.get();
                         for (int i = 0; i < buffer.getLength() / 2; i++) {
                             int v = (int) ((Math.cos((time * 20.0) - ((i / (buffer.getLength() / 2.0)) * Math2.TWO_PI)) + 1.0) * 100.0);
+                            setMirrored(i, v, v, v);
                             buffer.setRGB(i, v, v, v);
-                            buffer.setRGB(buffer.getLength() - i - 1, v, v, v);
                         }
-                        lights.setData(buffer);
+                        apply();
                     } else {
                         int v = (int) (((Math.cos(timer.get() * 8.5) + 1.0) * 87.5) + 25.0);
                         if (Alliance.isBlue()) {
-                            setRGB(0, 0, v);
+                            set(0, 0, v);
                         } else {
-                            setRGB(v, 0, 0);
+                            set(v, 0, 0);
                         }
+                        apply();
                     }
                 } else if (DriverStation.isAutonomousEnabled()) {
-                    double time = timer.get();
                     for (int i = 0; i < buffer.getLength() / 2; i++) {
-                        int v = (int) ((Math.cos((time * 30.0) - ((i / (buffer.getLength() / 2.0)) * Math2.TWO_PI)) + 1.0) * 100.0);
-                        if (Alliance.isBlue()) {
-                            buffer.setRGB(i, 0, 0, v);
-                            buffer.setRGB(buffer.getLength() - i - 1, 0, 0, v);
+                        state[i] = (int) Math.max(0.0, state[i] - Math2.random((0.5 + (i / (buffer.getLength() * 0.25))) * 70.0) + 4.0);
+                    }
+                    for (int i = (buffer.getLength() / 2) - 1; i >= 2; i--) {
+                        state[i] = (state[i - 1] + state[i - 2] + state[i - 2]) / 3;
+                    }
+                    if (Math.random() < 0.5) {
+                        int i = (int) Math2.random(8.0);
+                        state[i] = (int) (state[i] + Math2.random(160.0, 255.0));
+                    }
+                    for (int i = 0; i < buffer.getLength() / 2; i++) {
+                        int heat = (int) ((state[i] / 255.0) * 191.0);
+                        int ramp = (heat & 63) << 2;
+                        if (heat > 180) {
+                            setMirrored(i, 255, 255, ramp);
+                        } else if (heat > 60) {
+                            setMirrored(i, 255, ramp, 0);
                         } else {
-                            buffer.setRGB(i, v, 0, 0);
-                            buffer.setRGB(buffer.getLength() - i - 1, v, 0, 0);
+                            setMirrored(i, ramp, 0, 0);
                         }
                     }
-                    lights.setData(buffer);
+                    apply();
                 } else if (DriverStation.isDisabled()) {
-                    if (Alliance.isBlue()) setRGB(0, 0, 150); else setRGB(150, 0, 0);
+                    if (Alliance.isBlue()) set(0, 0, 150); else set(150, 0, 0);
+                    apply();
                 } else {
-                    setRGB(0, 0, 0);
+                    set(0, 0, 0);
+                    apply();
                 }
             })
-            .onEnd(() -> setRGB(0, 0, 0))
+            .onEnd(() -> {
+                set(0, 0, 0);
+                apply();
+            })
             .ignoringDisable(true)
             .withName("lights.defaultCommand()");
     }
