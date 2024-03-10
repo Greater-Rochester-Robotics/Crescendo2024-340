@@ -27,29 +27,27 @@ public class Autos {
             sequence(
                 deadline(
                     swerve.followTrajectory(traj.get(0), true),
-                    sequence(deadline(waitSeconds(1.7), Routines.prepPoop()), Routines.poop(false), Routines.intake())
+                    sequence(waitSeconds(1.7).deadlineWith(Routines.prepPoop()), Routines.poop(false), Routines.intake())
                 ),
-                Routines.intake().withTimeout(0.3),
                 deadline(
-                    swerve.followTrajectory(traj.get(1), 1.15, -1.0),
-                    sequence(sequence(waitSeconds(1.92), feeder.shoot().withTimeout(0.6)), Routines.intake())
+                    swerve.followTrajectory(traj.get(1), 0.5, 1.7),
+                    sequence(waitSeconds(1.3).deadlineWith(Routines.intake()), feeder.shoot().withTimeout(0.6), Routines.intake())
                 ),
-                Routines.intake().withTimeout(0.3),
                 deadline(
-                    swerve.followTrajectory(traj.get(2), 2.4, -1.0),
-                    sequence(sequence(waitSeconds(2.88), feeder.shoot().withTimeout(0.6)), Routines.intake())
+                    swerve.followTrajectory(traj.get(2), 1.8, -1.0),
+                    sequence(waitSeconds(2.3).deadlineWith(Routines.intake()), feeder.shoot().withTimeout(0.6), Routines.intake())
                 ),
-                Routines.intake().withTimeout(0.3),
                 deadline(
-                    swerve.followTrajectory(traj.get(3), 0.2, 1.1),
-                    sequence(sequence(waitSeconds(0.88), feeder.shoot().withTimeout(0.6)), Routines.intake())
+                    swerve.followTrajectory(traj.get(3), 0.1, 1.1),
+                    sequence(
+                        waitSeconds(0.4).deadlineWith(Routines.intake()),
+                        waitSeconds(0.6).deadlineWith(feeder.shoot()),
+                        waitSeconds(0.5).deadlineWith(Routines.intake()),
+                        feeder.shoot().withTimeout(0.6),
+                        Routines.intake()
+                    )
                 ),
-                Routines.intake().withTimeout(0.3),
-                deadline(
-                    swerve.followTrajectory(traj.get(4), 0.3, -1.0),
-                    sequence(sequence(waitSeconds(0.6), feeder.shoot().withTimeout(0.6)), Routines.intake())
-                ),
-                parallel(swerve.driveSpeaker(), sequence(deadline(waitSeconds(0.25), Routines.intake()), feeder.shoot()))
+                parallel(swerve.driveSpeaker(), sequence(waitSeconds(0.5).deadlineWith(Routines.intake()), feeder.shoot()))
             )
         );
     }

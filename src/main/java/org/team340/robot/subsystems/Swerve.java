@@ -440,7 +440,8 @@ public class Swerve extends SwerveBase {
      * @param resetOdometry If the odometry should be reset to the first pose in the trajectory.
      */
     public Command followTrajectory(ChoreoTrajectory traj, double targetTimeStart, double targetTimeEnd, boolean resetOdometry) {
-        BiConsumer<Boolean, Pose2d> state = visualizer.addTrajectory(traj.getPoses());
+        BiConsumer<Boolean, Pose2d> stateBlue = visualizer.addTrajectory(traj.getPoses());
+        BiConsumer<Boolean, Pose2d> stateRed = visualizer.addTrajectory(traj.flipped().getPoses());
 
         return Choreo
             .choreoSwerveCommand(
@@ -454,7 +455,9 @@ public class Swerve extends SwerveBase {
                 yPIDTraj,
                 rotPIDTraj,
                 speeds -> driveSpeeds(speeds, false, false),
-                targetPose -> state.accept(true, targetPose),
+                targetPose -> {
+                    if (Alliance.isBlue()) stateBlue.accept(true, targetPose); else stateRed.accept(true, targetPose);
+                },
                 Alliance::isRed,
                 this
             )
@@ -470,7 +473,10 @@ public class Swerve extends SwerveBase {
                 yPIDTraj.reset();
                 rotPIDTraj.reset();
             })
-            .finallyDo(() -> state.accept(false, Math2.POSE2D_0))
+            .finallyDo(() -> {
+                stateBlue.accept(false, Math2.POSE2D_0);
+                stateRed.accept(false, Math2.POSE2D_0);
+            })
             .withName("swerve.followTrajectory()");
     }
 

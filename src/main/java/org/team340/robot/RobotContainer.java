@@ -202,7 +202,7 @@ public final class RobotContainer {
      */
     private static void configAutos() {
         var fivePieceAmp = Choreo.getTrajectoryGroup("FivePieceAmp");
-        GRRDashboard.addAutoCommand("Five Piece Amp Side", fivePieceAmp, Autos.fivePieceAmp(fivePieceAmp));
+        GRRDashboard.addAutoCommand("Five Piece Amp", fivePieceAmp, Autos.fivePieceAmp(fivePieceAmp));
 
         var fourPieceClose = Choreo.getTrajectoryGroup("FourPieceClose");
         GRRDashboard.addAutoCommand("Four Piece Close", fourPieceClose, Autos.fourPieceClose(fourPieceClose));
