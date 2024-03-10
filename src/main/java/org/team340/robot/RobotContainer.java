@@ -93,14 +93,13 @@ public final class RobotContainer {
     private static void configBindings() {
         // Set default commands.
         intake.setDefaultCommand(intake.maintainPosition());
+        lights.setDefaultCommand(lights.defaultCommand(feeder::hasNote));
         pivot.setDefaultCommand(pivot.maintainPosition());
         shooter.setDefaultCommand(shooter.targetDistance(swerve::getSpeakerDistance, 3500.0, swerve::inOpponentWing));
         swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
 
-        new Trigger(feeder::hasNote).whileTrue(lights.hasNote());
-
         Routines.onDisable().schedule();
-        RobotModeTriggers.disabled().whileTrue(Routines.onDisable());
+        RobotModeTriggers.disabled().onTrue(Routines.onDisable());
 
         /**
          * Driver bindings.
@@ -131,8 +130,7 @@ public final class RobotContainer {
         driver.leftBumper().whileTrue(Routines.prepFeed(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
         // POV Up => Barf Forwards (Hold)
-        driver.povUp().whileTrue(Routines.poop(true));
-        // driver.povUp().whileTrue(Routines.barfForward());
+        driver.povUp().whileTrue(Routines.barfForward());
 
         // POV Down => Pivot Down (Tap)
         driver.povDown().onTrue(pivot.goTo(PivotConstants.DOWN_POSITION));

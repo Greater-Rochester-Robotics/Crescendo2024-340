@@ -268,7 +268,7 @@ public final class Constants {
 
     public static final class LightsConstants {
 
-        public static final int LENGTH = 22;
+        public static final int LENGTH = 144;
     }
 
     public static final class PivotConstants {
@@ -399,8 +399,8 @@ public final class Constants {
             public static final SparkFlexConfig RIGHT_MOTOR = MOTOR_BASE.clone().setInverted(false);
 
             public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
-                .setPID(0.00075, 0.0001, 0.0003)
-                .setIZone(10.0);
+                .setPID(0.00047, 0.000002, 0.0)
+                .setIZone(100.0);
 
             public static final RelativeEncoderConfig ENCODER = new RelativeEncoderConfig()
                 .setPositionConversionFactor(REL_ENC_CONVERSION)

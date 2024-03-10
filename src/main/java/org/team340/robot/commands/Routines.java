@@ -191,10 +191,7 @@ public class Routines {
      * Calls {@code onDisable()} for all subsystems.
      */
     public static Command onDisable() {
-        return parallel(
-            sequence(waitSeconds(6.0), parallel(climber.onDisable(), feeder.onDisable(), intake.onDisable(), pivot.onDisable())),
-            lights.onDisable()
-        )
+        return sequence(waitSeconds(6.0), parallel(climber.onDisable(), feeder.onDisable(), intake.onDisable(), pivot.onDisable()))
             .withName("Routines.onDisable()");
     }
 }

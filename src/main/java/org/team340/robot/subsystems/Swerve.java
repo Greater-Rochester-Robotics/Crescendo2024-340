@@ -40,7 +40,7 @@ import org.team340.robot.Constants;
 import org.team340.robot.Constants.FieldPositions;
 import org.team340.robot.Constants.SwerveConstants;
 
-/**\[]
+/**
  * The swerve subsystem.
  */
 public class Swerve extends SwerveBase {
