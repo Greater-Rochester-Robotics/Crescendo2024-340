@@ -84,7 +84,10 @@ public class Pivot extends GRRSubsystem {
      * @param position The position to set.
      */
     private void applyPosition(double position) {
-        if (position < PivotConstants.MIN_POS || position > PivotConstants.MAX_POS) {
+        if (
+            position < PivotConstants.MIN_POS - PivotConstants.CLOSED_LOOP_ERR ||
+            position > PivotConstants.MAX_POS + PivotConstants.CLOSED_LOOP_ERR
+        ) {
             DriverStation.reportWarning(
                 "Invalid shooter pivot position. " +
                 Math2.toFixed(Math.toDegrees(position)) +

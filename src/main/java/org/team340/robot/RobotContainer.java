@@ -141,7 +141,7 @@ public final class RobotContainer {
         // POV Right => Prep Climb (Hold)
         driver.povRight().whileTrue(Routines.prepClimb(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
-        // St\art => Toggle Shooter
+        // Start => Toggle Shooter
         driver.start().toggleOnTrue(shooter.setSpeed(0.0));
 
         // Back => Dump Odometry

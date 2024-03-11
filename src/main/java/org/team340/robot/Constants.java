@@ -471,7 +471,7 @@ public final class Constants {
             .setRatelimits(8.5, 29.75)
             .setTrajectoryConstraints(3.86, 2.4)
             .setPowerProperties(VOLTAGE, 60.0, 40.0)
-            .setMechanicalProperties(6.75, 150.0 / 7.0, 3.81)
+            .setMechanicalProperties(6.75, 150.0 / 7.0, 3.82)
             .setDiscretizationLookahead(0.040)
             .setOdometryPeriod(PERIOD)
             .setOdometryStd(0.003, 0.003, 0.0012)
@@ -505,22 +505,24 @@ public final class Constants {
         public static final double VISION_STD_XY_SCALE = 0.006;
         public static final double VISION_STD_ROT_SCALE = 0.015;
 
-        public static final PIDConfig TRAJ_XY_PID = new PIDConfig(16.5, 0.0, 0.0);
-        public static final PIDConfig TRAJ_ROT_PID = new PIDConfig(4.7, 0.0, 0.0);
+        public static final PIDConfig TRAJ_XY_PID = new PIDConfig(19.6, 0.0, 0.0);
+        public static final PIDConfig TRAJ_ROT_PID = new PIDConfig(6.9, 0.0, 0.0);
         public static final Constraints TRAJ_ROT_CONSTRAINTS = new Constraints(6.5, 7.0);
-        public static final PIDConfig TRAJ_TARGET_PID = new PIDConfig(5.2, 0.0, 0.0);
+        public static final PIDConfig TRAJ_TARGET_PID = new PIDConfig(8.0, 0.0, 0.1);
 
         public static final PIDConfig XY_PID = new PIDConfig(3.5, 1.4, 0.2, 0.5);
         public static final PIDConfig ROT_PID = new PIDConfig(4.9, 0.5, 0.2, 0.2);
         public static final Constraints ROT_CONSTRAINTS = new Constraints(8.0, 37.5);
 
-        public static final double NOTE_VELOCITY = 6.0; // 5
-        public static final double NORM_FUDGE = 0.475; // .9
-        public static final double STRAFE_FUDGE = 0.95;
+        public static final double NOTE_VELOCITY = 5.6;
+        public static final double NORM_FUDGE = 0.52;
+        public static final double STRAFE_FUDGE = 0.85;
         public static final double SPIN_COMPENSATION = Math.toRadians(-2.0);
 
         public static final double NORM_FUDGE_MIN = 0.075; // .1
         public static final double FACING_SPEAKER_EPSILON = Math.toRadians(5.0);
+
+        public static final double DRIVE_BASE_RADIUS = Math.hypot(FRONT_LEFT.getPosition().getX(), FRONT_LEFT.getPosition().getY());
     }
 
     public static final class FieldPositions {

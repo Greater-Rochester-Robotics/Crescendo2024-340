@@ -10,6 +10,7 @@ import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.controller.HolonomicDriveController;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -18,7 +19,9 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.trajectory.Trajectory;
 import edu.wpi.first.math.trajectory.Trajectory.State;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.util.sendable.SendableBuilder;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
@@ -71,6 +74,8 @@ public class Swerve extends SwerveBase {
     private double tunableSpeakerXFudge = 0.0;
     private double tunableSpeakerYFudge = 0.0;
 
+    private double effectiveWheelRadius = -1.0;
+
     /**
      * Create the swerve subsystem.
      */
@@ -121,6 +126,7 @@ public class Swerve extends SwerveBase {
         builder.addDoubleProperty("speakerX", () -> getSpeakerPosition().getX(), null);
         builder.addDoubleProperty("speakerY", () -> getSpeakerPosition().getY(), null);
         builder.addDoubleProperty("speakerDistance", this::getSpeakerDistance, null);
+        builder.addDoubleProperty("effectiveWheelRadius", () -> effectiveWheelRadius, null);
         builder.addBooleanProperty("inOpponentWing", this::inOpponentWing, null);
         builder.addDoubleArrayProperty("speaker", () -> speaker, null);
 
@@ -261,7 +267,6 @@ public class Swerve extends SwerveBase {
             (Alliance.isBlue() ? tunableSpeakerYFudge : -tunableSpeakerYFudge) -
             (robotVel.vyMetersPerSecond * (distance / tunableNoteVelocity) * tunableStrafeFudge);
 
-        if (Math.random() > 0.9) System.out.println(tunableNormFudge);
         speaker = SwerveVisualizer.pose3d(new Pose3d(x, y, FieldPositions.SPEAKER_HEIGHT, Math2.ROTATION3D_0));
         return new Translation2d(x, y);
     }
@@ -274,6 +279,13 @@ public class Swerve extends SwerveBase {
         Translation2d speakerPosition = getSpeakerPosition();
         Translation2d robotPoint = getPosition().getTranslation();
         return MathUtil.angleModulus(speakerPosition.minus(robotPoint).getAngle().getRadians() + Math.PI + tunableSpinCompensation);
+    }
+
+    /**
+     * Returns the robot's yaw in radians.
+     */
+    public double getYaw() {
+        return imu.getYaw().getRadians();
     }
 
     /**
@@ -547,5 +559,63 @@ public class Swerve extends SwerveBase {
      */
     public Command sysIdDynamic(SysIdRoutine.Direction direction) {
         return sysIdRoutine.dynamic(direction);
+    }
+
+    public class WheelRadiusCharacterization extends Command {
+
+        private final boolean forward;
+        private final SlewRateLimiter omegaLimiter = new SlewRateLimiter(1.0);
+
+        private double lastGyroYawRads = 0.0;
+        private double accumGyroYawRads = 0.0;
+
+        private double[] startWheelPositions;
+
+        private double currentEffectiveWheelRadius = 0.0;
+
+        public WheelRadiusCharacterization(boolean forward) {
+            this.forward = forward;
+        }
+
+        @Override
+        public void initialize() {
+            lastGyroYawRads = getYaw();
+            accumGyroYawRads = 0.0;
+            startWheelPositions = getModuleDistanceRad();
+
+            omegaLimiter.reset(0);
+        }
+
+        @Override
+        public void execute() {
+            // Run drive at velocity
+            driveSpeeds(new ChassisSpeeds(0.0, 0.0, omegaLimiter.calculate((forward ? 1.0 : -1.0) * 2.0)), false, false);
+
+            // Get yaw and wheel positions
+            double yaw = getYaw();
+            accumGyroYawRads += MathUtil.angleModulus(yaw - lastGyroYawRads);
+            lastGyroYawRads = yaw;
+            double averageWheelPosition = 0.0;
+            double[] wheelPositions = getModuleDistanceRad();
+            System.out.println(wheelPositions[0]);
+            for (int i = 0; i < 4; i++) {
+                averageWheelPosition += Math.abs(wheelPositions[i] - startWheelPositions[i]);
+            }
+            averageWheelPosition /= 4.0;
+
+            currentEffectiveWheelRadius = (accumGyroYawRads * SwerveConstants.DRIVE_BASE_RADIUS) / averageWheelPosition;
+        }
+
+        @Override
+        public void end(boolean interrupted) {
+            if (Math.abs(accumGyroYawRads) <= Math.PI * 2.0) {
+                DriverStation.reportWarning("Not enough data for characterization", false);
+                effectiveWheelRadius = -1.0;
+            } else {
+                double effectiveWheelRadiusInches = Units.metersToInches(currentEffectiveWheelRadius) * 2.0;
+                System.out.println("Effective Wheel Diameter: " + effectiveWheelRadiusInches + " inches");
+                effectiveWheelRadius = effectiveWheelRadiusInches;
+            }
+        }
     }
 }

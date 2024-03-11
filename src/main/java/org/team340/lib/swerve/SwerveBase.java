@@ -269,6 +269,16 @@ public abstract class SwerveBase extends GRRSubsystem {
     }
 
     /**
+     * Gets an array of the modules' move motor distance in radians.
+     */
+    protected double[] getModuleDistanceRad() {
+        return Arrays
+            .stream(modules)
+            .mapToDouble(module -> module.getDistance() * (conversions.moveRotationsPerMeter() / config.getMoveGearRatio()) * Math2.TWO_PI)
+            .toArray();
+    }
+
+    /**
      * Resets odometry.
      * @param newPose The new pose.
      */
