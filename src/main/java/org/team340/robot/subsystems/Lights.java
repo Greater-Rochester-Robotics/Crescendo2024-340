@@ -70,7 +70,7 @@ public class Lights extends GRRSubsystem {
     /**
      * The default command for the lights.
      */
-    public Command defaultCommand(Supplier<Boolean> hasNote) {
+    public Command defaultCommand(Supplier<Boolean> intakeNote, Supplier<Boolean> feederNote) {
         int[] state = new int[buffer.getLength()];
         for (int i = 0; i < state.length; i++) {
             state[i] = 0;
@@ -79,14 +79,20 @@ public class Lights extends GRRSubsystem {
         return commandBuilder()
             .onExecute(() -> {
                 if (DriverStation.isTeleopEnabled()) {
-                    if (hasNote.get()) {
-                        double time = timer.get();
-                        for (int i = 0; i < buffer.getLength() / 2; i++) {
-                            int v = (int) ((Math.cos((time * 20.0) - ((i / (buffer.getLength() / 2.0)) * Math2.TWO_PI)) + 1.0) * 100.0);
-                            setMirrored(i, v, v, v);
-                            buffer.setRGB(i, v, v, v);
+                    if (feederNote.get()) {
+                        if (intakeNote.get()) {
+                            double time = timer.get();
+                            for (int i = 0; i < buffer.getLength() / 2; i++) {
+                                int v = (int) ((Math.cos((time * 60.0) + ((i / (buffer.getLength() / 2.0)) * Math2.TWO_PI)) + 1.0) * 100.0);
+                                setMirrored(i, v, v, v);
+                            }
+                        } else {
+                            double time = timer.get();
+                            for (int i = 0; i < buffer.getLength() / 2; i++) {
+                                double v = (Math.cos((time * 20.0) - ((i / (buffer.getLength() / 2.0)) * Math2.TWO_PI)) + 1.0) / 2.0;
+                                setMirrored(i, (int) (v * 255.0), (int) (v * 86.0), (int) (v * 6.0));
+                            }
                         }
-                        apply();
                     } else {
                         int v = (int) (((Math.cos(timer.get() * 8.5) + 1.0) * 87.5) + 25.0);
                         if (Alliance.isBlue()) {
@@ -94,7 +100,6 @@ public class Lights extends GRRSubsystem {
                         } else {
                             set(v, 0, 0);
                         }
-                        apply();
                     }
                 } else if (DriverStation.isAutonomousEnabled()) {
                     for (int i = 0; i < buffer.getLength() / 2; i++) {
@@ -118,14 +123,13 @@ public class Lights extends GRRSubsystem {
                             setMirrored(i, ramp, 0, 0);
                         }
                     }
-                    apply();
                 } else if (DriverStation.isDisabled()) {
                     if (Alliance.isBlue()) set(0, 0, 150); else set(150, 0, 0);
-                    apply();
                 } else {
                     set(0, 0, 0);
-                    apply();
                 }
+
+                apply();
             })
             .onEnd(() -> {
                 set(0, 0, 0);

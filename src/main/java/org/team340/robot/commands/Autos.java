@@ -99,4 +99,23 @@ public class Autos {
             )
         );
     }
+
+    public static Command fourPieceSource(List<ChoreoTrajectory> traj) {
+        return parallel(
+            pivot.targetDistance(swerve::getSpeakerDistance),
+            sequence(
+                swerve.followTrajectory(traj.get(0), -1.0, -1.0, true).deadlineWith(intake.downPosition()),
+                deadline(sequence(waitSeconds(1.0), feeder.shoot().withTimeout(0.6)), swerve.driveSpeaker()),
+                swerve.followTrajectory(traj.get(1)).deadlineWith(Routines.intake()),
+                swerve.followTrajectory(traj.get(2), 0.65, -1.0).deadlineWith(Routines.intake().withTimeout(0.25)),
+                deadline(sequence(waitSeconds(0.5), feeder.shoot().withTimeout(0.6)), swerve.driveSpeaker()),
+                swerve.followTrajectory(traj.get(3)).deadlineWith(Routines.intake()),
+                swerve.followTrajectory(traj.get(4), 1.0, -1.0).deadlineWith(Routines.intake().withTimeout(0.25)),
+                deadline(sequence(waitSeconds(0.5), feeder.shoot().withTimeout(0.6)), swerve.driveSpeaker()),
+                swerve.followTrajectory(traj.get(5)).deadlineWith(Routines.intake()),
+                swerve.followTrajectory(traj.get(6), 0.9, -1.0).deadlineWith(Routines.intake().withTimeout(0.25)),
+                deadline(sequence(waitSeconds(0.5), feeder.shoot().withTimeout(0.6)), swerve.driveSpeaker())
+            )
+        );
+    }
 }

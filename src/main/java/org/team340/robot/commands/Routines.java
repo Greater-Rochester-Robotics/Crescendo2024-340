@@ -146,8 +146,8 @@ public class Routines {
      */
     public static Command barfForward() {
         return sequence(
-            parallel(pivot.goTo(PivotConstants.BARF_FORWARD_POSITION), intake.barfPosition()),
-            parallel(shooter.barfForward(), feeder.barfForward(), intake.barf())
+            parallel(pivot.goTo(PivotConstants.BARF_FORWARD_POSITION), intake.barfPosition()).withTimeout(0.5),
+            parallel(pivot.goTo(PivotConstants.BARF_FORWARD_POSITION), feeder.barfForward(), intake.barf())
         )
             .withName("Routines.barfForward()");
     }

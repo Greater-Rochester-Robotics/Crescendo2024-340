@@ -110,12 +110,12 @@ public class Swerve extends SwerveBase {
                     new PhotonCamera("BackRight"),
                     SwerveConstants.BACK_RIGHT_CAMERA
                 ),
-                // new PhotonPoseEstimator(
-                //     blueAprilTags,
-                //     PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-                //     new PhotonCamera("FrontRight"),
-                // SwerveConstants.FRONT_RIGHT_CAMERA
-                // ),
+                new PhotonPoseEstimator(
+                    blueAprilTags,
+                    PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+                    new PhotonCamera("FrontRight"),
+                    SwerveConstants.FRONT_RIGHT_CAMERA
+                ),
             };
     }
 

@@ -243,7 +243,7 @@ public class Shooter extends GRRSubsystem {
      * Spits the note back towards the intake.
      */
     public Command barfForward() {
-        return commandBuilder("shooter.barf()")
+        return commandBuilder("shooter.barfForward()")
             .onInitialize(() -> {
                 leftShootMotor.set(ShooterConstants.FORWARD_BARF_SPEED);
                 rightShootMotor.set(ShooterConstants.FORWARD_BARF_SPEED);
@@ -258,7 +258,7 @@ public class Shooter extends GRRSubsystem {
      * Spits the note out of the shooter.
      */
     public Command barfBackward() {
-        return commandBuilder("shooter.barf()")
+        return commandBuilder("shooter.barfBackward()")
             .onInitialize(() -> {
                 leftShootMotor.set(ShooterConstants.BACKWARD_BARF_SPEED);
                 rightShootMotor.set(ShooterConstants.BACKWARD_BARF_SPEED);
