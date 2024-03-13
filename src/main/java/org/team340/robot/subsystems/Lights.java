@@ -90,7 +90,7 @@ public class Lights extends GRRSubsystem {
                             double time = timer.get();
                             for (int i = 0; i < buffer.getLength() / 2; i++) {
                                 double v = (Math.cos((time * 20.0) - ((i / (buffer.getLength() / 2.0)) * Math2.TWO_PI)) + 1.0) / 2.0;
-                                setMirrored(i, (int) (v * 255.0), (int) (v * 86.0), (int) (v * 6.0));
+                                setMirrored(i, (int) (v * 255.0), (int) (v * 24.0), (int) (v * 2.0));
                             }
                         }
                     } else {

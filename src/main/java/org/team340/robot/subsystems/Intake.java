@@ -152,6 +152,13 @@ public class Intake extends GRRSubsystem {
     }
 
     /**
+     * Moves to the handoff position. Runs until the arm is at the position.
+     */
+    public Command handoffPosition() {
+        return useState(IntakeConstants.HANDOFF_POSITION, 0, 0, true).withName("intake.handoffPosition()");
+    }
+
+    /**
      * Moves to the safe position. Runs until the arm is at the position.
      */
     public Command safePosition() {
@@ -202,10 +209,10 @@ public class Intake extends GRRSubsystem {
     }
 
     /**
-     * Receives a note back from the shooter for amp scoring. Does not end.
+     * Receives a note back from the feeder. Does not end.
      */
-    public Command ampHandoff() {
-        return useState(IntakeConstants.DOWN_POSITION, IntakeConstants.AMP_HANDOFF_SPEED, IntakeConstants.AMP_HANDOFF_SPEED, false)
+    public Command handoff() {
+        return useState(IntakeConstants.HANDOFF_POSITION, IntakeConstants.HANDOFF_SPEED, IntakeConstants.HANDOFF_SPEED, false)
             .withName("intake.ampHandoff()");
     }
 

@@ -112,7 +112,7 @@ public final class RobotContainer {
         driver.b().onTrue(Routines.intakeHuman(RobotContainer::getDriveX, RobotContainer::getDriveY)).onFalse(Routines.finishIntakeHuman());
 
         // X => Prep Amp (Hold)
-        driver.x().whileTrue(Routines.prepAmp(RobotContainer::getDriveX, RobotContainer::getDriveY));
+        driver.x().whileTrue(Routines.scoreAmp());
 
         // Y => Shoot (Tap)
         driver.y().whileTrue(feeder.shoot());

@@ -62,7 +62,6 @@ public class SwerveSparkMax implements SwerveMotor {
 
         new SparkMaxConfig()
             .clearFaults()
-            .restoreFactoryDefaults()
             .enableVoltageCompensation(config.getOptimalVoltage())
             .setSmartCurrentLimit((int) (isMoveMotor ? config.getMoveCurrentLimit() : config.getTurnCurrentLimit()))
             .setIdleMode(

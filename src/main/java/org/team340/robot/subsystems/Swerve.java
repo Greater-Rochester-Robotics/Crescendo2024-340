@@ -1,5 +1,7 @@
 package org.team340.robot.subsystems;
 
+import static edu.wpi.first.wpilibj2.command.Commands.*;
+
 import com.choreo.lib.Choreo;
 import com.choreo.lib.ChoreoTrajectory;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
@@ -73,6 +75,8 @@ public class Swerve extends SwerveBase {
     private double tunableSpinCompensation = SwerveConstants.SPIN_COMPENSATION;
     private double tunableSpeakerXFudge = 0.0;
     private double tunableSpeakerYFudge = 0.0;
+    private double tunableAmpXFudge = 0.0;
+    private double tunableAmpYFudge = 0.0;
 
     private double effectiveWheelRadius = -1.0;
 
@@ -136,6 +140,8 @@ public class Swerve extends SwerveBase {
         builder.addDoubleProperty("tunableSpinCompensation", null, compensation -> tunableSpinCompensation = compensation);
         builder.addDoubleProperty("tunableSpeakerXFudge", null, fudge -> tunableSpeakerXFudge = fudge);
         builder.addDoubleProperty("tunableSpeakerYFudge", null, fudge -> tunableSpeakerYFudge = fudge);
+        builder.addDoubleProperty("tunableAmpXFudge", null, fudge -> tunableAmpXFudge = fudge);
+        builder.addDoubleProperty("tunableAmpYFudge", null, fudge -> tunableAmpYFudge = fudge);
     }
 
     @Override
@@ -344,19 +350,36 @@ public class Swerve extends SwerveBase {
     }
 
     /**
-     * Allows the driver to keep driving, but forces the robot to face the amp.
-     * @param x The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
-     * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
+     * Drives to the amp.
+     * If PID is being used, the command will not end.
+     * If a trajectory is being used, the command ends after the trajectory is completed.
+     * @param useTrajectory If a trajectory should be used to translate to the amp. Otherwise, PID is used.
      */
-    public Command driveAmp(Supplier<Double> x, Supplier<Double> y) {
-        return commandBuilder("swerve.driveAmp()")
-            .onInitialize(() -> rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
-            .onExecute(() -> {
-                double angle = Alliance.isBlue() ? Math2.HALF_PI : -Math2.HALF_PI;
-                visualizer.updateTarget(angle);
-                driveAngle(x.get(), y.get(), angle, rotPID, false);
+    public Command driveAmp(boolean useTrajectory) {
+        return defer(() -> {
+                double fudgeY = (Alliance.isBlue() ? tunableAmpYFudge : -tunableAmpYFudge);
+                Pose2d rawTarget = Alliance.isBlue() ? FieldPositions.AMP_SCORE_BLUE : FieldPositions.AMP_SCORE_RED;
+                Pose2d target = new Pose2d(rawTarget.getX() + tunableAmpXFudge, rawTarget.getY() + fudgeY, rawTarget.getRotation());
+                if (useTrajectory) {
+                    Pose2d rawApproach = Alliance.isBlue() ? FieldPositions.AMP_APPROACH_BLUE : FieldPositions.AMP_APPROACH_RED;
+                    Pose2d approach = new Pose2d(
+                        rawApproach.getX() + tunableAmpXFudge,
+                        rawApproach.getY() + fudgeY,
+                        rawApproach.getRotation()
+                    );
+                    return followTrajectory(generateTrajectory(approach, target));
+                } else {
+                    return pidTo(target);
+                }
             })
-            .onEnd(() -> visualizer.removeTarget());
+            .withName("swerve.driveAmp(" + useTrajectory + ")");
+    }
+
+    /**
+     * Drives away from the amp.
+     */
+    public Command driveAmpAway() {
+        return commandBuilder("swerve.driveAmpAway()").onExecute(() -> drive(0.0, Alliance.isBlue() ? -0.1 : 0.1, 0.0, true));
     }
 
     /**
@@ -517,6 +540,7 @@ public class Swerve extends SwerveBase {
      * @param traj The trajectory to follow.
      */
     public Command followTrajectory(Trajectory traj) {
+        if (traj.getStates().isEmpty()) return none();
         Rotation2d endRotation = traj.getStates().get(traj.getStates().size() - 1).poseMeters.getRotation();
         Timer timer = new Timer();
 

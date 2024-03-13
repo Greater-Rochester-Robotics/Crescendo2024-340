@@ -5,6 +5,8 @@ import static org.team340.robot.RobotContainer.*;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.Supplier;
+import org.team340.lib.util.Mutable;
+import org.team340.robot.Constants;
 import org.team340.robot.Constants.PivotConstants;
 
 /**
@@ -69,17 +71,6 @@ public class Routines {
     }
 
     /**
-     * Fixes the position of the note if it is in a deadzone.
-     */
-    public static Command fixDeadzone() {
-        return sequence(
-            deadline(feeder.reverseSeat(), shooter.barfForward(), pivot.goTo(PivotConstants.FIX_DEADZONE_POSITION)),
-            parallel(feeder.seat(), pivot.goTo(PivotConstants.DOWN_POSITION))
-        )
-            .withName("Routines.fixDeadzone()");
-    }
-
-    /**
      * Prepares to score in speaker by facing the speaker and moving the pivot.
      * @param x The desired {@code x} driving speed from {@code -1.0} to {@code 1.0}.
      * @param y The desired {@code y} driving speed from {@code -1.0} to {@code 1.0}.
@@ -89,33 +80,32 @@ public class Routines {
     }
 
     /**
-     * Prepares to score in the amp by facing the amp and handing the note to the intake.
-     * @param x The desired {@code x} driving speed from {@code -1.0} to {@code 1.0}.
-     * @param y The desired {@code y} driving speed from {@code -1.0} to {@code 1.0}.
+    /**
+     * Scores in the amp.
      */
-    public static Command prepAmp(Supplier<Double> x, Supplier<Double> y) {
-        return parallel(
-            swerve.driveAmp(x, y),
-            sequence(
+    public static Command scoreAmp() {
+        Mutable<Boolean> approached = new Mutable<>(false);
+        return sequence(
+            runOnce(() -> approached.set(false)),
+            parallel(
+                swerve.driveAmp(true).until(() -> swerve.getAmpDistance() < 0.5).finallyDo(() -> approached.set(true)),
                 sequence(
-                    parallel(
-                        pivot.goTo(PivotConstants.AMP_HANDOFF_POSITION),
-                        sequence(waitUntil(pivot::isSafeForIntake), intake.downPosition())
-                    ),
                     sequence(
-                        intake.downPosition(),
-                        deadline(
-                            sequence(waitUntil(() -> intake.hasNote() && !feeder.hasNote()), waitSeconds(0.1)),
-                            feeder.barfForward(),
-                            intake.ampHandoff()
-                        )
+                        parallel(
+                            pivot.goTo(Constants.PivotConstants.AMP_HANDOFF_POSITION),
+                            sequence(waitUntil(pivot::isSafeForIntake), intake.handoffPosition())
+                        ),
+                        handoff()
                     )
+                        .unless(intake::hasNote),
+                    intake.ampPosition(),
+                    intake.maintainPosition().until(approached::get)
                 )
-                    .unless(intake::hasNote),
-                intake.ampPosition(),
-                intake.maintainPosition()
-            )
-        );
+            ),
+            swerve.driveAmp(false).until(() -> swerve.getAmpDistance() < 0.02).deadlineWith(sequence(waitSeconds(0.6), intake.scoreAmp())),
+            parallel(intake.scoreAmp(), swerve.driveAmpAway())
+        )
+            .withName("Routines.scoreAmp()");
     }
 
     /**
@@ -142,6 +132,17 @@ public class Routines {
     }
 
     /**
+     * Fixes the position of the note if it is in a deadzone.
+     */
+    public static Command fixDeadzone() {
+        return sequence(
+            deadline(feeder.reverseSeat(), shooter.barfForward(), pivot.goTo(PivotConstants.FIX_DEADZONE_POSITION)),
+            parallel(feeder.seat(), pivot.goTo(PivotConstants.DOWN_POSITION))
+        )
+            .withName("Routines.fixDeadzone()");
+    }
+
+    /**
      * Barfs the note forwards out of the intake.
      */
     public static Command barfForward() {
@@ -153,19 +154,18 @@ public class Routines {
     }
 
     /**
+     * Barfs the note backwards out of the shooter.
+     */
+    public static Command barfBackward() {
+        return parallel(shooter.barfBackward(), sequence(waitSeconds(0.35), parallel(feeder.barfBackward(), intake.intake())))
+            .withName("Routines.barfBackward()");
+    }
+
+    /**
      * Prepares to poop the note forwards out of the intake.
      */
     public static Command prepPoop() {
-        return sequence(
-            intake.downPosition(),
-            deadline(
-                sequence(waitUntil(() -> intake.hasNote() && !feeder.hasNote()), waitSeconds(0.1)),
-                feeder.barfForward(),
-                intake.ampHandoff()
-            ),
-            intake.poopPosition()
-        )
-            .withName("Routines.prepPoop()");
+        return sequence(handoff(), intake.poopPosition()).withName("Routines.prepPoop()");
     }
 
     /**
@@ -181,12 +181,17 @@ public class Routines {
     }
 
     /**
-     * Barfs the note backwards out of the shooter.
-     * @return
+     * Returns the note from the feeder back to the intake.
      */
-    public static Command barfBackward() {
-        return parallel(shooter.barfBackward(), sequence(waitSeconds(0.35), parallel(feeder.barfBackward(), intake.intake())))
-            .withName("Routines.barfBackward()");
+    public static Command handoff() {
+        return sequence(
+            intake.handoffPosition(),
+            deadline(
+                sequence(waitUntil(() -> intake.hasNote() && !feeder.hasNote()), waitSeconds(0.1)),
+                feeder.barfForward(),
+                intake.handoff()
+            )
+        );
     }
 
     /**

@@ -129,7 +129,6 @@ public final class Constants {
 
             public static final SparkFlexConfig MOTOR = new SparkFlexConfig()
                 .clearFaults()
-                .restoreFactoryDefaults()
                 .enableVoltageCompensation(VOLTAGE)
                 .setSmartCurrentLimit(40)
                 .setIdleMode(IdleMode.kBrake)
@@ -172,7 +171,6 @@ public final class Constants {
 
             public static final SparkMaxConfig MOTOR = new SparkMaxConfig()
                 .clearFaults()
-                .restoreFactoryDefaults()
                 .enableVoltageCompensation(VOLTAGE)
                 .setSmartCurrentLimit(30)
                 .setIdleMode(IdleMode.kBrake)
@@ -196,7 +194,7 @@ public final class Constants {
 
         // Speeds
         public static final double INTAKE_SPEED = 0.9;
-        public static final double AMP_HANDOFF_SPEED = -0.25;
+        public static final double HANDOFF_SPEED = -0.25;
         public static final double AMP_UPPER_SPEED = -0.6;
         public static final double AMP_LOWER_SPEED = -0.075;
         public static final double BARF_SPEED = -0.5;
@@ -205,6 +203,7 @@ public final class Constants {
 
         // Positions
         public static final double DOWN_POSITION = Math.toRadians(0.0);
+        public static final double HANDOFF_POSITION = Math.toRadians(0.0);
         public static final double SAFE_POSITION = Math.toRadians(30.0);
         public static final double POOP_POSITION = Math.toRadians(25.0);
         public static final double RETRACT_POSITION = Math.toRadians(65.0);
@@ -225,7 +224,6 @@ public final class Constants {
 
             private static final SparkFlexConfig MOTOR_BASE = new SparkFlexConfig()
                 .clearFaults()
-                .restoreFactoryDefaults()
                 .enableVoltageCompensation(VOLTAGE)
                 .setSmartCurrentLimit(60, 30)
                 .setIdleMode(IdleMode.kBrake)
@@ -256,7 +254,6 @@ public final class Constants {
 
             public static final SparkMaxConfig MOTOR = new SparkMaxConfig()
                 .clearFaults()
-                .restoreFactoryDefaults()
                 .enableVoltageCompensation(VOLTAGE)
                 .setSmartCurrentLimit(30)
                 .setIdleMode(IdleMode.kCoast)
@@ -301,7 +298,6 @@ public final class Constants {
 
             public static final SparkFlexConfig MOTOR = new SparkFlexConfig()
                 .clearFaults()
-                .restoreFactoryDefaults()
                 .enableVoltageCompensation(VOLTAGE)
                 .setSmartCurrentLimit(60, 30)
                 .setIdleMode(IdleMode.kCoast)
@@ -388,7 +384,6 @@ public final class Constants {
 
             private static final SparkFlexConfig MOTOR_BASE = new SparkFlexConfig()
                 .clearFaults()
-                .restoreFactoryDefaults()
                 .enableVoltageCompensation(VOLTAGE)
                 .setSmartCurrentLimit(50, 35)
                 .setIdleMode(IdleMode.kCoast)
@@ -508,9 +503,9 @@ public final class Constants {
         public static final PIDConfig TRAJ_XY_PID = new PIDConfig(19.6, 0.0, 0.0);
         public static final PIDConfig TRAJ_ROT_PID = new PIDConfig(6.9, 0.0, 0.0);
         public static final Constraints TRAJ_ROT_CONSTRAINTS = new Constraints(6.5, 7.0);
-        public static final PIDConfig TRAJ_TARGET_PID = new PIDConfig(8.0, 0.0, 0.1);
+        public static final PIDConfig TRAJ_TARGET_PID = new PIDConfig(7.25, 0.0, 0.15);
 
-        public static final PIDConfig XY_PID = new PIDConfig(3.5, 1.4, 0.2, 0.5);
+        public static final PIDConfig XY_PID = new PIDConfig(6.5, 1.2, 0.05, 0.5);
         public static final PIDConfig ROT_PID = new PIDConfig(4.9, 0.5, 0.2, 0.2);
         public static final Constraints ROT_CONSTRAINTS = new Constraints(8.0, 37.5);
 
@@ -539,14 +534,14 @@ public final class Constants {
         );
         public static final Pose3d RED_SPEAKER_3D = new Pose3d(RED_SPEAKER.getX(), RED_SPEAKER.getY(), SPEAKER_HEIGHT, Math2.ROTATION3D_0);
 
-        public static final double AMP_X = 1.775;
-        public static final Pose2d AMP_APPROACH_BLUE = new Pose2d(AMP_X, 6.98, Math2.ROTATION2D_HALF_PI);
+        public static final double AMP_X = 1.79;
+        public static final Pose2d AMP_APPROACH_BLUE = new Pose2d(AMP_X, 6.94, Math2.ROTATION2D_HALF_PI);
         public static final Pose2d AMP_APPROACH_RED = new Pose2d(
             AMP_X,
             FIELD_WIDTH - AMP_APPROACH_BLUE.getY(),
             Math2.ROTATION2D_NEG_HALF_PI
         );
-        public static final Pose2d AMP_SCORE_BLUE = new Pose2d(AMP_X, 7.82, Math2.ROTATION2D_HALF_PI);
+        public static final Pose2d AMP_SCORE_BLUE = new Pose2d(AMP_X, 7.7, Math2.ROTATION2D_HALF_PI);
         public static final Pose2d AMP_SCORE_RED = new Pose2d(AMP_X, FIELD_WIDTH - AMP_SCORE_BLUE.getY(), Math2.ROTATION2D_NEG_HALF_PI);
 
         public static final Translation2d STAGE = new Translation2d(4.981067, 4.105783);
