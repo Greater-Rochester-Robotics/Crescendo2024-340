@@ -80,10 +80,12 @@ public class Routines {
     }
 
     /**
-    /**
-     * Scores in the amp.
+     * Automatically drives to the amp and runs the intake rollers to score,
+     * after the robot is in position the drive can manually drive the robot to adjust.
+     * @param x The desired {@code x} driving speed from {@code -1.0} to {@code 1.0}.
+     * @param y The desired {@code y} driving speed from {@code -1.0} to {@code 1.0}.
      */
-    public static Command scoreAmp() {
+    public static Command scoreAmp(Supplier<Double> x, Supplier<Double> y) {
         Mutable<Boolean> approached = new Mutable<>(false);
         return sequence(
             runOnce(() -> approached.set(false)),
@@ -102,8 +104,8 @@ public class Routines {
                     intake.maintainPosition().until(approached::get)
                 )
             ),
-            swerve.driveAmp(false).until(() -> swerve.getAmpDistance() < 0.02).deadlineWith(sequence(waitSeconds(0.6), intake.scoreAmp())),
-            parallel(intake.scoreAmp(), swerve.driveAmpAway())
+            swerve.driveAmp(false).until(() -> swerve.getAmpDistance() < 0.02).withTimeout(0.8),
+            parallel(intake.scoreAmp(), swerve.driveAmpManual(x, y))
         )
             .withName("Routines.scoreAmp()");
     }
@@ -136,7 +138,7 @@ public class Routines {
      */
     public static Command fixDeadzone() {
         return sequence(
-            deadline(feeder.reverseSeat(), shooter.barfForward(), pivot.goTo(PivotConstants.FIX_DEADZONE_POSITION)),
+            deadline(feeder.reverseSeat(), shooter.fixDeadzone(), pivot.goTo(PivotConstants.FIX_DEADZONE_POSITION)),
             parallel(feeder.seat(), pivot.goTo(PivotConstants.DOWN_POSITION))
         )
             .withName("Routines.fixDeadzone()");

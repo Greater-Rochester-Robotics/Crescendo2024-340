@@ -6,7 +6,6 @@ import com.choreo.lib.Choreo;
 import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
 import org.team340.lib.GRRDashboard;
 import org.team340.lib.controller.Controller2;
 import org.team340.lib.util.Math2;
@@ -112,7 +111,7 @@ public final class RobotContainer {
         driver.b().onTrue(Routines.intakeHuman(RobotContainer::getDriveX, RobotContainer::getDriveY)).onFalse(Routines.finishIntakeHuman());
 
         // X => Prep Amp (Hold)
-        driver.x().whileTrue(Routines.scoreAmp());
+        driver.x().whileTrue(Routines.scoreAmp(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
         // Y => Shoot (Tap)
         driver.y().whileTrue(feeder.shoot());
@@ -151,28 +150,29 @@ public final class RobotContainer {
          * Co-driver bindings.
          */
 
-        Trigger coDriverOverride = coDriver.leftBumper().and(coDriver.rightBumper());
-
-        coDriverOverride.whileTrue(
-            parallel(
-                intake.driveArmManual(() -> -coDriver.getLeftY() * 0.5),
-                pivot.driveManual(() -> -coDriver.getRightY() * 0.4),
-                shooter.driveManual(() -> -coDriver.getRightX() * 500.0)
-            )
-                .withName("RobotContainer.coDriverOverride.whileTrue()")
-        );
+        coDriver
+            .leftBumper()
+            .and(coDriver.rightBumper())
+            .whileTrue(
+                parallel(
+                    intake.driveArmManual(() -> -coDriver.getLeftY() * 0.5),
+                    pivot.driveManual(() -> -coDriver.getRightY() * 0.4),
+                    shooter.driveManual(() -> -coDriver.getRightX() * 500.0)
+                )
+                    .withName("coDriver.leftBumper().and(coDriver.rightBumper()).whileTrue()")
+            );
 
         // A => Climb (Hold)
         coDriver.a().whileTrue(climber.climb(swerve::getRoll));
 
         // B => Overrides intake (Hold)
-        coDriver.b().and(coDriverOverride).whileTrue(Routines.intakeOverride());
+        coDriver.b().whileTrue(Routines.intakeOverride());
 
         // X => Fender Shot (Hold)
         coDriver.x().whileTrue(pivot.targetDistance(() -> FieldPositions.FENDER_SHOT_DISTANCE));
 
-        // Y => Score Amp (Hold)
-        coDriver.y().whileTrue(intake.scoreAmp());
+        // Y => Fix deadzone (Hold)
+        coDriver.y().onTrue(Routines.fixDeadzone());
 
         // Both Triggers => Drives climber manually
         coDriver
@@ -180,14 +180,11 @@ public final class RobotContainer {
             .and(coDriver.rightTrigger())
             .whileTrue(climber.driveManual(() -> -coDriver.getLeftY() * 0.3, () -> -coDriver.getRightY() * 0.3));
 
-        // POV Up => Pivot home (Hold)
-        coDriver.povUp().whileTrue(pivot.home(true));
+        // POV Up => Prep Speaker (Hold)
+        coDriver.povUp().whileTrue(Routines.prepSpeaker(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
-        // POV Left => Prep Speaker (Hold)
-        coDriver.povLeft().whileTrue(Routines.prepSpeaker(RobotContainer::getDriveX, RobotContainer::getDriveY));
-
-        // POV Right => Fix deadzone (Hold)
-        coDriver.povRight().onTrue(Routines.fixDeadzone());
+        // POV Down => Pivot home (Hold)
+        coDriver.povDown().whileTrue(pivot.home(true));
 
         // Back / Start => he he rumble rumble
         coDriver.back().toggleOnTrue(setCoDriverRumble(RumbleType.kLeftRumble, 0.5).ignoringDisable(true));
@@ -199,8 +196,14 @@ public final class RobotContainer {
      * added to {@link GRRDashboard}.
      */
     private static void configAutos() {
+        var fourPieceClose = Choreo.getTrajectoryGroup("FourPieceClose");
+        GRRDashboard.addAutoCommand("Four Piece Close", fourPieceClose, Autos.fourPieceClose(fourPieceClose));
+
         var fivePieceAmp = Choreo.getTrajectoryGroup("FivePieceAmp");
         GRRDashboard.addAutoCommand("Five Piece Amp", fivePieceAmp, Autos.fivePieceAmp(fivePieceAmp));
+
+        var fourPieceFar = Choreo.getTrajectoryGroup("FourPieceFar");
+        GRRDashboard.addAutoCommand("Four Piece Far", fourPieceFar, Autos.fourPieceFar(fourPieceFar));
 
         var fourPieceSource12 = Choreo.getTrajectoryGroup("FourPieceSource12");
         GRRDashboard.addAutoCommand("Four Piece Source: 1, 2", fourPieceSource12, Autos.fourPieceSource(fourPieceSource12));
@@ -219,12 +222,6 @@ public final class RobotContainer {
 
         var fourPieceSource32 = Choreo.getTrajectoryGroup("FourPieceSource32");
         GRRDashboard.addAutoCommand("Four Piece Source: 3, 2", fourPieceSource32, Autos.fourPieceSource(fourPieceSource32));
-
-        var fourPieceFar = Choreo.getTrajectoryGroup("FourPieceFar");
-        GRRDashboard.addAutoCommand("Four Piece Far", fourPieceFar, Autos.fourPieceFar(fourPieceFar));
-
-        var fourPieceClose = Choreo.getTrajectoryGroup("FourPieceClose");
-        GRRDashboard.addAutoCommand("Four Piece Close", fourPieceClose, Autos.fourPieceClose(fourPieceClose));
     }
 
     /**

@@ -240,6 +240,21 @@ public class Shooter extends GRRSubsystem {
     }
 
     /**
+     * Runs the shooter towards the intake to fix deadzone.
+     */
+    public Command fixDeadzone() {
+        return commandBuilder("shooter.fixDeadzone()")
+            .onInitialize(() -> {
+                leftShootMotor.set(ShooterConstants.FIX_DEADZONE_SPEED);
+                rightShootMotor.set(ShooterConstants.FIX_DEADZONE_SPEED);
+            })
+            .onEnd(() -> {
+                leftShootMotor.stopMotor();
+                rightShootMotor.stopMotor();
+            });
+    }
+
+    /**
      * Spits the note back towards the intake.
      */
     public Command barfForward() {

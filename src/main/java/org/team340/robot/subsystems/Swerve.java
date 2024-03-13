@@ -376,10 +376,19 @@ public class Swerve extends SwerveBase {
     }
 
     /**
-     * Drives away from the amp.
+     * Allows the driver to keep driving, but forces the robot to face the amp.
+     * @param x The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
+     * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
      */
-    public Command driveAmpAway() {
-        return commandBuilder("swerve.driveAmpAway()").onExecute(() -> drive(0.0, Alliance.isBlue() ? -0.1 : 0.1, 0.0, true));
+    public Command driveAmpManual(Supplier<Double> x, Supplier<Double> y) {
+        return commandBuilder("swerve.driveAmpManual()")
+            .onInitialize(() -> rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
+            .onExecute(() -> {
+                double angle = Alliance.isBlue() ? Math2.HALF_PI : -Math2.HALF_PI;
+                visualizer.updateTarget(angle);
+                driveAngle(x.get(), y.get(), angle, rotPID, false);
+            })
+            .onEnd(() -> visualizer.removeTarget());
     }
 
     /**

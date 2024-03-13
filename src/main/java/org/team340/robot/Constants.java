@@ -366,10 +366,11 @@ public final class Constants {
         // Speeds
         public static final double RAMP_SPEED = 0.95;
         public static final double INTAKE_HUMAN_SPEED = -0.175;
-        public static final double FORWARD_BARF_SPEED = -0.5;
-        public static final double BACKWARD_BARF_SPEED = 0.5;
+        public static final double FIX_DEADZONE_SPEED = -0.5;
         public static final double ROCK_SKIP_SPEED = 0.6;
         public static final double MARY_POPPINS_SPEED = 0.24;
+        public static final double FORWARD_BARF_SPEED = -0.5;
+        public static final double BACKWARD_BARF_SPEED = 0.5;
 
         // Misc
         public static final double CLOSED_LOOP_ERR = 40.0;
