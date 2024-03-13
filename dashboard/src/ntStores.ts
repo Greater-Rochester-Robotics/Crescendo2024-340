@@ -34,5 +34,7 @@ export const TunableSpinCompensation = nt.publish<number>(
 );
 export const TunableSpeakerXFudge = nt.publish<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableSpeakerXFudge`, `double`, 0.0);
 export const TunableSpeakerYFudge = nt.publish<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableSpeakerYFudge`, `double`, 0.0);
+export const TunableAmpXFudge = nt.publish<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableAmpXFudge`, `double`, 0.0);
+export const TunableAmpYFudge = nt.publish<number>(`/GRRDashboard/Subsystems/Swerve/Details/tunableAmpYFudge`, `double`, 0.0);
 
 nt.connect();

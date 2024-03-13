@@ -6,6 +6,8 @@
         TunableSpinCompensation,
         TunableSpeakerXFudge,
         TunableSpeakerYFudge,
+        TunableAmpXFudge,
+        TunableAmpYFudge
     } from "../ntStores";
 
     const onNoteVelocityBlur = (e: FocusEvent) => {
@@ -31,6 +33,14 @@
     const onSpeakerYBlur = (e: FocusEvent) => {
         $TunableSpeakerYFudge = Number(decodeURIComponent((e.target as any)?.innerText).trim());
     };
+
+    const onAmpXBlur = (e: FocusEvent) => {
+        $TunableAmpXFudge = Number(decodeURIComponent((e.target as any)?.innerText).trim());;
+    };
+
+    const onAmpYBlur = (e: FocusEvent) => {
+        $TunableAmpYFudge = Number(decodeURIComponent((e.target as any)?.innerText).trim());;
+    };
 </script>
 
 <main>
@@ -53,6 +63,12 @@
         <br /><br />
         <p>Speaker Y:</p>
         <code contenteditable on:blur="{onSpeakerYBlur}">{$TunableSpeakerYFudge}</code>
+        <br /><br />
+        <p>Amp X:</p>
+        <code contenteditable on:blur="{onAmpXBlur}">{$TunableAmpXFudge}</code>
+        <br /><br />
+        <p>Amp Y:</p>
+        <code contenteditable on:blur="{onAmpYBlur}">{$TunableAmpYFudge}</code>
     </div>
 </main>
 

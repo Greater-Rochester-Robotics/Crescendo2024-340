@@ -202,14 +202,29 @@ public final class RobotContainer {
         var fivePieceAmp = Choreo.getTrajectoryGroup("FivePieceAmp");
         GRRDashboard.addAutoCommand("Five Piece Amp", fivePieceAmp, Autos.fivePieceAmp(fivePieceAmp));
 
-        var fourPieceClose = Choreo.getTrajectoryGroup("FourPieceClose");
-        GRRDashboard.addAutoCommand("Four Piece Close", fourPieceClose, Autos.fourPieceClose(fourPieceClose));
+        var fourPieceSource12 = Choreo.getTrajectoryGroup("FourPieceSource12");
+        GRRDashboard.addAutoCommand("Four Piece Source: 1, 2", fourPieceSource12, Autos.fourPieceSource(fourPieceSource12));
+
+        var fourPieceSource13 = Choreo.getTrajectoryGroup("FourPieceSource13");
+        GRRDashboard.addAutoCommand("Four Piece Source: 1, 3", fourPieceSource13, Autos.fourPieceSource(fourPieceSource13));
+
+        var fourPieceSource21 = Choreo.getTrajectoryGroup("FourPieceSource21");
+        GRRDashboard.addAutoCommand("Four Piece Source: 2, 1", fourPieceSource21, Autos.fourPieceSource(fourPieceSource21));
+
+        var fourPieceSource23 = Choreo.getTrajectoryGroup("FourPieceSource23");
+        GRRDashboard.addAutoCommand("Four Piece Source: 2, 3", fourPieceSource23, Autos.fourPieceSource(fourPieceSource23));
+
+        var fourPieceSource31 = Choreo.getTrajectoryGroup("FourPieceSource31");
+        GRRDashboard.addAutoCommand("Four Piece Source: 3, 1", fourPieceSource31, Autos.fourPieceSource(fourPieceSource31));
+
+        var fourPieceSource32 = Choreo.getTrajectoryGroup("FourPieceSource32");
+        GRRDashboard.addAutoCommand("Four Piece Source: 3, 2", fourPieceSource32, Autos.fourPieceSource(fourPieceSource32));
 
         var fourPieceFar = Choreo.getTrajectoryGroup("FourPieceFar");
         GRRDashboard.addAutoCommand("Four Piece Far", fourPieceFar, Autos.fourPieceFar(fourPieceFar));
 
-        var fourPieceSource = Choreo.getTrajectoryGroup("FourPieceSource");
-        GRRDashboard.addAutoCommand("Four Piece Source", fourPieceSource, Autos.fourPieceSource(fourPieceSource));
+        var fourPieceClose = Choreo.getTrajectoryGroup("FourPieceClose");
+        GRRDashboard.addAutoCommand("Four Piece Close", fourPieceClose, Autos.fourPieceClose(fourPieceClose));
     }
 
     /**
