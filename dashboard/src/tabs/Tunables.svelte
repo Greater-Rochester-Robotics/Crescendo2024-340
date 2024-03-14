@@ -7,7 +7,7 @@
         TunableSpeakerXFudge,
         TunableSpeakerYFudge,
         TunableAmpXFudge,
-        TunableAmpYFudge
+        TunableAmpYFudge,
     } from "../ntStores";
 
     const onNoteVelocityBlur = (e: FocusEvent) => {
@@ -35,11 +35,11 @@
     };
 
     const onAmpXBlur = (e: FocusEvent) => {
-        $TunableAmpXFudge = Number(decodeURIComponent((e.target as any)?.innerText).trim());;
+        $TunableAmpXFudge = Number(decodeURIComponent((e.target as any)?.innerText).trim());
     };
 
     const onAmpYBlur = (e: FocusEvent) => {
-        $TunableAmpYFudge = Number(decodeURIComponent((e.target as any)?.innerText).trim());;
+        $TunableAmpYFudge = Number(decodeURIComponent((e.target as any)?.innerText).trim());
     };
 </script>
 
