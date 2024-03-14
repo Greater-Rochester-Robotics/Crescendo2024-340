@@ -511,9 +511,11 @@ public final class Constants {
         public static final Constraints ROT_CONSTRAINTS = new Constraints(8.0, 37.5);
 
         public static final double NOTE_VELOCITY = 5.6;
-        public static final double NORM_FUDGE = 0.52;
+        public static final double NORM_FUDGE = 0.49;
         public static final double STRAFE_FUDGE = 0.85;
         public static final double SPIN_COMPENSATION = Math.toRadians(-2.0);
+        public static final double DISTANCE_FUDGE_BLUE = 0.1;
+        public static final double DISTANCE_FUDGE_RED = 0.0;
 
         public static final double NORM_FUDGE_MIN = 0.075; // .1
         public static final double FACING_SPEAKER_EPSILON = Math.toRadians(5.0);
@@ -523,8 +525,8 @@ public final class Constants {
 
     public static final class FieldPositions {
 
-        public static final Translation2d BLUE_SPEAKER = new Translation2d(0.03, 5.5479);
-        public static final Translation2d RED_SPEAKER = new Translation2d(BLUE_SPEAKER.getX(), FIELD_WIDTH - BLUE_SPEAKER.getY());
+        public static final Translation2d BLUE_SPEAKER = new Translation2d(-0.04, 5.5479);
+        public static final Translation2d RED_SPEAKER = new Translation2d(0.03, FIELD_WIDTH - BLUE_SPEAKER.getY());
 
         public static final double SPEAKER_HEIGHT = 2.08;
         public static final Pose3d BLUE_SPEAKER_3D = new Pose3d(

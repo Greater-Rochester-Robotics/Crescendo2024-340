@@ -4,6 +4,7 @@
         TunableNormFudge,
         TunableStrafeFudge,
         TunableSpinCompensation,
+        TunableDistanceFudge,
         TunableSpeakerXFudge,
         TunableSpeakerYFudge,
         TunableAmpXFudge,
@@ -24,6 +25,10 @@
 
     const onSpinCompensationBlur = (e: FocusEvent) => {
         $TunableSpinCompensation = Number(decodeURIComponent((e.target as any)?.innerText).trim());
+    };
+
+    const onDistanceFudgeBlur = (e: FocusEvent) => {
+        $TunableDistanceFudge = Number(decodeURIComponent((e.target as any)?.innerText).trim());
     };
 
     const onSpeakerXBlur = (e: FocusEvent) => {
@@ -57,6 +62,9 @@
         <br /><br />
         <p>Spin Compensation:</p>
         <code contenteditable on:blur="{onSpinCompensationBlur}">{$TunableSpinCompensation}</code>
+        <br /><br />
+        <p>Distance Fudge:</p>
+        <code contenteditable on:blur="{onDistanceFudgeBlur}">{$TunableDistanceFudge}</code>
         <br /><br />
         <p>Speaker X:</p>
         <code contenteditable on:blur="{onSpeakerXBlur}">{$TunableSpeakerXFudge}</code>

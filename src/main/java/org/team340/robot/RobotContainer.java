@@ -94,7 +94,7 @@ public final class RobotContainer {
         intake.setDefaultCommand(intake.maintainPosition());
         lights.setDefaultCommand(lights.defaultCommand(intake::hasNote, feeder::hasNote));
         pivot.setDefaultCommand(pivot.maintainPosition());
-        shooter.setDefaultCommand(shooter.targetDistance(swerve::getSpeakerDistance, 3500.0, swerve::inOpponentWing));
+        shooter.setDefaultCommand(shooter.targetDistance(swerve::getSpeakerDistance, 3000.0, swerve::inOpponentWing));
         swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
 
         Routines.onDisable().schedule();

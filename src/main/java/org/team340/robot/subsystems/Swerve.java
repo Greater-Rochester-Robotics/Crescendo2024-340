@@ -73,6 +73,7 @@ public class Swerve extends SwerveBase {
     private double tunableNormFudge = SwerveConstants.NORM_FUDGE;
     private double tunableStrafeFudge = SwerveConstants.STRAFE_FUDGE;
     private double tunableSpinCompensation = SwerveConstants.SPIN_COMPENSATION;
+    private double tunableDistanceFudge = 0.0;
     private double tunableSpeakerXFudge = 0.0;
     private double tunableSpeakerYFudge = 0.0;
     private double tunableAmpXFudge = 0.0;
@@ -138,6 +139,7 @@ public class Swerve extends SwerveBase {
         builder.addDoubleProperty("tunableNormFudge", null, fudge -> tunableNormFudge = fudge);
         builder.addDoubleProperty("tunableStrafeFudge", null, fudge -> tunableStrafeFudge = fudge);
         builder.addDoubleProperty("tunableSpinCompensation", null, compensation -> tunableSpinCompensation = compensation);
+        builder.addDoubleProperty("tunableDistanceFudge", null, fudge -> tunableDistanceFudge = fudge);
         builder.addDoubleProperty("tunableSpeakerXFudge", null, fudge -> tunableSpeakerXFudge = fudge);
         builder.addDoubleProperty("tunableSpeakerYFudge", null, fudge -> tunableSpeakerYFudge = fudge);
         builder.addDoubleProperty("tunableAmpXFudge", null, fudge -> tunableAmpXFudge = fudge);
@@ -215,7 +217,11 @@ public class Swerve extends SwerveBase {
      * Returns the distance from the speaker in meters, adjusted for the robot's movement.
      */
     public double getSpeakerDistance() {
-        return getPosition().getTranslation().getDistance(getSpeakerPosition());
+        return (
+            getPosition().getTranslation().getDistance(getSpeakerPosition()) +
+            (Alliance.isBlue() ? SwerveConstants.DISTANCE_FUDGE_BLUE : SwerveConstants.DISTANCE_FUDGE_RED) +
+            tunableDistanceFudge
+        );
     }
 
     /**

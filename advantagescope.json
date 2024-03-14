@@ -59,6 +59,21 @@
               "key": "NT:/GRRDashboard/Subsystems/Swerve/Details/command",
               "color": "#3b875a",
               "show": true
+            },
+            {
+              "key": "NT:/GRRDashboard/Autos/default",
+              "color": "#5d4f92",
+              "show": true
+            },
+            {
+              "key": "NT:/GRRDashboard/Autos/selected",
+              "color": "#a64b6b",
+              "show": true
+            },
+            {
+              "key": "NT:/GRRDashboard/Autos/active",
+              "color": "#eb987e",
+              "show": true
             }
           ]
         },
