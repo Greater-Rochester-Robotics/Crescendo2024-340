@@ -5,7 +5,6 @@ import static org.team340.robot.RobotContainer.*;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.Supplier;
-import org.team340.lib.util.Mutable;
 import org.team340.robot.Constants;
 import org.team340.robot.Constants.PivotConstants;
 
@@ -80,34 +79,26 @@ public class Routines {
     }
 
     /**
-     * Automatically drives to the amp and runs the intake rollers to score,
-     * after the robot is in position the drive can manually drive the robot to adjust.
+     * Prepares to score in the amp.
      * @param x The desired {@code x} driving speed from {@code -1.0} to {@code 1.0}.
      * @param y The desired {@code y} driving speed from {@code -1.0} to {@code 1.0}.
      */
-    public static Command scoreAmp(Supplier<Double> x, Supplier<Double> y) {
-        Mutable<Boolean> approached = new Mutable<>(false);
-        return sequence(
-            runOnce(() -> approached.set(false)),
-            parallel(
-                swerve.driveAmp(true).until(() -> swerve.getAmpDistance() < 0.5).finallyDo(() -> approached.set(true)),
+    public static Command prepAmp(Supplier<Double> x, Supplier<Double> y) {
+        return parallel(
+            swerve.driveAmpManual(x, y),
+            sequence(
                 sequence(
-                    sequence(
-                        parallel(
-                            pivot.goTo(Constants.PivotConstants.AMP_HANDOFF_POSITION),
-                            sequence(waitUntil(pivot::isSafeForIntake), intake.handoffPosition())
-                        ),
-                        handoff()
-                    )
-                        .unless(intake::hasNote),
-                    intake.ampPosition(),
-                    intake.maintainPosition().until(approached::get)
+                    parallel(
+                        pivot.goTo(Constants.PivotConstants.AMP_HANDOFF_POSITION),
+                        sequence(waitUntil(pivot::isSafeForIntake), intake.handoffPosition())
+                    ),
+                    handoff()
                 )
-            ),
-            swerve.driveAmp(false).until(() -> swerve.getAmpDistance() < 0.02).withTimeout(0.8),
-            parallel(intake.scoreAmp(), swerve.driveAmpManual(x, y))
+                    .unless(intake::hasNote),
+                intake.ampPosition()
+            )
         )
-            .withName("Routines.scoreAmp()");
+            .withName("Routines.prepAmp()");
     }
 
     /**
@@ -116,11 +107,7 @@ public class Routines {
      * @param y The desired {@code y} driving speed from {@code -1.0} to {@code 1.0}.
      */
     public static Command prepClimb(Supplier<Double> x, Supplier<Double> y) {
-        return parallel(
-            swerve.driveClimb(x, y),
-            intake.uprightPosition().onlyIf(() -> swerve.getStageDistance() >= 1.9),
-            pivot.goTo(PivotConstants.DOWN_POSITION)
-        )
+        return parallel(swerve.driveClimb(x, y), intake.uprightPosition(), pivot.goTo(PivotConstants.DOWN_POSITION))
             .withName("Routines.prepClimb()");
     }
 

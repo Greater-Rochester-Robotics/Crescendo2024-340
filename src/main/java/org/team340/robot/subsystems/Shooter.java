@@ -144,7 +144,10 @@ public class Shooter extends GRRSubsystem {
                 leftShootPID.setReference(leftSpeed, ControlType.kVelocity, 0, leftFeedForward.calculate(leftSpeed));
                 leftPIDActive = true;
             } else {
-                leftShootMotor.set(ShooterConstants.RAMP_SPEED * Math.signum(leftDelta));
+                leftShootMotor.set(
+                    (leftDelta * Math.signum(leftSpeed) > 0.0 ? ShooterConstants.RAMP_UP_SPEED : ShooterConstants.RAMP_DOWN_SPEED) *
+                    Math.signum(leftSpeed)
+                );
                 leftPIDActive = false;
             }
 
@@ -153,7 +156,10 @@ public class Shooter extends GRRSubsystem {
                 rightShootPID.setReference(rightSpeed, ControlType.kVelocity, 0, rightFeedForward.calculate(rightSpeed));
                 rightPIDActive = true;
             } else {
-                rightShootMotor.set(ShooterConstants.RAMP_SPEED * Math.signum(rightDelta));
+                rightShootMotor.set(
+                    (rightDelta * Math.signum(rightSpeed) > 0.0 ? ShooterConstants.RAMP_UP_SPEED : ShooterConstants.RAMP_DOWN_SPEED) *
+                    Math.signum(rightSpeed)
+                );
                 rightPIDActive = false;
             }
         }

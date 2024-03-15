@@ -51,7 +51,7 @@ public final class Constants {
     public static final class ControllerConstants {
 
         public static final double DRIVE_EXP = 1.0;
-        public static final double DRIVE_MULTIPLIER = 0.9;
+        public static final double DRIVE_MULTIPLIER = 0.85;
         public static final double DRIVE_MULTIPLIER_MODIFIED = 0.975;
 
         public static final double DRIVE_ROT_EXP = 2.0;
@@ -364,7 +364,8 @@ public final class Constants {
     public static final class ShooterConstants {
 
         // Speeds
-        public static final double RAMP_SPEED = 0.95;
+        public static final double RAMP_UP_SPEED = 0.95;
+        public static final double RAMP_DOWN_SPEED = 0.0;
         public static final double INTAKE_HUMAN_SPEED = -0.175;
         public static final double FIX_DEADZONE_SPEED = -0.5;
         public static final double ROCK_SKIP_SPEED = 0.6;
@@ -514,10 +515,10 @@ public final class Constants {
         public static final double NORM_FUDGE = 0.49;
         public static final double STRAFE_FUDGE = 0.85;
         public static final double SPIN_COMPENSATION = Math.toRadians(-2.0);
-        public static final double DISTANCE_FUDGE_BLUE = 0.1;
-        public static final double DISTANCE_FUDGE_RED = 0.0;
+        public static final double DISTANCE_FUDGE_BLUE = 0.16;
+        public static final double DISTANCE_FUDGE_RED = 0.1;
 
-        public static final double NORM_FUDGE_MIN = 0.075; // .1
+        public static final double NORM_FUDGE_MIN = 0.075;
         public static final double FACING_SPEAKER_EPSILON = Math.toRadians(5.0);
 
         public static final double DRIVE_BASE_RADIUS = Math.hypot(FRONT_LEFT.getPosition().getX(), FRONT_LEFT.getPosition().getY());
@@ -545,7 +546,7 @@ public final class Constants {
             Math2.ROTATION2D_NEG_HALF_PI
         );
         public static final Pose2d AMP_SCORE_BLUE = new Pose2d(AMP_X, 7.7, Math2.ROTATION2D_HALF_PI);
-        public static final Pose2d AMP_SCORE_RED = new Pose2d(AMP_X, FIELD_WIDTH - AMP_SCORE_BLUE.getY(), Math2.ROTATION2D_NEG_HALF_PI);
+        public static final Pose2d AMP_SCORE_RED = new Pose2d(AMP_X, 0.48, Math2.ROTATION2D_NEG_HALF_PI);
 
         public static final Translation2d STAGE = new Translation2d(4.981067, 4.105783);
 

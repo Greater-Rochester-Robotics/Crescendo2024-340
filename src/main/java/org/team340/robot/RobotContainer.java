@@ -94,7 +94,7 @@ public final class RobotContainer {
         intake.setDefaultCommand(intake.maintainPosition());
         lights.setDefaultCommand(lights.defaultCommand(intake::hasNote, feeder::hasNote));
         pivot.setDefaultCommand(pivot.maintainPosition());
-        shooter.setDefaultCommand(shooter.targetDistance(swerve::getSpeakerDistance, 3000.0, swerve::inOpponentWing));
+        shooter.setDefaultCommand(shooter.targetDistance(swerve::getSpeakerDistance, 2750.0, swerve::inOpponentWing));
         swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
 
         Routines.onDisable().schedule();
@@ -111,7 +111,7 @@ public final class RobotContainer {
         driver.b().onTrue(Routines.intakeHuman(RobotContainer::getDriveX, RobotContainer::getDriveY)).onFalse(Routines.finishIntakeHuman());
 
         // X => Prep Amp (Hold)
-        driver.x().whileTrue(Routines.scoreAmp(RobotContainer::getDriveX, RobotContainer::getDriveY));
+        driver.x().whileTrue(Routines.prepAmp(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
         // Y => Shoot (Tap)
         driver.y().whileTrue(feeder.shoot());
@@ -171,8 +171,8 @@ public final class RobotContainer {
         // X => Fender Shot (Hold)
         coDriver.x().whileTrue(pivot.targetDistance(() -> FieldPositions.FENDER_SHOT_DISTANCE));
 
-        // Y => Fix deadzone (Hold)
-        coDriver.y().onTrue(Routines.fixDeadzone());
+        // Y => Score Amp (Hold)
+        coDriver.y().whileTrue(intake.scoreAmp());
 
         // Both Triggers => Drives climber manually
         coDriver
@@ -180,11 +180,14 @@ public final class RobotContainer {
             .and(coDriver.rightTrigger())
             .whileTrue(climber.driveManual(() -> -coDriver.getLeftY() * 0.3, () -> -coDriver.getRightY() * 0.3));
 
-        // POV Up => Prep Speaker (Hold)
-        coDriver.povUp().whileTrue(Routines.prepSpeaker(RobotContainer::getDriveX, RobotContainer::getDriveY));
+        // POV Up => Fix Deadzone (Hold)
+        coDriver.povUp().whileTrue(Routines.fixDeadzone());
 
-        // POV Down => Pivot home (Hold)
+        // POV Down => Pivot Home (Hold)
         coDriver.povDown().whileTrue(pivot.home(true));
+
+        // POV Left => Prep Speaker (Hold)
+        coDriver.povLeft().whileTrue(Routines.prepSpeaker(RobotContainer::getDriveX, RobotContainer::getDriveY));
 
         // Back / Start => he he rumble rumble
         coDriver.back().toggleOnTrue(setCoDriverRumble(RumbleType.kLeftRumble, 0.5).ignoringDisable(true));
