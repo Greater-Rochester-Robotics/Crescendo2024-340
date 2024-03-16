@@ -103,6 +103,11 @@ public class SwerveSparkFlex implements SwerveMotor {
     }
 
     @Override
+    public void configCurrentLimit(double newLimit) {
+        sparkFlex.setSmartCurrentLimit((int) newLimit);
+    }
+
+    @Override
     public double getVelocity() {
         return relativeEncoder.getVelocity();
     }

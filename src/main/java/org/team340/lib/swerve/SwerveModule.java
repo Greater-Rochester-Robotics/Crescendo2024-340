@@ -56,6 +56,22 @@ public class SwerveModule {
     }
 
     /**
+     * Configures the current limit of the move motor.
+     * @param newLimit The new current limit.
+     */
+    public void configMoveCurrentLimit(double newLimit) {
+        moveMotor.configCurrentLimit(newLimit);
+    }
+
+    /**
+     * Configures the current limit of the turn motor.
+     * @param newLimit The new current limit.
+     */
+    public void configTurnCurrentLimit(double newLimit) {
+        turnMotor.configCurrentLimit(newLimit);
+    }
+
+    /**
      * Gets the module's label.
      */
     public String getLabel() {

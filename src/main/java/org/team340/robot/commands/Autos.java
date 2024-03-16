@@ -107,13 +107,13 @@ public class Autos {
                 swerve.followTrajectory(traj.get(0), -1.0, -1.0, true).deadlineWith(intake.downPosition()),
                 deadline(sequence(waitSeconds(1.0), feeder.shoot().withTimeout(0.6)), swerve.driveSpeaker()),
                 swerve.followTrajectory(traj.get(1)).deadlineWith(Routines.intake()),
-                swerve.followTrajectory(traj.get(2), 0.6, -1.0).deadlineWith(Routines.intake().withTimeout(0.25)),
+                swerve.followTrajectory(traj.get(2)).deadlineWith(Routines.intake().withTimeout(1.5)),
                 deadline(sequence(waitSeconds(0.65), feeder.shoot().withTimeout(0.6)), swerve.driveSpeaker()),
                 swerve.followTrajectory(traj.get(3)).deadlineWith(Routines.intake()),
-                swerve.followTrajectory(traj.get(4), 0.95, -1.0).deadlineWith(Routines.intake().withTimeout(0.25)),
+                swerve.followTrajectory(traj.get(4)).deadlineWith(Routines.intake().withTimeout(1.5)),
                 deadline(sequence(waitSeconds(0.5), feeder.shoot().withTimeout(0.6)), swerve.driveSpeaker()),
                 swerve.followTrajectory(traj.get(5)).deadlineWith(Routines.intake()),
-                swerve.followTrajectory(traj.get(6), 0.95, -1.0).deadlineWith(Routines.intake().withTimeout(0.25)),
+                swerve.followTrajectory(traj.get(6)).deadlineWith(Routines.intake().withTimeout(1.5)),
                 deadline(sequence(waitSeconds(0.5), feeder.shoot().withTimeout(0.6)), swerve.driveSpeaker())
             )
         );

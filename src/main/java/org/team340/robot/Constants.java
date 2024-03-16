@@ -265,7 +265,7 @@ public final class Constants {
 
     public static final class LightsConstants {
 
-        public static final int LENGTH = 144;
+        public static final int LENGTH = 126;
     }
 
     public static final class PivotConstants {
@@ -465,7 +465,7 @@ public final class Constants {
             .setRampRate(0.03, 0.03)
             .setMotorTypes(SwerveMotor.Type.SPARK_FLEX_BRUSHLESS, SwerveMotor.Type.SPARK_FLEX_BRUSHLESS)
             .setMaxSpeeds(4.95, 11.8)
-            .setRatelimits(8.5, 29.75)
+            .setRatelimits(8.2, 29.75)
             .setTrajectoryConstraints(3.86, 2.4)
             .setPowerProperties(VOLTAGE, 60.0, 40.0)
             .setMechanicalProperties(6.75, 150.0 / 7.0, 3.82)

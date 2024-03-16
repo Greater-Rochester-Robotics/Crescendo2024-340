@@ -2,6 +2,7 @@ package org.team340.lib.swerve.hardware.motors.vendors;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
+import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.VelocityVoltage;
@@ -84,6 +85,11 @@ public class SwerveTalonFX implements SwerveMotor {
 
         talonFX.set(0.0);
         talonFX.setPosition(0.0);
+    }
+
+    @Override
+    public void configCurrentLimit(double newLimit) {
+        talonFX.getConfigurator().apply(new CurrentLimitsConfigs().withSupplyCurrentLimit(newLimit).withStatorCurrentLimit(newLimit));
     }
 
     @Override

@@ -117,7 +117,7 @@ public class Routines {
      * @param y The desired {@code y} driving speed from {@code -1.0} to {@code 1.0}.
      */
     public static Command prepFeed(Supplier<Double> x, Supplier<Double> y) {
-        return parallel(swerve.driveFeed(x, y), shooter.feed(swerve::pastMidline), pivot.feed(swerve::pastMidline));
+        return parallel(swerve.driveFeed(x, y), shooter.feed(() -> true), pivot.feed(() -> true));
     }
 
     /**

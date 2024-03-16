@@ -99,6 +99,7 @@ public final class RobotContainer {
 
         Routines.onDisable().schedule();
         RobotModeTriggers.disabled().onTrue(Routines.onDisable());
+        RobotModeTriggers.teleop().onTrue(swerve.funAndGames());
 
         /**
          * Driver bindings.

@@ -37,7 +37,9 @@ import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
 import org.photonvision.PhotonPoseEstimator.PoseStrategy;
 import org.photonvision.targeting.PhotonTrackedTarget;
+import org.team340.lib.commands.CommandBuilder;
 import org.team340.lib.swerve.SwerveBase;
+import org.team340.lib.swerve.SwerveModule;
 import org.team340.lib.swerve.util.SwerveVisualizer;
 import org.team340.lib.util.Alliance;
 import org.team340.lib.util.Math2;
@@ -656,5 +658,17 @@ public class Swerve extends SwerveBase {
                 effectiveWheelRadius = effectiveWheelRadiusInches;
             }
         }
+    }
+
+    public Command funAndGames() {
+        return new CommandBuilder()
+            .onInitialize(() -> {
+                for (SwerveModule module : modules) {
+                    module.configMoveCurrentLimit(50.0);
+                }
+            })
+            .isFinished(true)
+            .ignoringDisable(true)
+            .withName("swerve.funAndGames()");
     }
 }
