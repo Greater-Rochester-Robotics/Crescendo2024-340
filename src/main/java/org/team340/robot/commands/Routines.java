@@ -75,7 +75,8 @@ public class Routines {
      * @param y The desired {@code y} driving speed from {@code -1.0} to {@code 1.0}.
      */
     public static Command prepSpeaker(Supplier<Double> x, Supplier<Double> y) {
-        return parallel(swerve.driveSpeaker(x, y), pivot.targetDistance(swerve::getSpeakerDistance)).withName("Routines.prepSpeaker()");
+        return parallel(swerve.driveSpeaker(x, y), pivot.targetDistance(swerve::getSpeakerDistance), shooter.dutyCycle(1.0))
+            .withName("Routines.prepSpeaker()");
     }
 
     /**

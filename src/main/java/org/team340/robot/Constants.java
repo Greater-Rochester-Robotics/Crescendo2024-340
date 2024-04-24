@@ -50,8 +50,8 @@ public final class Constants {
      */
     public static final class ControllerConstants {
 
-        public static final double DRIVE_EXP = 1.0;
-        public static final double DRIVE_MULTIPLIER = 0.85;
+        public static final double DRIVE_EXP = 3.0;
+        public static final double DRIVE_MULTIPLIER = 0.95;
         public static final double DRIVE_MULTIPLIER_MODIFIED = 0.975;
 
         public static final double DRIVE_ROT_EXP = 2.0;
@@ -404,14 +404,14 @@ public final class Constants {
                 .setVelocityConversionFactor(REL_ENC_CONVERSION);
 
             public static final FeedForwardConfig FEED_FORWARD_LEFT = new FeedForwardConfig(
-                0.11331 / 60.0,
-                0.065448 / 60.0,
-                0.076179 / 60.0
+                0.27196 / 60.0,
+                0.055151 / 60.0,
+                0.0077398 / 60.0
             );
             public static final FeedForwardConfig FEED_FORWARD_RIGHT = new FeedForwardConfig(
-                0.11331 / 60.0,
-                0.064905 / 60.0,
-                0.071392 / 60.0
+                0.17788 / 60.0,
+                0.055005 / 60.0,
+                0.010937 / 60.0
             );
             public static final SysIdRoutine.Config SYSID = new SysIdRoutine.Config();
         }
@@ -420,9 +420,7 @@ public final class Constants {
         public static final InterpolatingDoubleTreeMap DISTANCE_MAP = new InterpolatingDoubleTreeMap();
 
         static {
-            DISTANCE_MAP.put(0.0, 3000.0);
-            DISTANCE_MAP.put(6.0, 6500.0);
-            DISTANCE_MAP.put(10.0, 7750.0);
+            DISTANCE_MAP.put(0.0, 15000.0);
         }
     }
 
@@ -465,7 +463,7 @@ public final class Constants {
             .setRampRate(0.03, 0.03)
             .setMotorTypes(SwerveMotor.Type.SPARK_FLEX_BRUSHLESS, SwerveMotor.Type.SPARK_FLEX_BRUSHLESS)
             .setMaxSpeeds(4.95, 11.8)
-            .setRatelimits(8.2, 29.75)
+            .setRatelimits(11.8, 35.0)
             .setTrajectoryConstraints(3.86, 2.4)
             .setPowerProperties(VOLTAGE, 60.0, 40.0)
             .setMechanicalProperties(6.75, 150.0 / 7.0, 3.82)
@@ -509,7 +507,7 @@ public final class Constants {
 
         public static final PIDConfig XY_PID = new PIDConfig(6.5, 1.2, 0.05, 0.5);
         public static final PIDConfig ROT_PID = new PIDConfig(4.9, 0.5, 0.2, 0.2);
-        public static final Constraints ROT_CONSTRAINTS = new Constraints(8.0, 37.5);
+        public static final Constraints ROT_CONSTRAINTS = new Constraints(8.0, 32.5);
 
         public static final double NOTE_VELOCITY = 5.6;
         public static final double NORM_FUDGE = 0.49;

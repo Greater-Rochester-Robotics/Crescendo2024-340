@@ -298,6 +298,18 @@ public class Shooter extends GRRSubsystem {
         return setSpeed(() -> leftTargetSpeed + rampSpeed.get() * Constants.PERIOD);
     }
 
+    public Command dutyCycle(double value) {
+        return commandBuilder("shooter.dutyCycle(" + value + ")")
+            .onInitialize(() -> {
+                leftShootMotor.set(value);
+                rightShootMotor.set(value);
+            })
+            .onEnd(() -> {
+                leftShootMotor.stopMotor();
+                rightShootMotor.stopMotor();
+            });
+    }
+
     /**
      * Runs a SysId quasistatic test.
      * @param direction The direction to run the test in.
