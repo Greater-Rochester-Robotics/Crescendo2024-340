@@ -110,12 +110,20 @@ public class Feeder extends GRRSubsystem {
      * Feeds the note into the shooter wheels. Ends after the note has left the shooter.
      */
     public Command shoot() {
+        return shoot(false);
+    }
+
+    /**
+     * Feeds the note into the shooter wheels. Ends after the note has left the shooter.
+     * @param withOverride If {@code true}, the command will not end.
+     */
+    public Command shoot(boolean withOverride) {
         return commandBuilder()
             .onInitialize(() -> feedMotor.set(FeederConstants.SHOOT_SPEED))
-            .isFinished(() -> !hasNote())
-            .andThen(waitSeconds(FeederConstants.SHOOT_DELAY))
+            .isFinished(() -> !withOverride && !hasNote())
+            .andThen(withOverride ? none() : waitSeconds(FeederConstants.SHOOT_DELAY))
             .finallyDo(() -> feedMotor.stopMotor())
-            .withName("feeder.shoot()");
+            .withName("feeder.shoot(" + withOverride + ")");
     }
 
     /**

@@ -8,6 +8,7 @@ import com.revrobotics.CANSparkFlex;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkPIDController;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -132,24 +133,6 @@ public class Pivot extends GRRSubsystem {
     }
 
     /**
-     * Uses the {@link PivotConstants#DISTANCE_MAP distance map} to
-     * automatically target the speaker using the supplied distance.
-     * @param distance A supplier that returns the distance to the speaker in meters.
-     */
-    public Command targetDistance(Supplier<Double> distance) {
-        return goTo(() -> PivotConstants.DISTANCE_MAP.get(distance.get()), false).withName("pivot.targetDistance()");
-    }
-
-    /**
-     * Sets the pivot to feed.
-     * @param pastMidline A supplier that returns {@code true} when the robot is past the midline.
-     */
-    public Command feed(Supplier<Boolean> pastMidline) {
-        return goTo(() -> pastMidline.get() ? PivotConstants.MARY_POPPINS_POSITION : PivotConstants.ROCK_SKIP_POSITION, false)
-            .withName("pivot.feed()");
-    }
-
-    /**
      * Moves to a position. Ends after the position is reached.
      * @param position The position for the pivot to move to in radians.
      */
@@ -214,7 +197,7 @@ public class Pivot extends GRRSubsystem {
                             diff = Math.min(diff, 0.0);
                         }
 
-                        maintain += diff;
+                        maintain = MathUtil.clamp(maintain + diff, PivotConstants.MIN_POS, PivotConstants.MAX_POS);
                         applyPosition(maintain);
                     })
                     .onEnd(() -> {

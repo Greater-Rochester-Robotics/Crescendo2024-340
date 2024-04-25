@@ -194,13 +194,6 @@ public class Intake extends GRRSubsystem {
     }
 
     /**
-     * Moves to the amp position. Runs until the arm is at the position.
-     */
-    public Command ampPosition() {
-        return useState(IntakeConstants.AMP_POSITION, 0, 0, true).withName("intake.ampPosition()");
-    }
-
-    /**
      * Intakes from the ground. Does not end.
      */
     public Command intake() {
@@ -214,15 +207,6 @@ public class Intake extends GRRSubsystem {
     public Command handoff() {
         return useState(IntakeConstants.HANDOFF_POSITION, IntakeConstants.HANDOFF_SPEED, IntakeConstants.HANDOFF_SPEED, false)
             .withName("intake.ampHandoff()");
-    }
-
-    /**
-     * Scores in the amp. Does not end.
-     */
-    public Command scoreAmp() {
-        return ampPosition()
-            .andThen(useState(IntakeConstants.AMP_POSITION, IntakeConstants.AMP_UPPER_SPEED, IntakeConstants.AMP_LOWER_SPEED, false))
-            .withName("intake.scoreAmp()");
     }
 
     /**
@@ -252,21 +236,6 @@ public class Intake extends GRRSubsystem {
                 ) armMaintain = 0.0;
             })
             .onExecute(() -> applyPosition(armMaintain));
-    }
-
-    /**
-     * Runs rollers at a set speed to intake manually.
-     */
-    public Command intakeOverride() {
-        return commandBuilder("intake.intakeOverride()")
-            .onExecute(() -> {
-                rollerUpperMotor.set(IntakeConstants.OVERRIDE_INTAKE_SPEED);
-                rollerLowerMotor.set(IntakeConstants.OVERRIDE_INTAKE_SPEED);
-            })
-            .onEnd(() -> {
-                rollerUpperMotor.stopMotor();
-                rollerLowerMotor.stopMotor();
-            });
     }
 
     /**
