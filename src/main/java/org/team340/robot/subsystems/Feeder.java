@@ -89,9 +89,9 @@ public class Feeder extends GRRSubsystem {
                 .isFinished(() ->
                     Math2.epsilonEquals(feedEncoder.getPosition(), FeederConstants.SEAT_POSITION, FeederConstants.CLOSED_LOOP_ERR)
                 )
-                .onEnd(() -> feedMotor.stopMotor())
         )
             .onlyIf(() -> !hasNote())
+            .finallyDo(() -> feedMotor.stopMotor())
             .withTimeout(2.0)
             .withName("feeder.seat()");
     }
@@ -138,18 +138,9 @@ public class Feeder extends GRRSubsystem {
     /**
      * Spits the note out of the feeder towards the intake.
      */
-    public Command barfForward() {
-        return commandBuilder("feeder.barfForward()")
-            .onInitialize(() -> feedMotor.set(FeederConstants.BARF_FORWARD_SPEED))
-            .onEnd(() -> feedMotor.stopMotor());
-    }
-
-    /**
-     * Spits the note out of the feeder towards the shooter.
-     */
-    public Command barfBackward() {
-        return commandBuilder("feeder.barfBackward()")
-            .onInitialize(() -> feedMotor.set(FeederConstants.BARF_BACKWARD_SPEED))
+    public Command barf() {
+        return commandBuilder("feeder.barf()")
+            .onInitialize(() -> feedMotor.set(FeederConstants.BARF_SPEED))
             .onEnd(() -> feedMotor.stopMotor());
     }
 

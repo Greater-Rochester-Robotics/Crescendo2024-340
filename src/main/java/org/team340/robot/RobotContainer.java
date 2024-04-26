@@ -1,5 +1,7 @@
 package org.team340.robot;
 
+import static edu.wpi.first.wpilibj2.command.Commands.*;
+
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import org.team340.lib.controller.Controller2;
@@ -74,7 +76,7 @@ public final class RobotContainer {
     private static void configBindings() {
         // Set default commands.
         intake.setDefaultCommand(intake.maintainPosition());
-        lights.setDefaultCommand(lights.defaultCommand(intake::hasNote, feeder::hasNote));
+        lights.setDefaultCommand(lights.idle());
         pivot.setDefaultCommand(pivot.maintainPosition());
         swerve.setDefaultCommand(swerve.drive(RobotContainer::getDriveX, RobotContainer::getDriveY, RobotContainer::getDriveRotate, true));
 
@@ -90,8 +92,8 @@ public final class RobotContainer {
         // A => Intake (Tap = Down, Hold = Run roller)
         driver.a().whileTrue(Routines.intake()).onFalse(Routines.finishIntake());
 
-        // B => Barf Backward (Hold)
-        driver.b().whileTrue(Routines.barfBackward()).onFalse(intake.safePosition());
+        // B => Intake from Human Player (Hold)
+        driver.b().onTrue(Routines.intakeHuman()).onFalse(Routines.finishIntakeHuman());
 
         // X => Poop (Hold)
         driver.x().whileTrue(Routines.prepPoop()).onFalse(Routines.poop());
@@ -99,14 +101,14 @@ public final class RobotContainer {
         // Y => Shoot (Tap)
         driver.y().whileTrue(feeder.shoot());
 
-        // Right Joystick Up + Pressed => Intake up
-        driver.rightJoystickUp().and(driver.rightStick()).and(bumpersReleased).onTrue(intake.uprightPosition());
+        // Right Joystick Up + Pressed => Intake upright
+        driver.rightJoystickUp().and(driver.rightStick()).and(bumpersReleased).onTrue(Routines.safeArm(intake.uprightPosition()));
 
-        // Right Joystick Down + Pressed => Intake down
-        driver.rightJoystickDown().and(driver.rightStick()).and(bumpersReleased).onTrue(intake.safePosition());
+        // Right Joystick Down + Pressed => Intake safe position
+        driver.rightJoystickDown().and(driver.rightStick()).and(bumpersReleased).onTrue(Routines.safeArm(intake.safePosition()));
 
-        // POV Up => Barf Forward (Hold)
-        driver.povUp().whileTrue(Routines.barfForward());
+        // POV Up => Barf (Hold)
+        driver.povUp().whileTrue(Routines.barf()).onFalse(Routines.safeArm(intake.safePosition()));
 
         // POV Down => Pivot Down (Tap)
         driver.povDown().onTrue(pivot.goTo(PivotConstants.DOWN_POSITION));
@@ -114,17 +116,23 @@ public final class RobotContainer {
         // POV Left => Zero swerve
         driver.povLeft().onTrue(swerve.zeroIMU(Math2.ROTATION2D_0));
 
-        // POV Right => Intake from Human Player (Hold)
-        driver.povRight().onTrue(Routines.intakeHuman()).onFalse(Routines.finishIntakeHuman());
+        // POV Right => Toggle feed through
+        driver.povRight().toggleOnTrue(Routines.feedThrough(RobotContainer::getShooterManual));
 
         // Left Bumper => Change pivot position manually (Hold)
         driver.leftBumper().and(driver.rightBumper().negate()).whileTrue(pivot.driveManual(RobotContainer::getPivotManual));
 
         // Right Bumper => Shoot with manual speed adjustment (Hold)
-        driver.rightBumper().and(driver.leftBumper().negate()).whileTrue(shooter.driveManual(RobotContainer::getShooterManual));
+        driver
+            .rightBumper()
+            .and(driver.leftBumper().negate())
+            .whileTrue(parallel(shooter.driveManual(RobotContainer::getShooterManual), lights.flames()));
 
-        // Start => Toggle feed through
-        driver.start().toggleOnTrue(Routines.feedThrough(RobotContainer::getShooterManual));
+        // Back => Juggle (Hold)
+        driver.back().whileTrue(Routines.juggle()).onFalse(Routines.finishIntakeHuman());
+
+        // Start => Juggle 2 (Hold)
+        driver.start().whileTrue(Routines.juggle2()).onFalse(Routines.finishIntakeHuman());
     }
 
     /**

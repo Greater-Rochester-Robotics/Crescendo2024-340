@@ -19,7 +19,7 @@ public class Shooter extends GRRSubsystem {
     private final CANSparkFlex leftMotor;
     private final CANSparkFlex rightMotor;
 
-    private double lastManualSpeed = 0.0;
+    private double lastManualSpeed = 0.5;
 
     public Shooter() {
         super("Shooter");
@@ -68,15 +68,8 @@ public class Shooter extends GRRSubsystem {
     /**
      * Spits the note back towards the intake.
      */
-    public Command barfForward() {
-        return setSpeed(ShooterConstants.BARF_FORWARD_SPEED).withName("shooter.barfForward()");
-    }
-
-    /**
-     * Spits the note out of the shooter.
-     */
-    public Command barfBackward() {
-        return setSpeed(ShooterConstants.BARF_BACKWARD_SPEED).withName("shooter.barfBackward()");
+    public Command barf() {
+        return setSpeed(ShooterConstants.BARF_SPEED).withName("shooter.barf()");
     }
 
     /**

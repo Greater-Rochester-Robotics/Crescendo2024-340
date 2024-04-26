@@ -159,6 +159,13 @@ public class Intake extends GRRSubsystem {
     }
 
     /**
+     * Moves to the juggle handoff position. Runs until the arm is at the position.
+     */
+    public Command juggleHandoffPosition() {
+        return useState(IntakeConstants.JUGGLE_HANDOFF_POSITION, 0.0, 0.0, true).withName("intake.juggleHandoffPosition()");
+    }
+
+    /**
      * Moves to the safe position. Runs until the arm is at the position.
      */
     public Command safePosition() {
@@ -206,7 +213,25 @@ public class Intake extends GRRSubsystem {
      */
     public Command handoff() {
         return useState(IntakeConstants.HANDOFF_POSITION, IntakeConstants.HANDOFF_SPEED, IntakeConstants.HANDOFF_SPEED, false)
-            .withName("intake.ampHandoff()");
+            .withName("intake.handoff()");
+    }
+
+    /**
+     * Juggles a note into the shooter. Does not end.
+     * Arm is disabled while this command is running.
+     */
+    public Command juggleHandoff() {
+        return commandBuilder("intake.juggleHandoff()")
+            .onInitialize(() -> {
+                rollerUpperMotor.set(IntakeConstants.JUGGLE_HANDOFF_UPPER_SPEED);
+                rollerLowerMotor.set(IntakeConstants.JUGGLE_HANDOFF_LOWER_SPEED);
+                armLeftMotor.stopMotor();
+                armRightMotor.stopMotor();
+            })
+            .onEnd(() -> {
+                rollerUpperMotor.stopMotor();
+                rollerLowerMotor.stopMotor();
+            });
     }
 
     /**

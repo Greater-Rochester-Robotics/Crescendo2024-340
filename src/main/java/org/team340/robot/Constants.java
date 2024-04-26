@@ -98,9 +98,8 @@ public final class Constants {
         public static final double SEAT_SPEED = 0.05;
         public static final double REVERSE_SEAT_SPEED = -0.04;
         public static final double SHOOT_SPEED = 1.0;
-        public static final double BARF_FORWARD_SPEED = -0.5;
+        public static final double BARF_SPEED = -0.5;
         public static final double POOP_SPEED = -1.0;
-        public static final double BARF_BACKWARD_SPEED = 0.5;
 
         // Positions
         public static final double SEAT_POSITION = 2.357;
@@ -141,21 +140,25 @@ public final class Constants {
         // Speeds
         public static final double INTAKE_SPEED = 0.9;
         public static final double HANDOFF_SPEED = -0.25;
+        public static final double JUGGLE_HANDOFF_UPPER_SPEED = -0.25;
+        public static final double JUGGLE_HANDOFF_LOWER_SPEED = -0.07;
+
         public static final double BARF_SPEED = -0.5;
         public static final double POOP_SPEED = -1.0;
 
         // Positions
         public static final double DOWN_POSITION = Math.toRadians(0.0);
         public static final double HANDOFF_POSITION = Math.toRadians(0.0);
+        public static final double JUGGLE_HANDOFF_POSITION = Math.toRadians(105.0);
         public static final double SAFE_POSITION = Math.toRadians(30.0);
         public static final double POOP_POSITION = Math.toRadians(85.0);
         public static final double RETRACT_POSITION = Math.toRadians(65.0);
-        public static final double UPRIGHT_POSITION = Math.toRadians(90.0);
+        public static final double UPRIGHT_POSITION = Math.toRadians(120.0);
         public static final double BARF_POSITION = Math.toRadians(14.0);
         public static final double PID_INACTIVE_POSITION = Math.toRadians(1.0);
 
         // Misc
-        public static final double CLOSED_LOOP_ERR = Math.toRadians(5.0);
+        public static final double CLOSED_LOOP_ERR = Math.toRadians(3.0);
         public static final double ALLOWABLE_DIFFERENCE = Math.toRadians(15.0);
 
         // Arm Hardware Configs
@@ -186,7 +189,7 @@ public final class Constants {
                 .setZeroOffset(4.843);
 
             public static final SparkPIDControllerConfig PID = new SparkPIDControllerConfig()
-                .setPID(1.1, 0.0007, 0.0)
+                .setPID(1.0, 0.0007, 0.0)
                 .setIZone(Math.toRadians(15.0))
                 .setPositionPIDWrappingEnabled(true)
                 .setPositionPIDWrappingInputLimits(0.0, REL_ENC_FACTOR);
@@ -208,25 +211,25 @@ public final class Constants {
 
     public static final class LightsConstants {
 
-        public static final int LENGTH = 126;
+        public static final int LENGTH = 56;
     }
 
     public static final class PivotConstants {
 
         // Limits
         public static final double MIN_POS = 0.0;
-        public static final double MAX_POS = Math.toRadians(89.0);
+        public static final double MAX_POS = Math.toRadians(92.0);
 
         // Speeds
         public static final double HOMING_SPEED = -0.2;
 
         // Positions
-        public static final double BARF_FORWARD_POSITION = Math.toRadians(0.0);
+        public static final double BARF_POSITION = Math.toRadians(0.0);
         public static final double DOWN_POSITION = Math.toRadians(2.0);
         public static final double HANDOFF_POSITION = Math.toRadians(0.0);
         public static final double FIX_DEADZONE_POSITION = Math.toRadians(57.5);
-        public static final double INTAKE_SAFE_POSITION = Math.toRadians(60.0);
-        public static final double INTAKE_SAFE_POSITION_CLEARED = Math.toRadians(50.0);
+        public static final double INTAKE_SAFE_POSITION = Math.toRadians(50.0);
+        public static final double INTAKE_SAFE_POSITION_CLEARED = Math.toRadians(45.0);
 
         // Misc
         public static final double CLOSED_LOOP_ERR = Math.toRadians(0.2);
@@ -261,9 +264,8 @@ public final class Constants {
     public static final class ShooterConstants {
 
         // Speeds
-        public static final double INTAKE_HUMAN_SPEED = -0.6;
-        public static final double BARF_FORWARD_SPEED = -0.5;
-        public static final double BARF_BACKWARD_SPEED = 0.5;
+        public static final double INTAKE_HUMAN_SPEED = -0.3;
+        public static final double BARF_SPEED = -0.5;
 
         // Hardware Configs
         public static final class Configs {

@@ -17,12 +17,28 @@ public class Routines {
     }
 
     /**
+     * Safely moves the intake arm by moving the pivot if necessary.
+     * @param intakeCommand A command for the intake.
+     */
+    public static Command safeArm(Command intakeCommand) {
+        return parallel(
+            pivot.goTo(PivotConstants.INTAKE_SAFE_POSITION_CLEARED).unless(pivot::isSafeForIntake),
+            sequence(deadline(waitUntil(pivot::isSafeForIntake), intake.maintainPosition()), intakeCommand)
+        )
+            .withName("Routines.safeArm(" + intakeCommand.getName() + ")");
+    }
+
+    /**
      * Deploys and runs the intake. After a note is collected, it is seated by the feeder.
      */
     public static Command intake() {
         return parallel(
-            pivot.goTo(PivotConstants.INTAKE_SAFE_POSITION_CLEARED).unless(pivot::isSafeForIntake),
-            sequence(waitUntil(pivot::isSafeForIntake), intake.downPosition(), race(feeder.receive(), intake.intake()), feeder.seat())
+            sequence(
+                safeArm(intake.downPosition()),
+                race(feeder.receive(), intake.intake()),
+                deadline(feeder.seat(), intake.maintainPosition())
+            ),
+            lights.intaking()
         )
             .withName("Routines.intake()");
     }
@@ -31,18 +47,25 @@ public class Routines {
      * Finishes the intake sequence.
      */
     public static Command finishIntake() {
-        return parallel(feeder.seat(), sequence(intake.safePosition())).withName("Routines.finishIntake()");
+        return race(feeder.seat(), sequence(safeArm(intake.safePosition()), intake.maintainPosition())).withName("Routines.finishIntake()");
     }
 
     /**
      * Intakes from the human player.
      */
     public static Command intakeHuman() {
-        return sequence(
-            pivot.goTo(PivotConstants.INTAKE_SAFE_POSITION_CLEARED).unless(pivot::isSafeForIntake),
-            intake.uprightPosition(),
-            pivot.goTo(PivotConstants.MAX_POS),
-            deadline(waitUntil(feeder::hasNote).andThen(waitSeconds(0.1)), shooter.intakeHuman(), feeder.intakeHuman())
+        return parallel(
+            sequence(
+                safeArm(intake.uprightPosition()),
+                deadline(pivot.goTo(PivotConstants.MAX_POS), intake.maintainPosition()),
+                deadline(
+                    waitUntil(feeder::hasNote).andThen(waitSeconds(0.1)),
+                    shooter.intakeHuman(),
+                    feeder.intakeHuman(),
+                    intake.maintainPosition()
+                )
+            ),
+            lights.intaking()
         )
             .withName("Routines.intakeHuman()");
     }
@@ -52,9 +75,12 @@ public class Routines {
      */
     public static Command finishIntakeHuman() {
         return parallel(
-            shooter.setSpeed(0).withTimeout(2.0),
+            shooter.setSpeed(0.0).withTimeout(2.0),
             pivot.goTo(PivotConstants.DOWN_POSITION),
-            sequence(waitUntil(pivot::isSafeForIntake), parallel(intake.safePosition(), sequence(feeder.reverseSeat(), feeder.seat())))
+            sequence(
+                deadline(waitUntil(pivot::isSafeForIntake), intake.maintainPosition()),
+                parallel(intake.safePosition(), sequence(feeder.reverseSeat(), feeder.seat()))
+            )
         )
             .withName("Routines.finishIntakeHuman()");
     }
@@ -62,40 +88,32 @@ public class Routines {
     /**
      * Barfs the note forwards out of the intake.
      */
-    public static Command barfForward() {
-        return sequence(
-            parallel(pivot.goTo(PivotConstants.BARF_FORWARD_POSITION), intake.barfPosition()).withTimeout(0.5),
-            parallel(pivot.goTo(PivotConstants.BARF_FORWARD_POSITION), feeder.barfForward(), intake.barf())
-        )
-            .withName("Routines.barfForward()");
-    }
-
-    /**
-     * Barfs the note backwards out of the shooter.
-     */
-    public static Command barfBackward() {
+    public static Command barf() {
         return parallel(
-            shooter.barfBackward(),
+            sequence(pivot.goTo(PivotConstants.BARF_POSITION), pivot.maintainPosition()),
             sequence(
-                parallel(waitSeconds(0.35), pivot.goTo(PivotConstants.DOWN_POSITION), intake.downPosition()),
-                parallel(feeder.barfBackward(), intake.intake())
-            )
+                deadline(waitUntil(pivot::isSafeForIntake), intake.maintainPosition()),
+                intake.barfPosition(),
+                parallel(shooter.barf(), feeder.barf(), intake.barf())
+            ),
+            lights.flames()
         )
-            .withName("Routines.barfBackward()");
+            .withName("Routines.barf()");
     }
 
     /**
      * Prepares to poop the note forwards out of the intake.
      */
     public static Command prepPoop() {
-        return sequence(handoff(), intake.poopPosition()).withName("Routines.prepPoop()");
+        return parallel(sequence(handoff(), intake.poopPosition()), lights.flames()).withName("Routines.prepPoop()");
     }
 
     /**
      * Poops the note out of the intake.
      */
     public static Command poop() {
-        return deadline(sequence(waitUntil(() -> !intake.hasNote()), waitSeconds(0.15)), intake.poop()).withName("Routines.poop()");
+        return deadline(sequence(waitUntil(() -> !intake.hasNote()), waitSeconds(0.15)), intake.poop(), lights.flames())
+            .withName("Routines.poop()");
     }
 
     /**
@@ -103,12 +121,11 @@ public class Routines {
      */
     public static Command handoff() {
         return sequence(
-            parallel(pivot.goTo(PivotConstants.HANDOFF_POSITION), sequence(waitUntil(pivot::isSafeForIntake), intake.handoffPosition())),
-            deadline(
-                sequence(waitUntil(() -> intake.hasNote() && !feeder.hasNote()), waitSeconds(0.1)),
-                feeder.barfForward(),
-                intake.handoff()
-            )
+            parallel(
+                pivot.goTo(PivotConstants.HANDOFF_POSITION),
+                sequence(deadline(waitUntil(pivot::isSafeForIntake), intake.maintainPosition()), intake.handoffPosition())
+            ),
+            deadline(sequence(waitUntil(() -> intake.hasNote() && !feeder.hasNote()), waitSeconds(0.1)), feeder.barf(), intake.handoff())
         );
     }
 
@@ -117,7 +134,50 @@ public class Routines {
      * @param rampSpeed The speed to ramp the shooter by in percent duty cycle / second.
      */
     public static Command feedThrough(Supplier<Double> rampSpeed) {
-        return parallel(intake.intake(), feeder.shoot(true), shooter.driveManual(rampSpeed)).withName("Routines.feedThrough()");
+        return parallel(safeArm(intake.intake()), feeder.shoot(true), shooter.driveManual(rampSpeed), lights.flames())
+            .withName("Routines.feedThrough()");
+    }
+
+    /**
+     * Juggles a note.
+     */
+    public static Command juggle() {
+        return parallel(
+            sequence(
+                safeArm(intake.downPosition()),
+                deadline(pivot.goTo(PivotConstants.MAX_POS), intake.maintainPosition()),
+                parallel(
+                    repeatingSequence(
+                        deadline(sequence(waitSeconds(0.2), feeder.shoot()), shooter.setSpeed(0.2)),
+                        deadline(waitUntil(feeder::hasNote).andThen(waitSeconds(0.1)), shooter.intakeHuman(), feeder.intakeHuman())
+                    ),
+                    intake.maintainPosition()
+                )
+            ),
+            lights.flames()
+        )
+            .withName("Routines.juggle()");
+    }
+
+    /**
+     * Juggles a note (differently).
+     */
+    public static Command juggle2() {
+        return parallel(
+            repeatingSequence(
+                handoff(),
+                intake.juggleHandoffPosition(),
+                pivot.goTo(PivotConstants.MAX_POS),
+                deadline(
+                    waitUntil(feeder::hasNote).andThen(waitSeconds(0.1)),
+                    intake.juggleHandoff(),
+                    shooter.intakeHuman(),
+                    feeder.intakeHuman()
+                )
+            ),
+            lights.flames()
+        )
+            .withName("Routines.juggle()");
     }
 
     /**
