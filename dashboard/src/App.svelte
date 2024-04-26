@@ -4,9 +4,7 @@
     import ConnectingDialog from "./components/ConnectingDialog.svelte";
     import NavBar from "./components/NavBar.svelte";
 
-    import AutoSelection from "./tabs/AutoSelection.svelte";
     import DriverView from "./tabs/DriverView.svelte";
-    import Tunables from "./tabs/Tunables.svelte";
 
     import { NTConnected } from "./ntStores";
     import { NTSvelteClientState } from "./lib/NTSvelte";
@@ -16,9 +14,7 @@
     // The key should be the name of the tab as it appears on the nav bar.
     // The value should be the tab's svelte component.
     const tabs = {
-        "Driver View": DriverView,
-        "Auto Selection": AutoSelection,
-        Tunables: Tunables,
+        "Driver View": DriverView
     };
 
     // Helpers for tab selection.
