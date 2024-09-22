@@ -18,6 +18,6 @@ FRC Team 340's code for the 2024 season, Crescendo.
 ### Robot Logs
 Logs from matches during the 2024 season can be found [here](https://github.com/Greater-Rochester-Robotics/RobotLogs/tree/main/2024).
 
-<br><br>
+<br>
 
 ![Robot](robot.png)
