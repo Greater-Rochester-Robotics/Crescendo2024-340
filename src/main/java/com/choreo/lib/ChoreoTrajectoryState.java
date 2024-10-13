@@ -12,7 +12,7 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 /** A single robot state in a ChoreoTrajectory. */
 public class ChoreoTrajectoryState implements Interpolatable<ChoreoTrajectoryState> {
 
-    private static final double FIELD_WIDTH_METERS = 8.0136;
+    private static final double FIELD_WIDTH_METERS = 16.55445;
 
     /** The timestamp of this state, relative to the beginning of the trajectory. */
     public final double timestamp;
@@ -124,11 +124,11 @@ public class ChoreoTrajectoryState implements Interpolatable<ChoreoTrajectorySta
     public ChoreoTrajectoryState flipped() {
         return new ChoreoTrajectoryState(
             this.timestamp,
-            this.x,
-            FIELD_WIDTH_METERS - this.y,
-            -this.heading,
-            this.velocityX,
-            -this.velocityY,
+            FIELD_WIDTH_METERS - this.x,
+            this.y,
+            Math.PI - this.heading,
+            -this.velocityX,
+            this.velocityY,
             -this.angularVelocity
         );
     }
