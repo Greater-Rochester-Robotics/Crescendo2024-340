@@ -127,30 +127,35 @@ public class Swerve extends GRRSubsystem {
     @Override
     public void periodic() {
         long loopStart = WPIUtilJNI.now();
+        long tagDetTime = loopStart - 10000; // YIPPEE
 
         api.refresh();
-
-        Twist2d twist = api.state.twist;
-        gtsamInterface.sendOdomUpdate(loopStart, new Twist3d(twist.dx, twist.dy, 0, 0, 0, twist.dtheta), null);
 
         measurements.clear();
         targets.clear();
 
+        Pose3d guess = null;
+        int mostTargets = 0;
         for (int i = 0; i < cameras.length; i++) {
             var camera = cameras[i];
             var poseEstimator = poseEstimators[i];
             var results = camera.getLatestResult();
             var last = lastResults[i];
 
-            List<TagDetection> dets = new ArrayList<>();
-            long tagDetTime = 0;
             if (results.getTimestampSeconds() != last.getTimestampSeconds()) {
+                List<TagDetection> dets = new ArrayList<>();
                 lastResults[i] = results;
                 for (var result : results.getTargets()) {
                     dets.add(new TagDetection(result.getFiducialId(), result.getDetectedCorners()));
                 }
 
-                tagDetTime = loopStart - 10000; // YIPPEE
+                gtsamInterface.setCamIntrinsics(camera.getName(), camera.getCameraMatrix(), camera.getDistCoeffs());
+                gtsamInterface.sendVisionUpdate(
+                    camera.getName(),
+                    tagDetTime,
+                    dets,
+                    poseEstimator.getRobotToCameraTransform()
+                );
 
                 var estimate = poseEstimators[i].update(results, camera.getCameraMatrix(), camera.getDistCoeffs());
                 if (estimate.isPresent()) {
@@ -163,30 +168,30 @@ public class Swerve extends GRRSubsystem {
                         api.state.pose.getTranslation().getDistance(tagPose.get().getTranslation().toTranslation2d());
                     }
 
+                    Pose3d estimatedPose = estimate.get().estimatedPose;
                     int tagCount = estimate.get().targetsUsed.size();
                     double stdScale = Math.pow(sum / tagCount, 2.0) / tagCount;
                     double xyStd = 0.1 * stdScale;
                     double angStd = 0.15 * stdScale;
 
-                    Pose2d estimatedPose = estimate.get().estimatedPose.toPose2d();
                     api.addVisionMeasurement(
-                        estimatedPose,
+                        estimatedPose.toPose2d(),
                         estimate.get().timestampSeconds,
                         VecBuilder.fill(xyStd, xyStd, angStd)
                     );
-                    measurements.add(estimatedPose);
-                    continue;
+
+                    measurements.add(estimatedPose.toPose2d());
+
+                    if (tagCount > mostTargets) {
+                        mostTargets = tagCount;
+                        guess = new Pose3d(estimatedPose.toPose2d());
+                    }
                 }
             }
-
-            gtsamInterface.setCamIntrinsics(camera.getName(), camera.getCameraMatrix(), camera.getDistCoeffs());
-            gtsamInterface.sendVisionUpdate(
-                camera.getName(),
-                tagDetTime,
-                dets,
-                poseEstimator.getRobotToCameraTransform()
-            );
         }
+
+        Twist2d twist = api.state.twist;
+        gtsamInterface.sendOdomUpdate(loopStart, new Twist3d(twist.dx, twist.dy, 0, 0, 0, twist.dtheta), guess);
 
         gtsamPose = gtsamInterface.getLatencyCompensatedPoseEstimate().toPose2d();
     }
@@ -210,6 +215,7 @@ public class Swerve extends GRRSubsystem {
     public Command tareRotation() {
         return commandBuilder("Swerve.tareRotation()")
             .onInitialize(() -> api.tareRotation(ForwardPerspective.OPERATOR))
-            .isFinished(true);
+            .isFinished(true)
+            .ignoringDisable(true);
     }
 }

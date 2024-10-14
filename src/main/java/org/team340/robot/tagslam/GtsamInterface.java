@@ -200,14 +200,7 @@ public class GtsamInterface {
             throw new RuntimeException("Camera " + camName + " not in map!");
         }
 
-        cam.tagPub.set(
-            camDetectedTags
-                .stream()
-                .map(it -> cam.undistort(it))
-                .collect(Collectors.toList())
-                .toArray(new TagDetection[0]),
-            tagDetTime
-        );
+        cam.tagPub.set(camDetectedTags.stream().map(it -> cam.undistort(it)).toArray(TagDetection[]::new), tagDetTime);
         cam.robotTcamPub.set(robotTcam, tagDetTime);
     }
 

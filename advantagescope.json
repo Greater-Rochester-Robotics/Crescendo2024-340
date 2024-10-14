@@ -1,0 +1,95 @@
+{
+  "hubs": [
+    {
+      "x": -8,
+      "y": -8,
+      "width": 1936,
+      "height": 1048,
+      "state": {
+        "sidebar": {
+          "width": 300,
+          "expanded": [
+            "/Profiling",
+            "/Profiling/RobotPeriodic",
+            "/photonvision/backleft",
+            "/Telemetry",
+            "/Telemetry/swerve",
+            "/Telemetry/swerve/gtsamPose",
+            "/Telemetry/swerve/measurements",
+            "/Telemetry/swerve/api",
+            "/Telemetry/swerve/api/state"
+          ]
+        },
+        "tabs": {
+          "selected": 1,
+          "tabs": [
+            {
+              "type": 0,
+              "path": "../docs/INDEX.md"
+            },
+            {
+              "type": 6,
+              "uuid": "sy629p1xwjbclr806vmw4m3r227v2izh",
+              "fields": [],
+              "listFields": [
+                [
+                  {
+                    "type": "Vision Target",
+                    "key": "NT:Telemetry/swerve/targets",
+                    "sourceTypeIndex": 2,
+                    "sourceType": "Pose3d[]"
+                  }
+                ],
+                [
+                  {
+                    "type": "Yellow Ghost",
+                    "key": "NT:Telemetry/swerve/gtsamPose",
+                    "sourceTypeIndex": 1,
+                    "sourceType": "Pose2d"
+                  },
+                  {
+                    "type": "Green Ghost",
+                    "key": "NT:Telemetry/swerve/measurements",
+                    "sourceTypeIndex": 2,
+                    "sourceType": "Pose2d[]"
+                  },
+                  {
+                    "type": "Robot",
+                    "key": "NT:Telemetry/swerve/api/state/pose",
+                    "sourceTypeIndex": 1,
+                    "sourceType": "Pose2d"
+                  }
+                ]
+              ],
+              "options": {
+                "field": "2024 Field",
+                "alliance": "blue",
+                "robot": "Crab Bot",
+                "unitDistance": "meters",
+                "unitRotation": "radians"
+              },
+              "configHidden": false,
+              "visualizer": {
+                "cameraIndex": -1,
+                "orbitFov": 50,
+                "cameraPosition": [
+                  -12.967182945844,
+                  8.075650471959554,
+                  -10.658056282134623
+                ],
+                "cameraTarget": [
+                  -3.4474973308021597,
+                  -1.1822377727134292,
+                  2.7946289330477283
+                ]
+              },
+              "title": "3D Field"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "satellites": [],
+  "version": "3.2.1"
+}
