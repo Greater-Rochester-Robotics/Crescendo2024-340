@@ -11,6 +11,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.kinematics.SwerveDriveWheelPositions;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.numbers.N1;
@@ -31,6 +32,8 @@ import org.team340.robot.Robot;
 
 public class SwerveAPI implements AutoCloseable {
 
+    public final SwerveState state;
+
     final SwerveIMU imu;
     final SwerveModule[] modules;
     final SwerveConfig config;
@@ -39,8 +42,8 @@ public class SwerveAPI implements AutoCloseable {
     private final double farthestModule;
     private final Translation2d[] moduleLocations;
     private final SwerveModuleState[] lockedStates;
+    private final SwerveDriveWheelPositions lastPositions;
 
-    private final SwerveState state;
     private final SwerveDriveKinematics kinematics;
     private final SwerveDrivePoseEstimator poseEstimator;
 
@@ -59,15 +62,18 @@ public class SwerveAPI implements AutoCloseable {
         modules = new SwerveModule[moduleCount];
         moduleLocations = new Translation2d[moduleCount];
         lockedStates = new SwerveModuleState[moduleCount];
+        var lastModulePositions = new SwerveModulePosition[moduleCount];
         double farthest = 0.0;
         for (int i = 0; i < moduleCount; i++) {
             var moduleConfig = config.modules[i];
             modules[i] = new SwerveModule(config, moduleConfig);
             moduleLocations[i] = moduleConfig.location;
             lockedStates[i] = new SwerveModuleState(0.0, moduleLocations[i].getAngle());
+            lastModulePositions[i] = new SwerveModulePosition();
             farthest = Math.max(farthest, moduleLocations[i].getNorm());
         }
 
+        lastPositions = new SwerveDriveWheelPositions(lastModulePositions);
         farthestModule = farthest;
 
         state = new SwerveState(modules);
@@ -86,18 +92,15 @@ public class SwerveAPI implements AutoCloseable {
     }
 
     /**
-     * Gets the current state of the robot's swerve drivetrain.
-     */
-    public SwerveState getState() {
-        return state;
-    }
-
-    /**
      * Refreshes inputs from all swerve hardware. This must be called periodically
      * in order for the API to function. Typically, this method is called at the
      * start of the swerve subsystem's {@code periodic()} method.
      */
     public void refresh() {
+        for (int i = 0; i < moduleCount; i++) {
+            Math2.copyInto(state.modules.positions[i], lastPositions.positions[i]);
+        }
+
         odometryMutex.lock();
         try {
             odometryThread.run(true);
@@ -120,6 +123,7 @@ public class SwerveAPI implements AutoCloseable {
 
         state.pitch = imu.getPitch();
         state.roll = imu.getRoll();
+        state.twist = kinematics.toTwist2d(lastPositions, new SwerveDriveWheelPositions(state.modules.positions));
         state.speeds = kinematics.toChassisSpeeds(state.modules.states);
         state.velocity = Math.hypot(state.speeds.vxMetersPerSecond, state.speeds.vyMetersPerSecond);
 
