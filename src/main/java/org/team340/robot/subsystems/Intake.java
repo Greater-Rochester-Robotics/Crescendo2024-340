@@ -4,310 +4,187 @@ import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkFlex;
 import com.revrobotics.CANSparkLowLevel.MotorType;
-import com.revrobotics.CANSparkMax;
 import com.revrobotics.SparkAbsoluteEncoder;
-import com.revrobotics.SparkAbsoluteEncoder.Type;
 import com.revrobotics.SparkPIDController;
+import com.revrobotics.SparkPIDController.ArbFFUnits;
+import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.util.sendable.SendableBuilder;
-import edu.wpi.first.wpilibj.DigitalInput;
-import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
+import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
+import edu.wpi.first.math.trajectory.TrapezoidProfile.State;
 import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.Supplier;
-import org.team340.lib.GRRSubsystem;
-import org.team340.lib.util.Math2;
+import org.team340.lib.dashboard.Tunable;
+import org.team340.lib.util.GRRSubsystem;
+import org.team340.lib.util.rev.SparkAbsoluteEncoderConfig;
+import org.team340.lib.util.rev.SparkFlexConfig;
+import org.team340.lib.util.rev.SparkFlexConfig.Frame;
+import org.team340.lib.util.rev.SparkPIDControllerConfig;
 import org.team340.robot.Constants;
-import org.team340.robot.Constants.IntakeConstants;
-import org.team340.robot.Constants.PivotConstants;
 import org.team340.robot.Constants.RobotMap;
 
 /**
  * The intake subsystem. Intakes notes from the floor and scores
  * them in the amp, or pass them to the shooter.
  */
+@Logged
 public class Intake extends GRRSubsystem {
 
-    private final CANSparkFlex armLeftMotor;
-    private final CANSparkFlex armRightMotor;
-    private final CANSparkMax rollerUpperMotor;
-    private final CANSparkMax rollerLowerMotor;
-    private final SparkAbsoluteEncoder armEncoder;
-    private final DigitalInput noteDetector;
-    private final SparkPIDController armPID;
+    public static enum IntakeState {
+        /** The intake is deployed and intaking. */
+        kIntake(8.0, Math.toRadians(5.0)),
+        /** The intake is retracted and the rollers are stationary. */
+        kRetract(0.0, Math.toRadians(110.0)),
+        /** The intake is barfing. */
+        kBarf(-10.0, Math.toRadians(90.0));
 
-    private double armMaintain = 0.0;
-    private double armTarget = 0.0;
+        private final Tunable<Double> voltage;
+        private final Tunable<Double> radians;
+
+        private IntakeState(double voltage, double radians) {
+            this.voltage = Tunable.doubleValue("Intake/Speeds/" + this.name(), voltage);
+            this.radians = Tunable.doubleValue("Intake/Positions/" + this.name(), radians);
+        }
+
+        private double voltage() {
+            return voltage.get();
+        }
+
+        private double radians() {
+            return radians.get();
+        }
+    }
+
+    private static final Constraints kConstraints = new Constraints(12.0, 10.0);
+
+    private static final Tunable<Double> kMinPos = Tunable.doubleValue("Intake/kMinPos", Math.toRadians(2.0));
+    private static final Tunable<Double> kMaxPos = Tunable.doubleValue("Intake/kMaxPos", Math.toRadians(115.0));
+    private static final Tunable<Double> kPivotKg = Tunable.doubleValue("Intake/kPivotKg", 0.78);
+
+    private final CANSparkFlex rollerMotor;
+    private final CANSparkFlex pivotMotor;
+    private final SparkAbsoluteEncoder pivotEncoder;
+    private final SparkPIDController pivotPID;
+
+    private TrapezoidProfile profile;
+    private Constraints constraints;
+    private State setpoint = new State();
+    private double pivotTarget = 0.0;
 
     /**
      * Create the intake subsystem.
      */
     public Intake() {
-        super("Intake");
-        armLeftMotor = createSparkFlex("Arm Left Motor", RobotMap.INTAKE_ARM_LEFT_MOTOR, MotorType.kBrushless);
-        armRightMotor = createSparkFlex("Arm Right Motor", RobotMap.INTAKE_ARM_RIGHT_MOTOR, MotorType.kBrushless);
-        rollerUpperMotor = createSparkMax("Roller Upper Motor", RobotMap.INTAKE_ROLLER_UPPER_MOTOR, MotorType.kBrushless);
-        rollerLowerMotor = createSparkMax("Roller Lower Motor", RobotMap.INTAKE_ROLLER_LOWER_MOTOR, MotorType.kBrushless);
-        armEncoder = createSparkFlexAbsoluteEncoder("Arm Encoder", armLeftMotor, Type.kDutyCycle);
-        noteDetector = createDigitalInput("Note Detector", RobotMap.INTAKE_NOTE_DETECTOR);
-        armPID = armLeftMotor.getPIDController();
+        rollerMotor = new CANSparkFlex(RobotMap.kIntakeRollerMotor, MotorType.kBrushless);
+        pivotMotor = new CANSparkFlex(RobotMap.kIntakePivotMotor, MotorType.kBrushless);
+        pivotEncoder = pivotMotor.getAbsoluteEncoder();
+        pivotPID = pivotMotor.getPIDController();
 
-        armPID.setFeedbackDevice(armEncoder);
+        profile = new TrapezoidProfile(kConstraints);
+        constraints = kConstraints;
 
-        IntakeConstants.ArmConfigs.LEFT_MOTOR.apply(armLeftMotor);
-        IntakeConstants.ArmConfigs.RIGHT_MOTOR.apply(armRightMotor);
-        IntakeConstants.RollerConfigs.MOTOR.apply(rollerUpperMotor);
-        IntakeConstants.RollerConfigs.MOTOR.apply(rollerLowerMotor);
-        IntakeConstants.ArmConfigs.ENCODER.apply(armLeftMotor, armEncoder);
-        IntakeConstants.ArmConfigs.PID.apply(armLeftMotor, armPID);
-    }
+        pivotPID.setFeedbackDevice(pivotEncoder);
 
-    @Override
-    public void initSendable(SendableBuilder builder) {
-        super.initSendable(builder);
-        builder.addDoubleProperty("armTarget", () -> armTarget, null);
-        builder.addDoubleProperty("armMaintain", () -> armMaintain, null);
-        builder.addBooleanProperty("hasNote", this::hasNote, null);
+        SparkFlexConfig.defaults()
+            .setSmartCurrentLimit(40)
+            .setIdleMode(IdleMode.kCoast)
+            .setInverted(false)
+            .apply(rollerMotor);
+
+        SparkFlexConfig.defaults()
+            .setSmartCurrentLimit(40)
+            .setIdleMode(IdleMode.kBrake)
+            .setInverted(false)
+            .setPeriodicFramePeriod(Frame.S5, 20)
+            .setPeriodicFramePeriod(Frame.S6, 20)
+            .apply(pivotMotor);
+
+        new SparkAbsoluteEncoderConfig()
+            .setPositionConversionFactor(Math.PI)
+            .setVelocityConversionFactor(Math.PI)
+            .setInverted(true)
+            .setZeroOffset(0.263)
+            .apply(pivotMotor, pivotEncoder);
+
+        new SparkPIDControllerConfig().setPID(0.71, 0.0008, 0.0).setIZone(0.1).apply(pivotMotor, pivotPID);
+
+        Tunable.pidController("Intake/PID", pivotPID);
+        Tunable.doubleValue("Intake/Constraints/maxVelocity", constraints.maxVelocity, v -> {
+            profile = new TrapezoidProfile(new Constraints(v, constraints.maxAcceleration));
+        });
+        Tunable.doubleValue("Intake/Constraints/maxAcceleration", constraints.maxAcceleration, v -> {
+            profile = new TrapezoidProfile(new Constraints(constraints.maxVelocity, v));
+        });
     }
 
     /**
-     * Returns {@code true} when the beam break detects a note.
+     * Applies a state to the intake. Does not end.
+     * @param state The state to apply.
      */
-    public boolean hasNote() {
-        return noteDetector.get();
+    public Command apply(IntakeState state) {
+        return applyPosition(state::radians)
+            .beforeStarting(() -> rollerMotor.setVoltage(state.voltage()))
+            .finallyDo(() -> rollerMotor.stopMotor())
+            .withName("Intake.apply()");
     }
 
     /**
-     * Returns {@code true} if the arm is at the specified position.
-     * @param position The position to check for in radians.
+     * Drives the pivot manually. Does not end.
+     * @param pivotSpeed The speed of the pivot in radians/second.
      */
-    private boolean atPosition(double position) {
-        return Math2.epsilonEquals(MathUtil.angleModulus(armEncoder.getPosition()), position, IntakeConstants.CLOSED_LOOP_ERR);
-    }
-
-    /**
-     * Sets the {@link #armPID arms' PIDs} to go to the specified position if it is valid
-     * (within the intake {@link IntakeConstants#MIN_POS minimum} and
-     * {@link IntakeConstants#MAX_POS maximum} angles).
-     * @param position The position to set.
-     */
-    private void applyPosition(double position) {
-        if (position < IntakeConstants.MIN_POS || position > IntakeConstants.MAX_POS) {
-            DriverStation.reportWarning(
-                "Invalid intake arm position. " +
-                Math2.formatRadians(position) +
-                " degrees is not between " +
-                Math2.formatRadians(PivotConstants.MIN_POS) +
-                " and " +
-                Math2.formatRadians(PivotConstants.MAX_POS),
-                false
-            );
-        } else {
-            armTarget = position;
-            if (
-                position < IntakeConstants.PID_INACTIVE_POSITION &&
-                MathUtil.angleModulus(armEncoder.getPosition()) < IntakeConstants.PID_INACTIVE_POSITION
-            ) {
-                armLeftMotor.stopMotor();
-                armRightMotor.stopMotor();
-            } else {
-                armPID.setReference(position, ControlType.kPosition);
+    public Command manual(Supplier<Double> pivotSpeed) {
+        return applyPosition(() -> {
+            double diff = pivotSpeed.get() * Constants.kPeriod;
+            double pivotPos = pivotEncoder.getPosition();
+            if (pivotPos <= kMinPos.get()) {
+                diff = Math.max(diff, 0.0);
+            } else if (pivotPos >= kMaxPos.get()) {
+                diff = Math.min(diff, 0.0);
             }
-        }
+
+            return MathUtil.clamp(pivotTarget + diff, kMinPos.get(), kMaxPos.get());
+        })
+            .beforeStarting(() -> pivotTarget = pivotEncoder.getPosition())
+            .withName("Intake.manual()");
     }
 
     /**
-     * Sets the state of the intake.
-     * @param position The position for the arm to move to in radians.
-     * @param upperSpeed The duty cycle of the upper roller.
-     * @param lowerSpeed The duty cycle of the lower roller.
-     * @param willFinish If {@code true}, the command will end after the arm reaches the specified angle.
+     * Moves the pivot to the supplied position. Does not end.
+     * @param position A supplier that returns a position to target in radians.
      */
-    private Command useState(double position, double upperSpeed, double lowerSpeed, boolean willFinish) {
-        return commandBuilder(
-            "intake.useState(" + Math2.formatRadians(position) + ", " + upperSpeed + ", " + lowerSpeed + ", " + willFinish + ")"
-        )
+    private Command applyPosition(Supplier<Double> position) {
+        return commandBuilder("Intake.applyPosition()")
             .onInitialize(() -> {
-                rollerUpperMotor.set(upperSpeed);
-                rollerLowerMotor.set(lowerSpeed);
+                setpoint.position = pivotEncoder.getPosition();
+                setpoint.velocity = pivotEncoder.getVelocity();
             })
             .onExecute(() -> {
-                applyPosition(position);
-                armMaintain = armEncoder.getPosition();
+                setpoint = profile.calculate(Constants.kPeriod, setpoint, new State(position.get(), 0.0));
+                pivotTarget = MathUtil.clamp(setpoint.position, kMinPos.get(), kMaxPos.get());
+                pivotPID.setReference(
+                    pivotTarget,
+                    ControlType.kPosition,
+                    0,
+                    kPivotKg.get() * Math.cos(pivotTarget),
+                    ArbFFUnits.kVoltage
+                );
             })
-            .isFinished(() -> willFinish && atPosition(position))
-            .onEnd(interrupted -> {
-                if (!interrupted || atPosition(position)) armMaintain = position;
-                armLeftMotor.stopMotor();
-                armRightMotor.stopMotor();
-                rollerUpperMotor.stopMotor();
-                rollerLowerMotor.stopMotor();
-            });
+            .onEnd(() -> pivotMotor.stopMotor());
     }
 
     /**
-     * Moves to the down position. Runs until the arm is at the position.
-     */
-    public Command downPosition() {
-        return useState(IntakeConstants.DOWN_POSITION, 0, 0, true).withName("intake.downPosition()");
-    }
-
-    /**
-     * Moves to the handoff position. Runs until the arm is at the position.
-     */
-    public Command handoffPosition() {
-        return useState(IntakeConstants.HANDOFF_POSITION, 0, 0, true).withName("intake.handoffPosition()");
-    }
-
-    /**
-     * Moves to the safe position. Runs until the arm is at the position.
-     */
-    public Command safePosition() {
-        return useState(IntakeConstants.SAFE_POSITION, 0, 0, true).withName("intake.safePosition()");
-    }
-
-    /**
-     * Moves to the retract position. Runs until the arm is at the position.
-     */
-    public Command retractPosition() {
-        return useState(IntakeConstants.RETRACT_POSITION, 0, 0, true).withName("intake.retractPosition()");
-    }
-
-    /**
-     * Moves to the upright position. Runs until the arm is at the position.
-     */
-    public Command uprightPosition() {
-        return useState(IntakeConstants.UPRIGHT_POSITION, 0.0, 0.0, true).withName("intake.uprightPosition()");
-    }
-
-    /**
-     * Moves to the barf position. Runs until the arm is at the position.
-     */
-    public Command barfPosition() {
-        return useState(IntakeConstants.BARF_POSITION, 0, 0, true).withName("intake.barfPosition()");
-    }
-
-    /**
-     * Moves to the poop position. Runs until the arm is at the position.
-     */
-    public Command poopPosition() {
-        return useState(IntakeConstants.POOP_POSITION, 0, 0, true).withName("intake.poopPosition()");
-    }
-
-    /**
-     * Moves to the amp position. Runs until the arm is at the position.
-     */
-    public Command ampPosition() {
-        return useState(IntakeConstants.AMP_POSITION, 0, 0, true).withName("intake.ampPosition()");
-    }
-
-    /**
-     * Intakes from the ground. Does not end.
-     */
-    public Command intake() {
-        return useState(IntakeConstants.DOWN_POSITION, IntakeConstants.INTAKE_SPEED, IntakeConstants.INTAKE_SPEED * .6, false)
-            .withName("intake.intake()");
-    }
-
-    /**
-     * Receives a note back from the feeder. Does not end.
-     */
-    public Command handoff() {
-        return useState(IntakeConstants.HANDOFF_POSITION, IntakeConstants.HANDOFF_SPEED, IntakeConstants.HANDOFF_SPEED, false)
-            .withName("intake.ampHandoff()");
-    }
-
-    /**
-     * Scores in the amp. Does not end.
-     */
-    public Command scoreAmp() {
-        return ampPosition()
-            .andThen(useState(IntakeConstants.AMP_POSITION, IntakeConstants.AMP_UPPER_SPEED, IntakeConstants.AMP_LOWER_SPEED, false))
-            .withName("intake.scoreAmp()");
-    }
-
-    /**
-     * Barfs the note out of the intake. Does not end.
-     */
-    public Command barf() {
-        return useState(IntakeConstants.BARF_POSITION, IntakeConstants.BARF_SPEED, IntakeConstants.BARF_SPEED, false)
-            .withName("intake.barf()");
-    }
-
-    /**
-     * Poops the note out of the intake. Does not end.
-     */
-    public Command poop() {
-        return useState(IntakeConstants.POOP_POSITION, IntakeConstants.POOP_SPEED, IntakeConstants.POOP_SPEED, false)
-            .withName("intake.poop()");
-    }
-
-    /**
-     * Maintains the last set position of the arm.
-     */
-    public Command maintainPosition() {
-        return commandBuilder("intake.maintainPosition()")
-            .onInitialize(() -> {
-                if (armMaintain > Math.PI && armMaintain < 3 * Math2.HALF_PI) armMaintain = Math.PI; else if (
-                    MathUtil.angleModulus(armMaintain) < 0.0
-                ) armMaintain = 0.0;
-            })
-            .onExecute(() -> applyPosition(armMaintain));
-    }
-
-    /**
-     * Runs rollers at a set speed to intake manually.
-     */
-    public Command intakeOverride() {
-        return commandBuilder("intake.intakeOverride()")
-            .onExecute(() -> {
-                rollerUpperMotor.set(IntakeConstants.OVERRIDE_INTAKE_SPEED);
-                rollerLowerMotor.set(IntakeConstants.OVERRIDE_INTAKE_SPEED);
-            })
-            .onEnd(() -> {
-                rollerUpperMotor.stopMotor();
-                rollerLowerMotor.stopMotor();
-            });
-    }
-
-    /**
-     * Drives the arms manually. Will hold position.
-     * @param speed The speed of the arms in radians/second.
-     */
-    public Command driveArmManual(Supplier<Double> speed) {
-        return commandBuilder("intake.driveArmManual()")
-            .onExecute(() -> {
-                double diff = speed.get() * Constants.PERIOD;
-                double armPos = armEncoder.getPosition();
-                if (armPos < IntakeConstants.MIN_POS) {
-                    diff = Math.max(diff, 0.0);
-                } else if (armPos > IntakeConstants.MAX_POS) {
-                    diff = Math.min(diff, 0.0);
-                }
-
-                armMaintain += diff;
-                applyPosition(armMaintain);
-            });
-    }
-
-    /**
-     * Should be called when disabled, and cancelled when enabled.
+     * Sho\[]
+     *  uld be called when disabled, and cancelled when enabled.
      */
     public Command onDisable() {
         return commandBuilder()
             .onInitialize(() -> {
-                armLeftMotor.setIdleMode(IdleMode.kCoast);
-                armRightMotor.setIdleMode(IdleMode.kCoast);
-                armLeftMotor.stopMotor();
-                armRightMotor.stopMotor();
-                rollerUpperMotor.stopMotor();
-                rollerLowerMotor.stopMotor();
+                rollerMotor.stopMotor();
+                pivotMotor.stopMotor();
+                pivotMotor.setIdleMode(IdleMode.kCoast);
             })
-            .onExecute(() -> armMaintain = armEncoder.getPosition())
-            .onEnd(() -> {
-                armLeftMotor.setIdleMode(IdleMode.kBrake);
-                armRightMotor.setIdleMode(IdleMode.kBrake);
-            })
+            .onEnd(() -> pivotMotor.setIdleMode(IdleMode.kBrake))
             .ignoringDisable(true)
-            .withName("intake.onDisable()");
+            .withName("Intake.onDisable()");
     }
 }

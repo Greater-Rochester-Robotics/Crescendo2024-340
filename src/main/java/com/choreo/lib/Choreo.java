@@ -4,10 +4,8 @@
 package com.choreo.lib;
 
 import com.google.gson.Gson;
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
@@ -114,40 +112,61 @@ public class Choreo {
     public static Command choreoSwerveCommand(
         ChoreoTrajectory trajectory,
         Supplier<Pose2d> poseSupplier,
-        double targetTimeStart,
-        double targetTimeEnd,
-        Supplier<Double> targetAngle,
-        PIDController targetController,
         PIDController xController,
         PIDController yController,
         PIDController rotationController,
         Consumer<ChassisSpeeds> outputChassisSpeeds,
-        Consumer<Pose2d> outputTargetPose,
         BooleanSupplier mirrorTrajectory,
         Subsystem... requirements
     ) {
-        ChoreoControlFunction controller = choreoSwerveController(xController, yController, rotationController);
+        return choreoSwerveCommand(
+            trajectory,
+            poseSupplier,
+            choreoSwerveController(xController, yController, rotationController),
+            outputChassisSpeeds,
+            mirrorTrajectory,
+            requirements
+        );
+    }
+
+    /**
+     * Create a command to follow a Choreo path.
+     *
+     * @param trajectory The trajectory to follow. Use Choreo.getTrajectory(String trajName) to load
+     *     this from the deploy directory.
+     * @param poseSupplier A function that returns the current field-relative pose of the robot.
+     * @param controller A ChoreoControlFunction to follow the current trajectory state. Use
+     *     ChoreoCommands.choreoSwerveController(PIDController xController, PIDController yController,
+     *     PIDController rotationController) to create one using PID controllers for each degree of
+     *     freedom. You can also pass in a function with the signature (Pose2d currentPose,
+     *     ChoreoTrajectoryState referenceState) -&gt; ChassisSpeeds to implement a custom follower
+     *     (i.e. for logging).
+     * @param outputChassisSpeeds A function that consumes the target robot-relative chassis speeds
+     *     and commands them to the robot.
+     * @param mirrorTrajectory If this returns true, the path will be mirrored to the opposite side,
+     *     while keeping the same coordinate system origin. This will be called every loop during the
+     *     command.
+     * @param requirements The subsystem(s) to require, typically your drive subsystem only.
+     * @return A command that follows a Choreo path.
+     */
+    public static Command choreoSwerveCommand(
+        ChoreoTrajectory trajectory,
+        Supplier<Pose2d> poseSupplier,
+        ChoreoControlFunction controller,
+        Consumer<ChassisSpeeds> outputChassisSpeeds,
+        BooleanSupplier mirrorTrajectory,
+        Subsystem... requirements
+    ) {
         var timer = new Timer();
         return new FunctionalCommand(
             timer::restart,
             () -> {
-                Pose2d pose = poseSupplier.get();
-                ChoreoTrajectoryState sample = trajectory.sample(timer.get(), mirrorTrajectory.getAsBoolean());
-                ChassisSpeeds speeds = controller.apply(pose, sample);
-                Pose2d targetOutput = sample.getPose();
-                if (targetTimeStart >= 0 && timer.get() >= targetTimeStart && (targetTimeEnd >= 0 ? timer.get() <= targetTimeEnd : true)) {
-                    double angle = targetAngle.get();
-                    speeds =
-                        new ChassisSpeeds(
-                            speeds.vxMetersPerSecond,
-                            speeds.vyMetersPerSecond,
-                            targetController.calculate(MathUtil.angleModulus(pose.getRotation().getRadians()), angle)
-                        );
-                    targetOutput = new Pose2d(targetOutput.getX(), targetOutput.getY(), new Rotation2d(angle));
-                }
-
-                outputChassisSpeeds.accept(speeds);
-                outputTargetPose.accept(targetOutput);
+                outputChassisSpeeds.accept(
+                    controller.apply(
+                        poseSupplier.get(),
+                        trajectory.sample(timer.get(), mirrorTrajectory.getAsBoolean())
+                    )
+                );
             },
             interrupted -> {
                 timer.stop();
@@ -188,7 +207,10 @@ public class Choreo {
 
             double xFeedback = xController.calculate(pose.getX(), referenceState.x);
             double yFeedback = yController.calculate(pose.getY(), referenceState.y);
-            double rotationFeedback = rotationController.calculate(pose.getRotation().getRadians(), referenceState.heading);
+            double rotationFeedback = rotationController.calculate(
+                pose.getRotation().getRadians(),
+                referenceState.heading
+            );
 
             return ChassisSpeeds.fromFieldRelativeSpeeds(
                 xFF + xFeedback,

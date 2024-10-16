@@ -2,255 +2,232 @@ package org.team340.robot.subsystems;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
-import com.choreo.lib.Choreo;
 import com.choreo.lib.ChoreoTrajectory;
+import com.revrobotics.CANSparkLowLevel.MotorType;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFieldLayout.OriginPosition;
 import edu.wpi.first.apriltag.AprilTagFields;
+import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
-import edu.wpi.first.math.controller.HolonomicDriveController;
-import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
-import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.math.trajectory.Trajectory;
-import edu.wpi.first.math.trajectory.Trajectory.State;
+import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.util.sendable.SendableBuilder;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.ADIS16470_IMU.CalibrationTime;
+import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
+import edu.wpi.first.wpilibj.SPI.Port;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiConsumer;
 import java.util.function.Supplier;
-import org.photonvision.EstimatedRobotPose;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
 import org.photonvision.PhotonPoseEstimator.PoseStrategy;
-import org.photonvision.targeting.PhotonTrackedTarget;
-import org.team340.lib.commands.CommandBuilder;
-import org.team340.lib.swerve.SwerveBase;
-import org.team340.lib.swerve.SwerveModule;
-import org.team340.lib.swerve.util.SwerveVisualizer;
+import org.team340.lib.dashboard.Tunable;
+import org.team340.lib.swerve.SwerveAPI;
+import org.team340.lib.swerve.SwerveAPI.ForwardPerspective;
+import org.team340.lib.swerve.config.SwerveConfig;
+import org.team340.lib.swerve.config.SwerveModuleConfig;
+import org.team340.lib.swerve.hardware.SwerveEncoders;
+import org.team340.lib.swerve.hardware.SwerveIMUs;
+import org.team340.lib.swerve.hardware.SwerveMotors;
 import org.team340.lib.util.Alliance;
+import org.team340.lib.util.GRRSubsystem;
 import org.team340.lib.util.Math2;
 import org.team340.robot.Constants;
-import org.team340.robot.Constants.FieldPositions;
-import org.team340.robot.Constants.SwerveConstants;
+import org.team340.robot.Constants.FieldConstants;
+import org.team340.robot.Constants.RobotMap;
 
 /**
  * The swerve subsystem.
  */
-public class Swerve extends SwerveBase {
+@Logged
+public class Swerve extends GRRSubsystem {
 
-    private final PIDController xPIDTraj = SwerveConstants.TRAJ_XY_PID.pidController();
-    private final PIDController yPIDTraj = SwerveConstants.TRAJ_XY_PID.pidController();
-    private final PIDController rotPIDTraj = SwerveConstants.TRAJ_ROT_PID.pidController();
-    private final PIDController targetPIDTraj = SwerveConstants.TRAJ_TARGET_PID.pidController();
-    private final ProfiledPIDController rotPIDTrajProfiled = SwerveConstants.TRAJ_ROT_PID.profiledPIDController(
-        SwerveConstants.TRAJ_ROT_CONSTRAINTS
+    private static final SwerveModuleConfig kFrontLeft = new SwerveModuleConfig()
+        .setName("frontLeft")
+        .setLocation(0.288925, 0.288925)
+        .setMoveMotor(SwerveMotors.sparkFlex(RobotMap.kMoveFL, MotorType.kBrushless, true))
+        .setTurnMotor(SwerveMotors.sparkFlex(RobotMap.kTurnFL, MotorType.kBrushless, true))
+        .setEncoder(SwerveEncoders.sparkFlexEncoder(0.3802, true));
+
+    private static final SwerveModuleConfig kFrontRight = new SwerveModuleConfig()
+        .setName("frontRight")
+        .setLocation(0.288925, -0.288925)
+        .setMoveMotor(SwerveMotors.sparkFlex(RobotMap.kMoveFR, MotorType.kBrushless, true))
+        .setTurnMotor(SwerveMotors.sparkFlex(RobotMap.kTurnFR, MotorType.kBrushless, true))
+        .setEncoder(SwerveEncoders.sparkFlexEncoder(0.8859, true));
+
+    private static final SwerveModuleConfig kBackLeft = new SwerveModuleConfig()
+        .setName("backLeft")
+        .setLocation(-0.288925, 0.288925)
+        .setMoveMotor(SwerveMotors.sparkFlex(RobotMap.kMoveBL, MotorType.kBrushless, true))
+        .setTurnMotor(SwerveMotors.sparkFlex(RobotMap.kTurnBL, MotorType.kBrushless, true))
+        .setEncoder(SwerveEncoders.sparkFlexEncoder(0.3182, true));
+
+    private static final SwerveModuleConfig kBackRight = new SwerveModuleConfig()
+        .setName("backRight")
+        .setLocation(-0.288925, -0.288925)
+        .setMoveMotor(SwerveMotors.sparkFlex(RobotMap.kMoveBR, MotorType.kBrushless, true))
+        .setTurnMotor(SwerveMotors.sparkFlex(RobotMap.kTurnBR, MotorType.kBrushless, true))
+        .setEncoder(SwerveEncoders.sparkFlexEncoder(0.6675, true));
+
+    public static final SwerveConfig kConfig = new SwerveConfig()
+        .setTimings(Constants.kPeriod, Constants.kPeriod, 0.04)
+        .setMovePID(0.01, 0.0, 0.0, 0.0)
+        .setMoveFF(0.0221, 0.1068)
+        .setTurnPID(0.21, 0.0, 0.1, 0.0)
+        .setBrakeMode(false, true)
+        .setLimits(4.9, 13.0, 7.0, 27.5)
+        .setDriverProfile(4.3, 1.0, 4.2, 2.0)
+        .setPowerProperties(Constants.kVoltage, 65.0, 40.0)
+        .setMechanicalProperties(6.75, 150.0 / 7.0, 0.0, Units.inchesToMeters(4.0))
+        .setOdometryStd(0.05, 0.05, 0.01)
+        .setIMU(SwerveIMUs.adis16470(IMUAxis.kZ, IMUAxis.kX, IMUAxis.kY, Port.kOnboardCS0, CalibrationTime._4s))
+        .setModules(kFrontLeft, kFrontRight, kBackLeft, kBackRight);
+
+    private static final Transform3d kBackLeftCamera = new Transform3d(
+        new Translation3d(-0.29153, 0.26629, 0.24511),
+        new Rotation3d(0.0, Math.toRadians(-20.0), Math.toRadians(-160.0))
+    );
+    private static final Transform3d kBackRightCamera = new Transform3d(
+        new Translation3d(-0.29153, -0.26629, 0.24511),
+        new Rotation3d(0.0, Math.toRadians(-20.0), Math.toRadians(160.0))
     );
 
-    private final HolonomicDriveController trajectoryController = new HolonomicDriveController(xPIDTraj, yPIDTraj, rotPIDTrajProfiled);
+    private static final double kAngularKp = 6.5;
+    private static final double kAngularKi = 0.5;
+    private static final double kAngularKd = 0.0;
+    private static final double kAngularIZone = 0.8;
+    private static final Constraints kAngularConstraints = new Constraints(9.5, 24.0);
 
-    private final PIDController xPID = SwerveConstants.XY_PID.pidController();
-    private final PIDController yPID = SwerveConstants.XY_PID.pidController();
-    private final ProfiledPIDController rotPID = SwerveConstants.ROT_PID.profiledPIDController(SwerveConstants.ROT_CONSTRAINTS);
+    private static final Tunable<Double> kNoteVelocity = Tunable.doubleValue("Swerve/kNoteVelocity", 5.6);
+    private static final Tunable<Double> kNormFudge = Tunable.doubleValue("Swerve/kNormFudge", 0.49);
+    private static final Tunable<Double> kNormFudgeMin = Tunable.doubleValue("Swerve/kNormFudgeMin", 0.49);
+    private static final Tunable<Double> kStrafeFudge = Tunable.doubleValue("Swerve/kStrafeFudge", 0.85);
+    private static final Tunable<Double> kSpinCompensation = Tunable.doubleValue("Swerve/kSpinCompensation", 0.035);
 
-    private final AprilTagFieldLayout blueAprilTags;
-    private final AprilTagFieldLayout redAprilTags;
-    private final PhotonPoseEstimator[] photonPoseEstimators;
+    private final SwerveAPI api;
+    private final ProfiledPIDController angularPID;
 
-    private double[] speaker = new double[0];
-    private double tunableNoteVelocity = SwerveConstants.NOTE_VELOCITY;
-    private double tunableNormFudge = SwerveConstants.NORM_FUDGE;
-    private double tunableStrafeFudge = SwerveConstants.STRAFE_FUDGE;
-    private double tunableSpinCompensation = SwerveConstants.SPIN_COMPENSATION;
-    private double tunableDistanceFudge = 0.0;
-    private double tunableSpeakerXFudge = 0.0;
-    private double tunableSpeakerYFudge = 0.0;
-    private double tunableAmpXFudge = 0.0;
-    private double tunableAmpYFudge = 0.0;
+    private final AprilTagFieldLayout aprilTags;
+    private final PhotonPoseEstimator[] poseEstimators;
+    private final List<Pose2d> measurements = new ArrayList<>();
+    private final List<Pose3d> targets = new ArrayList<>();
 
-    private double effectiveWheelRadius = -1.0;
+    private final Tunable<Double> speakerXFudge = Tunable.doubleValue("Swerve/speakerXFudge", 0.0);
+    private final Tunable<Double> speakerYFudge = Tunable.doubleValue("Swerve/speakerYFudge", 0.0);
+
+    private Translation2d speaker = new Translation2d();
+    private double speakerDistance = 0.0;
+    private double speakerAngle = 0.0;
 
     /**
      * Create the swerve subsystem.
      */
     public Swerve() {
-        super("Swerve Drive", SwerveConstants.CONFIG);
-        rotPIDTraj.enableContinuousInput(-Math.PI, Math.PI);
-        rotPIDTrajProfiled.enableContinuousInput(-Math.PI, Math.PI);
-        rotPID.enableContinuousInput(-Math.PI, Math.PI);
+        api = new SwerveAPI(kConfig);
 
-        blueAprilTags = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField();
-        redAprilTags = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField();
-        blueAprilTags.setOrigin(OriginPosition.kBlueAllianceWallRightSide);
-        redAprilTags.setOrigin(OriginPosition.kRedAllianceWallRightSide);
+        angularPID = new ProfiledPIDController(kAngularKp, kAngularKi, kAngularKd, kAngularConstraints);
+        angularPID.setIZone(kAngularIZone);
+        angularPID.enableContinuousInput(-Math.PI, Math.PI);
 
-        photonPoseEstimators =
-            new PhotonPoseEstimator[] {
-                new PhotonPoseEstimator(
-                    blueAprilTags,
-                    PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-                    new PhotonCamera("FrontLeft"),
-                    SwerveConstants.FRONT_LEFT_CAMERA
-                ),
-                new PhotonPoseEstimator(
-                    blueAprilTags,
-                    PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-                    new PhotonCamera("BackLeft"),
-                    SwerveConstants.BACK_LEFT_CAMERA
-                ),
-                new PhotonPoseEstimator(
-                    blueAprilTags,
-                    PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-                    new PhotonCamera("BackRight"),
-                    SwerveConstants.BACK_RIGHT_CAMERA
-                ),
-                new PhotonPoseEstimator(
-                    blueAprilTags,
-                    PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-                    new PhotonCamera("FrontRight"),
-                    SwerveConstants.FRONT_RIGHT_CAMERA
-                ),
-            };
-    }
+        aprilTags = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField();
+        aprilTags.setOrigin(OriginPosition.kBlueAllianceWallRightSide);
+        poseEstimators = new PhotonPoseEstimator[] {
+            new PhotonPoseEstimator(
+                aprilTags,
+                PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+                new PhotonCamera("backleft"),
+                kBackLeftCamera
+            ),
+            new PhotonPoseEstimator(
+                aprilTags,
+                PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+                new PhotonCamera("backright"),
+                kBackRightCamera
+            )
+        };
 
-    @Override
-    public void initSendable(SendableBuilder builder) {
-        super.initSendable(builder);
-        builder.addBooleanProperty("facingSpeaker", this::facingSpeaker, null);
-        builder.addDoubleProperty("speakerX", () -> getSpeakerPosition().getX(), null);
-        builder.addDoubleProperty("speakerY", () -> getSpeakerPosition().getY(), null);
-        builder.addDoubleProperty("speakerDistance", this::getSpeakerDistance, null);
-        builder.addDoubleProperty("effectiveWheelRadius", () -> effectiveWheelRadius, null);
-        builder.addBooleanProperty("inOpponentWing", this::inOpponentWing, null);
-        builder.addDoubleArrayProperty("speaker", () -> speaker, null);
-
-        builder.addDoubleProperty("tunableNoteVelocity", null, velocity -> tunableNoteVelocity = velocity);
-        builder.addDoubleProperty("tunableNormFudge", null, fudge -> tunableNormFudge = fudge);
-        builder.addDoubleProperty("tunableStrafeFudge", null, fudge -> tunableStrafeFudge = fudge);
-        builder.addDoubleProperty("tunableSpinCompensation", null, compensation -> tunableSpinCompensation = compensation);
-        builder.addDoubleProperty("tunableDistanceFudge", null, fudge -> tunableDistanceFudge = fudge);
-        builder.addDoubleProperty("tunableSpeakerXFudge", null, fudge -> tunableSpeakerXFudge = fudge);
-        builder.addDoubleProperty("tunableSpeakerYFudge", null, fudge -> tunableSpeakerYFudge = fudge);
-        builder.addDoubleProperty("tunableAmpXFudge", null, fudge -> tunableAmpXFudge = fudge);
-        builder.addDoubleProperty("tunableAmpYFudge", null, fudge -> tunableAmpYFudge = fudge);
+        api.enableTunables("Swerve");
+        Tunable.pidController("Swerve/rotPID", angularPID);
     }
 
     @Override
     public void periodic() {
-        updateOdometry(poseEstimator -> {
-            List<Pose2d> measurements = new ArrayList<>();
-            List<Pose3d> targets = new ArrayList<>();
+        api.refresh();
 
-            Pose2d currentPose = getPosition();
-            for (int i = 0; i < photonPoseEstimators.length; i++) {
-                Optional<EstimatedRobotPose> pose = photonPoseEstimators[i].update();
-                if (pose.isPresent()) {
-                    Pose3d raw = pose.get().estimatedPose;
-                    Pose3d pose3d = Alliance.isBlue()
-                        ? raw
-                        : new Pose3d(
-                            Constants.FIELD_LENGTH - raw.getX(),
-                            Constants.FIELD_WIDTH - raw.getY(),
-                            raw.getZ(),
-                            raw.getRotation().minus(new Rotation3d(0.0, 0.0, Math.PI))
-                        );
-                    Pose2d pose2d = pose3d.toPose2d();
-                    if (
-                        pose3d.getX() >= -SwerveConstants.VISION_FIELD_MARGIN &&
-                        pose3d.getX() <= Constants.FIELD_LENGTH + SwerveConstants.VISION_FIELD_MARGIN &&
-                        pose3d.getY() >= -SwerveConstants.VISION_FIELD_MARGIN &&
-                        pose3d.getY() <= Constants.FIELD_WIDTH + SwerveConstants.VISION_FIELD_MARGIN &&
-                        pose3d.getZ() >= -SwerveConstants.VISION_Z_MARGIN &&
-                        pose3d.getZ() <= SwerveConstants.VISION_Z_MARGIN
-                    ) {
-                        double sum = 0.0;
-                        for (PhotonTrackedTarget target : pose.get().targetsUsed) {
-                            Optional<Pose3d> tagPose =
-                                (Alliance.isBlue() ? blueAprilTags : redAprilTags).getTagPose(target.getFiducialId());
-                            if (tagPose.isEmpty()) continue;
-                            targets.add(tagPose.get());
-                            sum += currentPose.getTranslation().getDistance(tagPose.get().getTranslation().toTranslation2d());
-                        }
+        measurements.clear();
+        targets.clear();
 
-                        int tagCount = pose.get().targetsUsed.size();
-                        double stdScale = Math.pow(sum / tagCount, 2.0) / tagCount;
-                        double xyStd = SwerveConstants.VISION_STD_XY_SCALE * stdScale;
-                        double rotStd = SwerveConstants.VISION_STD_ROT_SCALE * stdScale;
-
-                        poseEstimator.addVisionMeasurement(pose2d, pose.get().timestampSeconds, VecBuilder.fill(xyStd, xyStd, rotStd));
-                        measurements.add(pose2d);
-                        continue;
-                    }
+        for (int i = 0; i < poseEstimators.length; i++) {
+            var estimate = poseEstimators[i].update();
+            if (estimate.isPresent()) {
+                double weightedSum = 0.0;
+                for (var target : estimate.get().targetsUsed) {
+                    int id = target.getFiducialId();
+                    Optional<Pose3d> tagPose = aprilTags.getTagPose(id);
+                    if (tagPose.isEmpty()) continue;
+                    targets.add(tagPose.get());
+                    double distance = api.state.pose
+                        .getTranslation()
+                        .getDistance(tagPose.get().getTranslation().toTranslation2d());
+                    boolean important = id == 3 || id == 4 || id == 7 || id == 8;
+                    weightedSum += distance * (important ? 0.65 : 1.0);
                 }
+
+                Pose3d estimatedPose = estimate.get().estimatedPose;
+                int tagCount = estimate.get().targetsUsed.size();
+                double stdScale = Math.pow(weightedSum / tagCount, 2.0) / tagCount;
+                double xyStd = 0.2 * stdScale;
+                double angStd = 0.3 * stdScale;
+
+                api.addVisionMeasurement(
+                    estimatedPose.toPose2d(),
+                    estimate.get().timestampSeconds,
+                    VecBuilder.fill(xyStd, xyStd, angStd)
+                );
+
+                measurements.add(estimatedPose.toPose2d());
             }
+        }
 
-            visualizer.updateVision(measurements.stream().toArray(Pose2d[]::new), targets.stream().toArray(Pose3d[]::new));
-        });
-    }
+        Translation2d realSpeaker = Alliance.isBlue() ? FieldConstants.kBlueSpeaker : FieldConstants.kRedSpeaker;
+        Translation2d robot = api.state.pose.getTranslation();
+        ChassisSpeeds robotVel = api.state.speeds;
+        double distance = robot.getDistance(realSpeaker);
+        double normFactor = Math.hypot(robotVel.vxMetersPerSecond, robotVel.vyMetersPerSecond) < kNormFudgeMin.get()
+            ? 0.0
+            : Math.abs(
+                MathUtil.angleModulus(
+                    robot.minus(realSpeaker).getAngle().getRadians() -
+                    Math.atan2(robotVel.vyMetersPerSecond, robotVel.vxMetersPerSecond)
+                ) /
+                Math.PI
+            );
 
-    /**
-     * Returns {@code true} if the robot is in the opponent's wing.
-     */
-    public boolean inOpponentWing() {
-        return getPosition().getX() > FieldPositions.OPPONENT_WING_LINE;
-    }
+        double x =
+            realSpeaker.getX() +
+            speakerXFudge.get() -
+            (robotVel.vxMetersPerSecond * (distance / kNoteVelocity.get()) * (1.0 - (kNormFudge.get() * normFactor)));
+        double y =
+            realSpeaker.getY() +
+            speakerYFudge.get() -
+            (robotVel.vyMetersPerSecond * (distance / kNoteVelocity.get()) * kStrafeFudge.get());
 
-    /**
-     * Returns {@code true} if the robot is past the midline.
-     */
-    public boolean pastMidline() {
-        return getPosition().getX() > FieldPositions.MIDLINE;
-    }
-
-    /**
-     * Returns the distance from the speaker in meters, adjusted for the robot's movement.
-     */
-    public double getSpeakerDistance() {
-        return (
-            getPosition().getTranslation().getDistance(getSpeakerPosition()) +
-            (Alliance.isBlue() ? SwerveConstants.DISTANCE_FUDGE_BLUE : SwerveConstants.DISTANCE_FUDGE_RED) +
-            tunableDistanceFudge
+        speaker = new Translation2d(x, y);
+        speakerDistance = robot.getDistance(speaker);
+        speakerAngle = MathUtil.angleModulus(
+            speaker.minus(robot).getAngle().getRadians() + Math.PI + kSpinCompensation.get()
         );
-    }
-
-    /**
-     * Returns the distance to the amp in meters.
-     */
-    public double getAmpDistance() {
-        return getPosition()
-            .getTranslation()
-            .getDistance((Alliance.isBlue() ? FieldPositions.AMP_SCORE_BLUE : FieldPositions.AMP_SCORE_RED).getTranslation());
-    }
-
-    /**
-     * Returns {@code true} if the robot is facing the speaker and on target.
-     */
-    public boolean facingSpeaker() {
-        return Math2.epsilonEquals(
-            getPosition().getRotation().minus(new Rotation2d(getSpeakerAngle())).getRadians(),
-            0.0,
-            SwerveConstants.FACING_SPEAKER_EPSILON
-        );
-    }
-
-    /**
-     * Returns the distance to the center of the stage in meters.
-     */
-    public double getStageDistance() {
-        return getPosition().getTranslation().getDistance(FieldPositions.STAGE);
     }
 
     /**
@@ -258,31 +235,15 @@ public class Swerve extends SwerveBase {
      * the robot should take, adjusted for the robot's movement.
      * @return A {@link Translation2d} representing a field relative position in meters.
      */
-    public Translation2d getSpeakerPosition() {
-        Translation2d goalPose = Alliance.isBlue() ? FieldPositions.BLUE_SPEAKER : FieldPositions.RED_SPEAKER;
-        Translation2d robotPos = getPosition().getTranslation();
-        ChassisSpeeds robotVel = getVelocity(true);
-        double distance = robotPos.getDistance(goalPose);
-        double normFactor = Math.hypot(robotVel.vxMetersPerSecond, robotVel.vyMetersPerSecond) < SwerveConstants.NORM_FUDGE_MIN
-            ? 0.0
-            : Math.abs(
-                MathUtil.angleModulus(
-                    robotPos.minus(goalPose).getAngle().getRadians() - Math.atan2(robotVel.vyMetersPerSecond, robotVel.vxMetersPerSecond)
-                ) /
-                Math.PI
-            );
+    public Translation2d getSpeaker() {
+        return speaker;
+    }
 
-        double x =
-            goalPose.getX() +
-            tunableSpeakerXFudge -
-            (robotVel.vxMetersPerSecond * (distance / tunableNoteVelocity) * (1.0 - (tunableNormFudge * normFactor)));
-        double y =
-            goalPose.getY() +
-            (Alliance.isBlue() ? tunableSpeakerYFudge : -tunableSpeakerYFudge) -
-            (robotVel.vyMetersPerSecond * (distance / tunableNoteVelocity) * tunableStrafeFudge);
-
-        speaker = SwerveVisualizer.pose3d(new Pose3d(x, y, FieldPositions.SPEAKER_HEIGHT, Math2.ROTATION3D_0));
-        return new Translation2d(x, y);
+    /**
+     * Returns the distance from the speaker in meters, adjusted for the robot's movement.
+     */
+    public double getSpeakerDistance() {
+        return speakerDistance;
     }
 
     /**
@@ -290,154 +251,66 @@ public class Swerve extends SwerveBase {
      * in radians. Compensates for note drift caused by spin.
      */
     private double getSpeakerAngle() {
-        Translation2d speakerPosition = getSpeakerPosition();
-        Translation2d robotPoint = getPosition().getTranslation();
-        return MathUtil.angleModulus(speakerPosition.minus(robotPoint).getAngle().getRadians() + Math.PI + tunableSpinCompensation);
+        return speakerAngle;
     }
 
     /**
-     * Returns the robot's yaw in radians.
+     * Tares the rotation of the robot. Useful for
+     * fixing an out of sync or drifting IMU.
      */
-    public double getYaw() {
-        return imu.getYaw().getRadians();
+    public Command tareRotation() {
+        return commandBuilder("Swerve.tareRotation()")
+            .onInitialize(() -> api.tareRotation(ForwardPerspective.OPERATOR))
+            .isFinished(true);
     }
 
     /**
-     * Returns the robot's roll in radians.
+     * Drives the robot using driver input.
+     * @param x The X value from the driver's joystick.
+     * @param y The Y value from the driver's joystick.
+     * @param angular The CCW+ angular speed to apply, from {@code [-1.0, 1.0]}.
      */
-    public double getRoll() {
-        return imu.getRoll().getRadians();
+    public Command drive(Supplier<Double> x, Supplier<Double> y, Supplier<Double> angular) {
+        return commandBuilder("Swerve.drive()").onExecute(() ->
+            api.applyDriverInput(x.get(), y.get(), angular.get(), ForwardPerspective.OPERATOR, true, true)
+        );
     }
 
     /**
-     * Zeroes the IMU to a specified yaw.
-     */
-    public Command zeroIMU(Rotation2d yaw) {
-        return runOnce(() -> imu.setZero(yaw)).withName("swerve.zero(" + yaw.toString() + ")");
-    }
-
-    /**
-     * Dumps the current state of odometry and resets to 0.
-     */
-    public Command dumpOdometry() {
-        return commandBuilder("swerve.dumpOdometry()").onInitialize(() -> resetOdometry(new Pose2d())).isFinished(true);
-    }
-
-    /**
-     * Drives the robot.
-     * @param x The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
-     * @param y The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
-     * @param rot The desired rotational speed from {@code -1.0} to {@code 1.0}.
-     * @param fieldRelative If the robot should drive field relative.
-     */
-    public Command drive(Supplier<Double> x, Supplier<Double> y, Supplier<Double> rot, boolean fieldRelative) {
-        return commandBuilder("swerve.drive()").onExecute(() -> drive(x.get(), y.get(), rot.get(), fieldRelative));
-    }
-
-    /**
-     * Faces the robot towards the speaker.
-     */
-    public Command driveSpeaker() {
-        return driveSpeaker(() -> 0.0, () -> 0.0);
-    }
-
-    /**
-     * Allows the driver to keep driving, but forces the robot to face the speaker.
-     * @param x The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
-     * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
+     * Drives the robot using driver input, while
+     * forcing the robot to face the speaker.
+     * @param x The X value from the driver's joystick.
+     * @param y The Y value from the driver's joystick.
      */
     public Command driveSpeaker(Supplier<Double> x, Supplier<Double> y) {
-        return commandBuilder("swerve.driveSpeaker()")
-            .onInitialize(() -> rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
+        return commandBuilder("Swerve.driveSpeaker()")
+            .onInitialize(() ->
+                angularPID.reset(api.state.pose.getRotation().getRadians(), api.state.speeds.omegaRadiansPerSecond)
+            )
             .onExecute(() -> {
-                double angle = getSpeakerAngle();
-                visualizer.updateTarget(angle);
-                driveAngle(x.get(), y.get(), angle, rotPID, false);
-            })
-            .onEnd(() -> visualizer.removeTarget());
+                double angularVel = angularPID.calculate(api.state.pose.getRotation().getRadians(), getSpeakerAngle());
+                api.applyDriverXY(x.get(), y.get(), angularVel, ForwardPerspective.OPERATOR, true, true);
+            });
     }
 
     /**
-     * Drives to the amp.
-     * If PID is being used, the command will not end.
-     * If a trajectory is being used, the command ends after the trajectory is completed.
-     * @param useTrajectory If a trajectory should be used to translate to the amp. Otherwise, PID is used.
+     * Drives the robot using driver input, while
+     * forcing the robot to face the amp.
+     * @param x The X value from the driver's joystick.
+     * @param y The Y value from the driver's joystick.
      */
-    public Command driveAmp(boolean useTrajectory) {
-        return defer(() -> {
-                double fudgeY = (Alliance.isBlue() ? tunableAmpYFudge : -tunableAmpYFudge);
-                Pose2d rawTarget = Alliance.isBlue() ? FieldPositions.AMP_SCORE_BLUE : FieldPositions.AMP_SCORE_RED;
-                Pose2d target = new Pose2d(rawTarget.getX() + tunableAmpXFudge, rawTarget.getY() + fudgeY, rawTarget.getRotation());
-                if (useTrajectory) {
-                    Pose2d rawApproach = Alliance.isBlue() ? FieldPositions.AMP_APPROACH_BLUE : FieldPositions.AMP_APPROACH_RED;
-                    Pose2d approach = new Pose2d(
-                        rawApproach.getX() + tunableAmpXFudge,
-                        rawApproach.getY() + fudgeY,
-                        rawApproach.getRotation()
-                    );
-                    return followTrajectory(generateTrajectory(approach, target));
-                } else {
-                    return pidTo(target);
-                }
-            })
-            .withName("swerve.driveAmp(" + useTrajectory + ")");
-    }
-
-    /**
-     * Allows the driver to keep driving, but forces the robot to face the amp.
-     * @param x The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
-     * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
-     */
-    public Command driveAmpManual(Supplier<Double> x, Supplier<Double> y) {
-        return commandBuilder("swerve.driveAmpManual()")
-            .onInitialize(() -> rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
+    public Command driveAmp(Supplier<Double> x, Supplier<Double> y) {
+        return commandBuilder("Swerve.driveAmp()")
+            .onInitialize(() ->
+                angularPID.reset(api.state.pose.getRotation().getRadians(), api.state.speeds.omegaRadiansPerSecond)
+            )
             .onExecute(() -> {
-                double angle = Alliance.isBlue() ? Math2.HALF_PI : -Math2.HALF_PI;
-                visualizer.updateTarget(angle);
-                driveAngle(x.get(), y.get(), angle, rotPID, false);
-            })
-            .onEnd(() -> visualizer.removeTarget());
-    }
-
-    /**
-     * Allows the driver to keep driving, but forces the robot to face the feeder.
-     * @param x The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
-     * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
-     */
-    public Command driveIntakeHuman(Supplier<Double> x, Supplier<Double> y) {
-        return commandBuilder("swerve.driveIntakeHuman()")
-            .onInitialize(() -> rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
-            .onExecute(() -> {
-                double angle = Alliance.isBlue() ? -Math2.THIRD_PI : Math2.THIRD_PI;
-                visualizer.updateTarget(angle);
-                driveAngle(x.get(), y.get(), angle, rotPID, false);
-            })
-            .onEnd(() -> visualizer.removeTarget());
-    }
-
-    /**
-     * Allows the driver to keep driving, but forces the robot to face the stage.
-     * @param x The desired {@code x} speed from {@code -1.0} to {@code 1.0}.
-     * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
-     */
-    public Command driveClimb(Supplier<Double> x, Supplier<Double> y) {
-        return commandBuilder("swerve.driveClimb()")
-            .onInitialize(() -> rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond))
-            .onExecute(() -> {
-                double stageAngle = FieldPositions.STAGE.minus(getPosition().getTranslation()).getAngle().getRadians();
-                double faceStageAngle;
-                if (stageAngle >= 0.0 && stageAngle <= Math2.TWO_THIRD_PI) {
-                    faceStageAngle = Math2.THIRD_PI;
-                } else if (stageAngle >= -Math2.TWO_THIRD_PI && stageAngle <= 0.0) {
-                    faceStageAngle = -Math2.THIRD_PI;
-                } else {
-                    faceStageAngle = -Math.PI;
-                }
-
-                visualizer.updateTarget(faceStageAngle);
-                driveAngle(x.get(), y.get(), faceStageAngle, rotPID, false);
-            })
-            .onEnd(() -> visualizer.removeTarget());
+                double angularVel = angularPID.calculate(
+                    api.state.pose.getRotation().getRadians(),
+                    Alliance.isBlue() ? -Math2.HALF_PI : Math2.HALF_PI
+                );
+                api.applyDriverXY(x.get(), y.get(), angularVel, ForwardPerspective.OPERATOR, true, true);
+            });
     }
 
     /**
@@ -446,34 +319,18 @@ public class Swerve extends SwerveBase {
      * @param y The desired {@code y} speed from {@code -1.0} to {@code 1.0}.
      */
     public Command driveFeed(Supplier<Double> x, Supplier<Double> y) {
-        return commandBuilder("swerve.driveFeed()")
+        return commandBuilder("Swerve.driveFeed()")
+            .onInitialize(() ->
+                angularPID.reset(api.state.pose.getRotation().getRadians(), api.state.speeds.omegaRadiansPerSecond)
+            )
             .onExecute(() -> {
-                Translation2d feedPoint = Alliance.isBlue() ? FieldPositions.FEED_BLUE : FieldPositions.FEED_RED;
+                Translation2d feedPoint = Alliance.isBlue() ? FieldConstants.kBlueFeed : FieldConstants.kRedFeed;
                 double faceFeedAngle = MathUtil.angleModulus(
-                    feedPoint.minus(getPosition().getTranslation()).getAngle().getRadians() + Math.PI
+                    feedPoint.minus(api.state.pose.getTranslation()).getAngle().getRadians() + Math.PI
                 );
-                visualizer.updateTarget(faceFeedAngle);
-                driveAngle(x.get(), y.get(), faceFeedAngle, rotPID, false);
-            })
-            .onEnd(() -> visualizer.removeTarget());
-    }
 
-    /**
-     * Moves to a specified pose using PID. Does not end.
-     * @param pose The pose to translate to.
-     */
-    public Command pidTo(Pose2d pose) {
-        return commandBuilder("swerve.pidTo(" + pose.toString() + ")")
-            .onInitialize(() -> {
-                visualizer.updateTarget(pose);
-                rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond);
-                xPID.reset();
-                yPID.reset();
-            })
-            .onExecute(() -> driveToPose(pose, xPID, yPID, rotPID, false))
-            .onEnd(() -> {
-                stop();
-                visualizer.removeTarget();
+                double angularVel = angularPID.calculate(api.state.pose.getRotation().getRadians(), faceFeedAngle);
+                api.applyDriverXY(x.get(), y.get(), angularVel, ForwardPerspective.OPERATOR, true, true);
             });
     }
 
@@ -498,177 +355,53 @@ public class Swerve extends SwerveBase {
     /**
      * Follows a trajectory.
      * @param traj The trajectory to follow.
-     * @param resetOdometry If the odometry should be reset to the first pose in the trajectory.
-     */
-    public Command followTrajectory(ChoreoTrajectory traj, boolean resetOdometry) {
-        return followTrajectory(traj, -1.0, -1.0, resetOdometry);
-    }
-
-    /**
-     * Follows a trajectory.
-     * @param traj The trajectory to follow.
      * @param targetTimeStart Time in seconds after the path starts to start targeting the speaker. {@code -1.0} will disable speaker targeting.
      * @param targetTimeEnd Time in seconds after the path starts to stop targeting the speaker. Only applied if {@code targetTimeStart} is greater than {@code 0.0}. {@code -1.0} will cause the robot to target the speaker indefinitely.
      * @param resetOdometry If the odometry should be reset to the first pose in the trajectory.
      */
-    public Command followTrajectory(ChoreoTrajectory traj, double targetTimeStart, double targetTimeEnd, boolean resetOdometry) {
-        BiConsumer<Boolean, Pose2d> stateBlue = visualizer.addTrajectory(traj.getPoses());
-        BiConsumer<Boolean, Pose2d> stateRed = visualizer.addTrajectory(traj.flipped().getPoses());
+    public Command followTrajectory(
+        ChoreoTrajectory traj,
+        double targetTimeStart,
+        double targetTimeEnd,
+        boolean resetOdometry
+    ) {
+        return none();
+        // return Choreo.choreoSwerveCommand(
+        //     traj,
+        //     this::getPosition,
+        //     targetTimeStart,
+        //     targetTimeEnd,
+        //     this::getSpeakerAngle,
+        //     targetPIDTraj,
+        //     xPIDTraj,
+        //     yPIDTraj,
+        //     rotPIDTraj,
+        //     speeds -> driveSpeeds(speeds, false, false),
+        //     targetPose -> {
+        //         if (Alliance.isBlue()) stateBlue.accept(true, targetPose);
+        //         else stateRed.accept(true, targetPose);
+        //     },
+        //     Alliance::isRed,
+        //     this
+        // )
+        //     .beforeStarting(() -> {
+        //         if (resetOdometry) {
+        //             Pose2d initialPose = Alliance.isBlue()
+        //                 ? traj.getInitialPose()
+        //                 : traj.getInitialState().flipped().getPose();
+        //             zeroIMU(initialPose.getRotation());
+        //             resetOdometry(initialPose);
+        //         }
 
-        return Choreo
-            .choreoSwerveCommand(
-                traj,
-                this::getPosition,
-                targetTimeStart,
-                targetTimeEnd,
-                this::getSpeakerAngle,
-                targetPIDTraj,
-                xPIDTraj,
-                yPIDTraj,
-                rotPIDTraj,
-                speeds -> driveSpeeds(speeds, false, false),
-                targetPose -> {
-                    if (Alliance.isBlue()) stateBlue.accept(true, targetPose); else stateRed.accept(true, targetPose);
-                },
-                Alliance::isRed,
-                this
-            )
-            .beforeStarting(() -> {
-                if (resetOdometry) {
-                    Pose2d initialPose = Alliance.isBlue() ? traj.getInitialPose() : traj.getInitialState().flipped().getPose();
-                    zeroIMU(initialPose.getRotation());
-                    resetOdometry(initialPose);
-                }
-
-                rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond);
-                xPIDTraj.reset();
-                yPIDTraj.reset();
-                rotPIDTraj.reset();
-            })
-            .finallyDo(() -> {
-                stateBlue.accept(false, Math2.POSE2D_0);
-                stateRed.accept(false, Math2.POSE2D_0);
-            })
-            .withName("swerve.followTrajectory()");
-    }
-
-    /**
-     * Follows a trajectory.
-     * @param traj The trajectory to follow.
-     */
-    public Command followTrajectory(Trajectory traj) {
-        if (traj.getStates().isEmpty()) return none();
-        Rotation2d endRotation = traj.getStates().get(traj.getStates().size() - 1).poseMeters.getRotation();
-        Timer timer = new Timer();
-
-        BiConsumer<Boolean, Pose2d> state = visualizer.addTrajectory(
-            traj.getStates().stream().map(s -> new Pose2d(s.poseMeters.getX(), s.poseMeters.getY(), endRotation)).toArray(Pose2d[]::new)
-        );
-
-        return commandBuilder("swerve.followTrajectory()")
-            .onInitialize(() -> {
-                rotPIDTrajProfiled.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond);
-                xPIDTraj.reset();
-                yPIDTraj.reset();
-                timer.restart();
-            })
-            .onExecute(() -> {
-                State goal = traj.sample(timer.get());
-                ChassisSpeeds speeds = trajectoryController.calculate(getPosition(), goal, endRotation);
-                driveSpeeds(speeds, false, false);
-                state.accept(true, goal.poseMeters);
-            })
-            .isFinished(() -> timer.hasElapsed(traj.getTotalTimeSeconds()))
-            .onEnd(() -> {
-                state.accept(false, Math2.POSE2D_0);
-                timer.stop();
-                stop();
-            });
-    }
-
-    /**
-     * Runs a SysId quasistatic test.
-     * @param direction The direction to run the test in.
-     */
-    public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
-        return sysIdRoutine.quasistatic(direction);
-    }
-
-    /**
-     * Runs a SysId dynamic test.
-     * @param direction The direction to run the test in.
-     */
-    public Command sysIdDynamic(SysIdRoutine.Direction direction) {
-        return sysIdRoutine.dynamic(direction);
-    }
-
-    public class WheelRadiusCharacterization extends Command {
-
-        private final boolean forward;
-        private final SlewRateLimiter omegaLimiter = new SlewRateLimiter(1.0);
-
-        private double lastGyroYawRads = 0.0;
-        private double accumGyroYawRads = 0.0;
-
-        private double[] startWheelPositions;
-
-        private double currentEffectiveWheelRadius = 0.0;
-
-        public WheelRadiusCharacterization(boolean forward) {
-            this.forward = forward;
-        }
-
-        @Override
-        public void initialize() {
-            lastGyroYawRads = getYaw();
-            accumGyroYawRads = 0.0;
-            startWheelPositions = getModuleDistanceRad();
-
-            omegaLimiter.reset(0);
-        }
-
-        @Override
-        public void execute() {
-            // Run drive at velocity
-            driveSpeeds(new ChassisSpeeds(0.0, 0.0, omegaLimiter.calculate((forward ? 1.0 : -1.0) * 2.0)), false, false);
-
-            // Get yaw and wheel positions
-            double yaw = getYaw();
-            accumGyroYawRads += MathUtil.angleModulus(yaw - lastGyroYawRads);
-            lastGyroYawRads = yaw;
-            double averageWheelPosition = 0.0;
-            double[] wheelPositions = getModuleDistanceRad();
-            System.out.println(wheelPositions[0]);
-            for (int i = 0; i < 4; i++) {
-                averageWheelPosition += Math.abs(wheelPositions[i] - startWheelPositions[i]);
-            }
-            averageWheelPosition /= 4.0;
-
-            currentEffectiveWheelRadius = (accumGyroYawRads * SwerveConstants.DRIVE_BASE_RADIUS) / averageWheelPosition;
-        }
-
-        @Override
-        public void end(boolean interrupted) {
-            if (Math.abs(accumGyroYawRads) <= Math.PI * 2.0) {
-                DriverStation.reportWarning("Not enough data for characterization", false);
-                effectiveWheelRadius = -1.0;
-            } else {
-                double effectiveWheelRadiusInches = Units.metersToInches(currentEffectiveWheelRadius) * 2.0;
-                System.out.println("Effective Wheel Diameter: " + effectiveWheelRadiusInches + " inches");
-                effectiveWheelRadius = effectiveWheelRadiusInches;
-            }
-        }
-    }
-
-    public Command funAndGames() {
-        return new CommandBuilder()
-            .onInitialize(() -> {
-                for (SwerveModule module : modules) {
-                    module.configMoveCurrentLimit(50.0);
-                }
-            })
-            .isFinished(true)
-            .ignoringDisable(true)
-            .withName("swerve.funAndGames()");
+        //         rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond);
+        //         xPIDTraj.reset();
+        //         yPIDTraj.reset();
+        //         rotPIDTraj.reset();
+        //     })
+        //     .finallyDo(() -> {
+        //         stateBlue.accept(false, Math2.POSE2D_0);
+        //         stateRed.accept(false, Math2.POSE2D_0);
+        //     })
+        //     .withName("Swerve.followTrajectory()");
     }
 }

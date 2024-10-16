@@ -1,12 +1,14 @@
 package org.team340.robot;
 
+import edu.wpi.first.epilogue.Epilogue;
+import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.livewindow.LiveWindow;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import org.team340.lib.GRRDashboard;
-import org.team340.lib.util.config.rev.RevConfigRegistry;
+import org.team340.lib.dashboard.GRRDashboard;
+import org.team340.lib.util.Profiler;
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -14,31 +16,37 @@ import org.team340.lib.util.config.rev.RevConfigRegistry;
  * the package after creating this project, you must also update the build.gradle file in the
  * project.
  */
+@Logged
 public final class Robot extends TimedRobot {
 
-    public Robot() {
-        super(Constants.PERIOD);
-    }
+    private final RobotContainer robotContainer;
+    private Command autoCommand;
 
-    @Override
-    public void robotInit() {
-        LiveWindow.setEnabled(false);
-        enableLiveWindowInTest(false);
-        LiveWindow.disableAllTelemetry();
+    public Robot() {
+        super(Constants.kPeriod);
         DriverStation.silenceJoystickConnectionWarning(true);
 
+        // Start logging
         DataLogManager.start();
-        DataLogManager.logNetworkTables(true);
         DriverStation.startDataLog(DataLogManager.getLog());
-        GRRDashboard.initSync(this, Constants.TELEMETRY_PERIOD, Constants.POWER_USAGE_PERIOD);
-        RevConfigRegistry.init(this);
-        RobotContainer.init();
+        Epilogue.configure(config -> {
+            config.root = "Telemetry";
+        });
+
+        robotContainer = new RobotContainer();
     }
 
     @Override
     public void robotPeriodic() {
-        CommandScheduler.getInstance().run();
+        Profiler.start("RobotPeriodic");
+        Profiler.run("CommandScheduler", () -> CommandScheduler.getInstance().run());
+        Profiler.run("Epilogue", () -> Epilogue.update(this));
+        Profiler.run("GRRDashboard", GRRDashboard::update);
+        Profiler.end();
     }
+
+    @Override
+    public void simulationPeriodic() {}
 
     @Override
     public void disabledInit() {}
@@ -47,18 +55,30 @@ public final class Robot extends TimedRobot {
     public void disabledPeriodic() {}
 
     @Override
+    public void disabledExit() {}
+
+    @Override
     public void autonomousInit() {
-        GRRDashboard.getAutoCommand().schedule();
+        autoCommand = GRRDashboard.getSelectedAuto();
+        CommandScheduler.getInstance().schedule(autoCommand);
     }
 
     @Override
     public void autonomousPeriodic() {}
 
     @Override
+    public void autonomousExit() {
+        if (autoCommand != null) autoCommand.cancel();
+    }
+
+    @Override
     public void teleopInit() {}
 
     @Override
     public void teleopPeriodic() {}
+
+    @Override
+    public void teleopExit() {}
 
     @Override
     public void testInit() {
@@ -69,8 +89,5 @@ public final class Robot extends TimedRobot {
     public void testPeriodic() {}
 
     @Override
-    public void simulationInit() {}
-
-    @Override
-    public void simulationPeriodic() {}
+    public void testExit() {}
 }
