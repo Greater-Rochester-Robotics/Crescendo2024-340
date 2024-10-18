@@ -32,9 +32,9 @@ public class Feeder extends GRRSubsystem {
         /** Speed for shooting. */
         kShoot(12.0),
         /** Speed for detecting the rising edge of the note. */
-        kRisingEdge(0.6),
+        kRisingEdge(1.0),
         /** Speed for detecting the falling edge of the note. */
-        kFallingEdge(-0.75),
+        kFallingEdge(-1.0),
         /** Speed for barfing forwards (towards the intake). */
         kBarfForward(-8.0),
         /** Speed for barfing backwards (towards the shooter). */

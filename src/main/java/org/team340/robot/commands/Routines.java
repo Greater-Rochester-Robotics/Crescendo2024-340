@@ -39,9 +39,11 @@ public class Routines {
      */
     public Command intake() {
         return sequence(
-            parallel(intake.apply(IntakeState.kIntake), feeder.apply(FeederSpeed.kReceive)),
-            deadline(feeder.seat(), intake.apply(IntakeState.kIntake))
-        ).withName("Routines.intake()");
+            parallel(intake.apply(IntakeState.kIntake), feeder.apply(FeederSpeed.kReceive)).until(feeder::hasNote),
+            deadline(feeder.seat(), intake.apply(IntakeState.kRetract))
+        )
+            .onlyIf(feeder::noNote)
+            .withName("Routines.intake()");
     }
 
     /**
@@ -111,20 +113,9 @@ public class Routines {
     }
 
     /**
-     * Barfs forwards (towards the intake). Does not end.
-     */
-    public Command barfForward() {
-        return parallel(
-            feeder.apply(FeederSpeed.kBarfForward),
-            intake.apply(IntakeState.kBarf),
-            shooter.apply(ShooterSpeed.kBarfForward)
-        ).withName("Routines.barfForward()");
-    }
-
-    /**
      * Barfs backwards (towards the shooter). Does not end.
      */
-    public Command barfBackward() {
+    public Command barf() {
         return parallel(
             feeder.apply(FeederSpeed.kBarfBackward),
             intake.apply(IntakeState.kBarf),
