@@ -39,8 +39,8 @@ public final class Constants {
 
         public static final int kPivotMotor = 30;
         public static final int kFeederMotor = 31;
-        public static final int kShooterLeftMotor = 32;
-        public static final int kShooterRightMotor = 33;
+        public static final int kShooterLeftMotor = 33;
+        public static final int kShooterRightMotor = 32;
 
         public static final int kPivotLimit = 8;
         public static final int kNoteDetector = 9;

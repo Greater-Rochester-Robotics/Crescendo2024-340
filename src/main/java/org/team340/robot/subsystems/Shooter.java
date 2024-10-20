@@ -54,18 +54,17 @@ public class Shooter extends GRRSubsystem {
 
     private static final double kRightLeftRatio = 0.5;
 
-    private static final Tunable<Double> kLeftKs = Tunable.doubleValue("Shooter/LeftFF/kS", 0.11331 / 60.0);
-    private static final Tunable<Double> kLeftKv = Tunable.doubleValue("Shooter/LeftFF/kV", 0.065448 / 60.0);
-    private static final Tunable<Double> kRightKs = Tunable.doubleValue("Shooter/RightFF/kS", 0.11331 / 60.0);
-    private static final Tunable<Double> kRightKv = Tunable.doubleValue("Shooter/RightFF/kV", 0.065448 / 60.0);
-    private static final Tunable<Double> kPIDRange = Tunable.doubleValue("Shooter/kPIDRange", 750.0);
+    private static final Tunable<Double> kLeftKs = Tunable.doubleValue("Shooter/LeftFF/kS", 0.0);
+    private static final Tunable<Double> kLeftKv = Tunable.doubleValue("Shooter/LeftFF/kV", 0.0019);
+    private static final Tunable<Double> kRightKs = Tunable.doubleValue("Shooter/RightFF/kS", 0.290);
+    private static final Tunable<Double> kRightKv = Tunable.doubleValue("Shooter/RightFF/kV", 0.0035);
+    private static final Tunable<Double> kPIDRange = Tunable.doubleValue("Shooter/kPIDRange", 250.0);
 
     private static final InterpolatingDoubleTreeMap kRegression = new InterpolatingDoubleTreeMap();
 
     static {
-        kRegression.put(0.0, 3000.0);
-        kRegression.put(6.0, 6500.0);
-        kRegression.put(10.0, 7750.0);
+        kRegression.put(0.0, 2500.0);
+        kRegression.put(6.0, 5300.0);
     }
 
     private final CANSparkFlex leftMotor;
@@ -87,15 +86,15 @@ public class Shooter extends GRRSubsystem {
         rightPID = rightMotor.getPIDController();
 
         SparkFlexConfig.defaults()
-            .setSmartCurrentLimit(50, 40)
+            .setSmartCurrentLimit(50)
             .setIdleMode(IdleMode.kCoast)
-            .setInverted(true)
+            .setInverted(false)
             .apply(leftMotor);
 
         SparkFlexConfig.defaults()
-            .setSmartCurrentLimit(50, 40)
+            .setSmartCurrentLimit(50)
             .setIdleMode(IdleMode.kCoast)
-            .setInverted(false)
+            .setInverted(true)
             .apply(rightMotor);
 
         new RelativeEncoderConfig()
@@ -112,9 +111,8 @@ public class Shooter extends GRRSubsystem {
             .setAverageDepth(8)
             .apply(rightMotor, rightEncoder);
 
-        new SparkPIDControllerConfig().setPID(0.00047, 0.000002, 0.0).setIZone(100.0).apply(leftMotor, leftPID);
-
-        new SparkPIDControllerConfig().setPID(0.00047, 0.000002, 0.0).setIZone(100.0).apply(rightMotor, rightPID);
+        new SparkPIDControllerConfig().setPID(0.0008, 0.0, 0.0).apply(leftMotor, leftPID);
+        new SparkPIDControllerConfig().setPID(0.0008, 0.0, 0.0).apply(rightMotor, rightPID);
 
         Tunable.pidController("Shooter/LeftPID", leftPID);
         Tunable.pidController("Shooter/RightPID", rightPID);

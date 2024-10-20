@@ -2,7 +2,6 @@ package org.team340.lib.util.rev;
 
 import com.revrobotics.REVLibError;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.Notifier;
 import java.text.Collator;
 import java.util.Collection;
 import java.util.Comparator;
@@ -22,16 +21,18 @@ public final class RevConfigRegistry {
         throw new AssertionError("This is a utility class!");
     }
 
-    static final double EPSILON = 1e-4;
+    static final double EPSILON = 1e-3;
 
-    private static final double PERIODIC_INTERVAL = 1.0;
+    private static final double FRAME_REFRESH_PERIOD = 10.0;
     private static final double BURN_FLASH_DELAY = 1.0;
     private static final double BURN_FLASH_INTERVAL = 0.075;
 
     private static final Collection<String> errors = new TreeSet<>(ErrorComparator.getInstance());
     private static final Map<String, Runnable> frameRefreshers = new ConcurrentHashMap<>();
     private static final Map<String, Supplier<REVLibError>> burnFlash = new LinkedHashMap<>();
-    private static Notifier notifier;
+
+    private static Thread frameThread = null;
+    private static volatile boolean frameThreadActive = false;
 
     static {
         enableFrameRefreshing();
@@ -97,12 +98,26 @@ public final class RevConfigRegistry {
      * in the case of a reset. Enabled by default.
      */
     public static void enableFrameRefreshing() {
-        if (notifier == null) {
-            notifier = new Notifier(() -> {
-                for (Runnable callback : frameRefreshers.values()) callback.run();
+        if (!frameThreadActive) {
+            frameThread = new Thread(() -> {
+                while (frameThreadActive) {
+                    if (frameRefreshers.size() == 0) {
+                        Sleep.seconds(FRAME_REFRESH_PERIOD);
+                        continue;
+                    }
+
+                    double delay = FRAME_REFRESH_PERIOD / frameRefreshers.size();
+                    for (Runnable callback : frameRefreshers.values()) {
+                        callback.run();
+                        Sleep.seconds(delay);
+                    }
+                }
             });
-            notifier.setName("RevConfigRegistry");
-            notifier.startPeriodic(PERIODIC_INTERVAL);
+
+            frameThread.setName("RevConfigRegistry");
+            frameThread.setDaemon(true);
+            frameThreadActive = true;
+            frameThread.start();
         }
     }
 
@@ -111,9 +126,16 @@ public final class RevConfigRegistry {
      * settings, in the case of a reset.
      */
     public static void disableFrameRefreshing() {
-        if (notifier != null) {
-            notifier.close();
-            notifier = null;
+        if (frameThreadActive) {
+            frameThreadActive = false;
+            if (frameThread != null && frameThread.isAlive()) {
+                try {
+                    frameThread.interrupt();
+                    frameThread.join();
+                } catch (Exception e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
         }
     }
 
