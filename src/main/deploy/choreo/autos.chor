@@ -1,0 +1,103 @@
+{
+ "name":"autos",
+ "version":"v2025.0.0",
+ "type":"Swerve",
+ "variables":{
+  "expressions":{},
+  "poses":{
+   "avoid0":{
+    "x":{
+     "exp":"5.4 m",
+     "val":5.4
+    },
+    "y":{
+     "exp":"1.875 m",
+     "val":1.875
+    },
+    "heading":{
+     "exp":"0 rad",
+     "val":0.0
+    }
+   },
+   "human":{
+    "x":{
+     "exp":"3.5 m",
+     "val":3.5
+    },
+    "y":{
+     "exp":"3 m",
+     "val":3.0
+    },
+    "heading":{
+     "exp":"-40 deg",
+     "val":-0.6981317007977318
+    }
+   }
+  }
+ },
+ "config":{
+  "frontLeft":{
+   "x":{
+    "exp":"0.288925 m",
+    "val":0.288925
+   },
+   "y":{
+    "exp":"0.288925 m",
+    "val":0.288925
+   }
+  },
+  "backLeft":{
+   "x":{
+    "exp":"-0.288925 m",
+    "val":-0.288925
+   },
+   "y":{
+    "exp":"0.288925 m",
+    "val":0.288925
+   }
+  },
+  "mass":{
+   "exp":"150 lbs",
+   "val":68.0388555
+  },
+  "inertia":{
+   "exp":"6 kg m ^ 2",
+   "val":6.0
+  },
+  "gearing":{
+   "exp":"6.75",
+   "val":6.75
+  },
+  "radius":{
+   "exp":"2 in",
+   "val":0.0508
+  },
+  "vmax":{
+   "exp":"5700 rpm",
+   "val":596.9026041820607
+  },
+  "tmax":{
+   "exp":"0.6 N m",
+   "val":0.6
+  },
+  "bumper":{
+   "front":{
+    "exp":"17 in",
+    "val":0.4318
+   },
+   "side":{
+    "exp":"17 in",
+    "val":0.4318
+   },
+   "back":{
+    "exp":"17 in",
+    "val":0.4318
+   }
+  },
+  "differentialTrackWidth":{
+   "exp":"22 in",
+   "val":0.5588
+  }
+ },
+ "generationFeatures":[]
+}

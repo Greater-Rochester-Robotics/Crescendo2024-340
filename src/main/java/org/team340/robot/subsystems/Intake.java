@@ -32,7 +32,7 @@ public class Intake extends GRRSubsystem {
 
     public static enum IntakeState {
         /** The intake is deployed and intaking. */
-        kIntake(12.0, Math.toRadians(2.0)),
+        kIntake(12.0, Math.toRadians(1.0)),
         /** The intake is retracted and the rollers are stationary. */
         kRetract(0.0, Math.toRadians(110.0)),
         /** The intake is barfing. */
@@ -60,6 +60,10 @@ public class Intake extends GRRSubsystem {
     private static final Tunable<Double> kMinPos = Tunable.doubleValue("Intake/kMinPos", Math.toRadians(1.0));
     private static final Tunable<Double> kMaxPos = Tunable.doubleValue("Intake/kMaxPos", Math.toRadians(115.0));
     private static final Tunable<Double> kPivotKg = Tunable.doubleValue("Intake/kPivotKg", 1.35);
+    private static final Tunable<Double> kPivotRecoveryError = Tunable.doubleValue(
+        "Intake/kPivotRecoveryError",
+        Math.toRadians(50.0)
+    );
 
     private final CANSparkFlex rollerMotor;
     private final CANSparkFlex pivotMotor;
@@ -161,6 +165,12 @@ public class Intake extends GRRSubsystem {
                 setpoint.velocity = pivotEncoder.getVelocity();
             })
             .onExecute(() -> {
+                double currentPosition = pivotEncoder.getPosition();
+                if (Math.abs(setpoint.position - currentPosition) > kPivotRecoveryError.get()) {
+                    setpoint.position = currentPosition;
+                    setpoint.velocity = pivotEncoder.getVelocity();
+                }
+
                 setpoint = profile.calculate(Constants.kPeriod, setpoint, new State(position.get(), 0.0));
                 pivotTarget = MathUtil.clamp(setpoint.position, kMinPos.get(), kMaxPos.get());
                 pivotPID.setReference(

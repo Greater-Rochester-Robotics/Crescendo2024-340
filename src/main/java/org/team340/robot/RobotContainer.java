@@ -3,13 +3,13 @@ package org.team340.robot;
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import org.team340.lib.controller.Controller;
 import org.team340.lib.util.rev.RevConfigRegistry;
 import org.team340.robot.Constants.FieldConstants;
+import org.team340.robot.commands.Autos;
 import org.team340.robot.commands.Routines;
 import org.team340.robot.subsystems.Feeder;
 import org.team340.robot.subsystems.Feeder.FeederSpeed;
@@ -35,8 +35,8 @@ public final class RobotContainer {
     public Shooter shooter;
     public Swerve swerve;
 
-    @NotLogged
     public Routines routines;
+    public Autos autos;
 
     /**
      * Entry to initializing subsystems and command execution.
@@ -54,6 +54,7 @@ public final class RobotContainer {
         swerve = new Swerve();
 
         routines = new Routines(this);
+        autos = new Autos(this);
 
         // Complete REV hardware initialization.
         RevConfigRegistry.burnFlashAll();
@@ -80,7 +81,7 @@ public final class RobotContainer {
          */
 
         // A => Intake (Hold)
-        driver.a().whileTrue(routines.intake()).onFalse(feeder.seat());
+        driver.a().whileTrue(routines.intake());
 
         // B => Intake from Human Player (Hold)
         driver.b().whileTrue(routines.humanLoad());

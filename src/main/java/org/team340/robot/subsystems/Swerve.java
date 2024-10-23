@@ -1,8 +1,9 @@
 package org.team340.robot.subsystems;
 
-import static edu.wpi.first.wpilibj2.command.Commands.*;
-
-import com.choreo.lib.ChoreoTrajectory;
+import choreo.Choreo;
+import choreo.auto.AutoFactory;
+import choreo.auto.AutoFactory.AutoBindings;
+import choreo.trajectory.SwerveSample;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFieldLayout.OriginPosition;
@@ -10,6 +11,7 @@ import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -24,6 +26,7 @@ import edu.wpi.first.wpilibj.ADIS16470_IMU.CalibrationTime;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
 import edu.wpi.first.wpilibj.SPI.Port;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Subsystem;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -40,6 +43,8 @@ import org.team340.lib.swerve.hardware.SwerveEncoders;
 import org.team340.lib.swerve.hardware.SwerveIMUs;
 import org.team340.lib.swerve.hardware.SwerveMotors;
 import org.team340.lib.util.Alliance;
+import org.team340.lib.util.CommandBuilder;
+import org.team340.lib.util.DummySubsystem;
 import org.team340.lib.util.GRRSubsystem;
 import org.team340.lib.util.Math2;
 import org.team340.robot.Constants;
@@ -103,12 +108,23 @@ public class Swerve extends GRRSubsystem {
         new Rotation3d(0.0, Math.toRadians(-20.0), Math.toRadians(160.0))
     );
 
-    private static final double kAngularKp = 6.5;
+    private static final double kTrajKp = 7.5;
+    private static final double kTrajKi = 0.0;
+    private static final double kTrajKd = 0.0;
+    private static final double kTrajIZone = 0.0;
+
+    private static final double kTrajAngularKp = 4.75;
+    private static final double kTrajAngularKi = 0.0;
+    private static final double kTrajAngularKd = 0.0;
+    private static final double kTrajAngularIZone = 0.0;
+
+    private static final double kAngularKp = 6.25;
     private static final double kAngularKi = 0.5;
     private static final double kAngularKd = 0.0;
     private static final double kAngularIZone = 0.8;
     private static final Constraints kAngularConstraints = new Constraints(9.5, 24.0);
 
+    private static final Tunable<Double> kDistanceFudge = Tunable.doubleValue("Swerve/kDistanceFudge", 0.4);
     private static final Tunable<Double> kNoteVelocity = Tunable.doubleValue("Swerve/kNoteVelocity", 5.6);
     private static final Tunable<Double> kNormFudge = Tunable.doubleValue("Swerve/kNormFudge", 0.49);
     private static final Tunable<Double> kNormFudgeMin = Tunable.doubleValue("Swerve/kNormFudgeMin", 0.49);
@@ -116,7 +132,13 @@ public class Swerve extends GRRSubsystem {
     private static final Tunable<Double> kSpinCompensation = Tunable.doubleValue("Swerve/kSpinCompensation", 0.035);
 
     private final SwerveAPI api;
+
+    private final PIDController trajPIDx;
+    private final PIDController trajPIDy;
+    private final PIDController trajAngularPID;
     private final ProfiledPIDController angularPID;
+
+    private final AutoFactory autoFactory;
 
     private final AprilTagFieldLayout aprilTags;
     private final PhotonPoseEstimator[] poseEstimators;
@@ -125,6 +147,11 @@ public class Swerve extends GRRSubsystem {
 
     private final Tunable<Double> speakerXFudge = Tunable.doubleValue("Swerve/speakerXFudge", 0.0);
     private final Tunable<Double> speakerYFudge = Tunable.doubleValue("Swerve/speakerYFudge", 0.0);
+
+    private final Subsystem trajAimSpeakerMutex = new DummySubsystem();
+    private boolean trajAimSpeaker = false;
+    private Pose2d trajNext = null;
+    private Pose2d trajLast = null;
 
     private Translation2d speaker = new Translation2d();
     private double speakerDistance = 0.0;
@@ -136,9 +163,53 @@ public class Swerve extends GRRSubsystem {
     public Swerve() {
         api = new SwerveAPI(kConfig);
 
+        trajPIDx = new PIDController(kTrajKp, kTrajKi, kTrajKd);
+        trajPIDy = new PIDController(kTrajKp, kTrajKi, kTrajKd);
+        trajPIDx.setIZone(kTrajIZone);
+        trajPIDy.setIZone(kTrajIZone);
+
+        trajAngularPID = new PIDController(kTrajAngularKp, kTrajAngularKi, kTrajAngularKd);
+        trajAngularPID.setIZone(kTrajAngularIZone);
+        trajAngularPID.enableContinuousInput(-Math.PI, Math.PI);
+
         angularPID = new ProfiledPIDController(kAngularKp, kAngularKi, kAngularKd, kAngularConstraints);
         angularPID.setIZone(kAngularIZone);
         angularPID.enableContinuousInput(-Math.PI, Math.PI);
+
+        autoFactory = Choreo.createAutoFactory(
+            this,
+            () -> api.state.pose,
+            (Pose2d pose, SwerveSample sample) -> {
+                trajLast = trajNext;
+                trajNext = sample.getPose();
+
+                double omega;
+                if (trajAimSpeaker) {
+                    omega = angularPID.calculate(api.state.pose.getRotation().getRadians(), getSpeakerAngle());
+                } else {
+                    omega = trajAngularPID.calculate(pose.getRotation().getRadians(), sample.heading) + sample.omega;
+                }
+
+                api.applySpeeds(
+                    new ChassisSpeeds(
+                        trajPIDx.calculate(pose.getX(), sample.x) + sample.vx,
+                        trajPIDy.calculate(pose.getY(), sample.y) + sample.vy,
+                        omega
+                    ),
+                    ForwardPerspective.BLUE_ALLIANCE,
+                    true,
+                    false
+                );
+            },
+            Alliance::isRed,
+            new AutoBindings(),
+            (traj, running) -> {
+                if (!running) {
+                    trajLast = null;
+                    trajNext = trajLast;
+                }
+            }
+        );
 
         aprilTags = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField();
         aprilTags.setOrigin(OriginPosition.kBlueAllianceWallRightSide);
@@ -158,7 +229,10 @@ public class Swerve extends GRRSubsystem {
         };
 
         api.enableTunables("Swerve");
-        Tunable.pidController("Swerve/rotPID", angularPID);
+        Tunable.pidController("Swerve/trajPID", trajPIDx);
+        Tunable.pidController("Swerve/trajPID", trajPIDy);
+        Tunable.pidController("Swerve/trajAngularPID", trajAngularPID);
+        Tunable.pidController("Swerve/angularPID", angularPID);
     }
 
     @Override
@@ -214,20 +288,24 @@ public class Swerve extends GRRSubsystem {
                 Math.PI
             );
 
-        double x =
-            realSpeaker.getX() +
-            speakerXFudge.get() -
+        double x = realSpeaker.getX() + speakerXFudge.get();
+        double y = realSpeaker.getY() + speakerYFudge.get();
+
+        if (!trajAimSpeaker) {
+            x -=
             (robotVel.vxMetersPerSecond * (distance / kNoteVelocity.get()) * (1.0 - (kNormFudge.get() * normFactor)));
-        double y =
-            realSpeaker.getY() +
-            speakerYFudge.get() -
-            (robotVel.vyMetersPerSecond * (distance / kNoteVelocity.get()) * kStrafeFudge.get());
+            y -= (robotVel.vyMetersPerSecond * (distance / kNoteVelocity.get()) * kStrafeFudge.get());
+        }
 
         speaker = new Translation2d(x, y);
-        speakerDistance = robot.getDistance(speaker);
+        speakerDistance = robot.getDistance(speaker) + kDistanceFudge.get();
         speakerAngle = MathUtil.angleModulus(
             speaker.minus(robot).getAngle().getRadians() + Math.PI + kSpinCompensation.get()
         );
+    }
+
+    public AutoFactory autoFactory() {
+        return autoFactory;
     }
 
     /**
@@ -261,7 +339,35 @@ public class Swerve extends GRRSubsystem {
     public Command tareRotation() {
         return commandBuilder("Swerve.tareRotation()")
             .onInitialize(() -> api.tareRotation(ForwardPerspective.OPERATOR))
-            .isFinished(true);
+            .isFinished(true)
+            .ignoringDisable(true);
+    }
+
+    /**
+     * Resets the pose of the robot, inherently seeding field-relative movement.
+     * @param pose The new blue origin relative pose to apply to the pose estimator.
+     */
+    public Command resetPose(Supplier<Pose2d> pose) {
+        return commandBuilder("Swerve.resetPose()")
+            .onInitialize(() -> api.resetPose(pose.get()))
+            .isFinished(true)
+            .ignoringDisable(true);
+    }
+
+    /**
+     * Signals to the trajectory controller to aim at the speaker. This command does not
+     * require the swerve subsystem, so it can be ran in parallel to a drive command.
+     * This command will not end on its own. When it is cancelled, the trajectory
+     * controller will be signaled to no longer aim at the speaker.
+     */
+    public Command trajAimSpeaker() {
+        return new CommandBuilder("Swerve.trajAimSpeaker()", trajAimSpeakerMutex)
+            .onInitialize(() -> {
+                trajAimSpeaker = true;
+                angularPID.reset(api.state.pose.getRotation().getRadians(), api.state.speeds.omegaRadiansPerSecond);
+            })
+            .onEnd(() -> trajAimSpeaker = false)
+            .ignoringDisable(true);
     }
 
     /**
@@ -305,10 +411,7 @@ public class Swerve extends GRRSubsystem {
                 angularPID.reset(api.state.pose.getRotation().getRadians(), api.state.speeds.omegaRadiansPerSecond)
             )
             .onExecute(() -> {
-                double angularVel = angularPID.calculate(
-                    api.state.pose.getRotation().getRadians(),
-                    Alliance.isBlue() ? -Math2.HALF_PI : Math2.HALF_PI
-                );
+                double angularVel = angularPID.calculate(api.state.pose.getRotation().getRadians(), -Math2.HALF_PI);
                 api.applyDriverXY(x.get(), y.get(), angularVel, ForwardPerspective.OPERATOR, true, true);
             });
     }
@@ -334,74 +437,7 @@ public class Swerve extends GRRSubsystem {
             });
     }
 
-    /**
-     * Follows a trajectory.
-     * @param traj The trajectory to follow.
-     */
-    public Command followTrajectory(ChoreoTrajectory traj) {
-        return followTrajectory(traj, -1.0, -1.0, false);
-    }
-
-    /**
-     * Follows a trajectory.
-     * @param traj The trajectory to follow.
-     * @param targetTimeStart Time in seconds after the path starts to start targeting the speaker. {@code -1.0} will disable speaker targeting.
-     * @param targetTimeEnd Time in seconds after the path starts to stop targeting the speaker. Only applied if {@code targetTimeStart} is greater than {@code 0.0}. {@code -1.0} will cause the robot to target the speaker indefinitely.
-     */
-    public Command followTrajectory(ChoreoTrajectory traj, double targetTimeStart, double targetTimeEnd) {
-        return followTrajectory(traj, targetTimeStart, targetTimeEnd, false);
-    }
-
-    /**
-     * Follows a trajectory.
-     * @param traj The trajectory to follow.
-     * @param targetTimeStart Time in seconds after the path starts to start targeting the speaker. {@code -1.0} will disable speaker targeting.
-     * @param targetTimeEnd Time in seconds after the path starts to stop targeting the speaker. Only applied if {@code targetTimeStart} is greater than {@code 0.0}. {@code -1.0} will cause the robot to target the speaker indefinitely.
-     * @param resetOdometry If the odometry should be reset to the first pose in the trajectory.
-     */
-    public Command followTrajectory(
-        ChoreoTrajectory traj,
-        double targetTimeStart,
-        double targetTimeEnd,
-        boolean resetOdometry
-    ) {
-        return none();
-        // return Choreo.choreoSwerveCommand(
-        //     traj,
-        //     this::getPosition,
-        //     targetTimeStart,
-        //     targetTimeEnd,
-        //     this::getSpeakerAngle,
-        //     targetPIDTraj,
-        //     xPIDTraj,
-        //     yPIDTraj,
-        //     rotPIDTraj,
-        //     speeds -> driveSpeeds(speeds, false, false),
-        //     targetPose -> {
-        //         if (Alliance.isBlue()) stateBlue.accept(true, targetPose);
-        //         else stateRed.accept(true, targetPose);
-        //     },
-        //     Alliance::isRed,
-        //     this
-        // )
-        //     .beforeStarting(() -> {
-        //         if (resetOdometry) {
-        //             Pose2d initialPose = Alliance.isBlue()
-        //                 ? traj.getInitialPose()
-        //                 : traj.getInitialState().flipped().getPose();
-        //             zeroIMU(initialPose.getRotation());
-        //             resetOdometry(initialPose);
-        //         }
-
-        //         rotPID.reset(getPosition().getRotation().getRadians(), getVelocity(true).omegaRadiansPerSecond);
-        //         xPIDTraj.reset();
-        //         yPIDTraj.reset();
-        //         rotPIDTraj.reset();
-        //     })
-        //     .finallyDo(() -> {
-        //         stateBlue.accept(false, Math2.POSE2D_0);
-        //         stateRed.accept(false, Math2.POSE2D_0);
-        //     })
-        //     .withName("Swerve.followTrajectory()");
+    public Command lockWheels() {
+        return commandBuilder("Swerve.lockWheels()").onExecute(() -> api.applyLockedWheels());
     }
 }

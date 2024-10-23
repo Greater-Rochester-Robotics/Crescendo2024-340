@@ -287,7 +287,7 @@ public final class SwerveEncoders {
 
             @Override
             public Object getAPI() {
-                return encoder;
+                return encoder.getAPI();
             }
 
             @Override

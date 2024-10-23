@@ -224,7 +224,7 @@ public final class SwerveIMUs {
 
             @Override
             public Object getAPI() {
-                return imu;
+                return imu.getAPI();
             }
 
             @Override

@@ -65,6 +65,7 @@ public class Shooter extends GRRSubsystem {
     static {
         kRegression.put(0.0, 2500.0);
         kRegression.put(6.0, 5300.0);
+        kRegression.put(6.5, 5300.0);
     }
 
     private final CANSparkFlex leftMotor;

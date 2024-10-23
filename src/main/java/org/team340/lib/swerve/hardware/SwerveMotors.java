@@ -516,7 +516,7 @@ public final class SwerveMotors {
 
             @Override
             public Object getAPI() {
-                return motor;
+                return motor.getAPI();
             }
 
             @Override

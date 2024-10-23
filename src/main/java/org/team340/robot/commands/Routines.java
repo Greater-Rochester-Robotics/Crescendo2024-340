@@ -2,6 +2,8 @@ package org.team340.robot.commands;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
+import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.Supplier;
 import org.team340.robot.RobotContainer;
@@ -18,6 +20,7 @@ import org.team340.robot.subsystems.Swerve;
 /**
  * This class is used to declare commands that require multiple subsystems.
  */
+@Logged(strategy = Strategy.OPT_IN)
 public class Routines {
 
     private final Feeder feeder;
