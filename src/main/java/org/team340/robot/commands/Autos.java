@@ -1,121 +1,117 @@
 package org.team340.robot.commands;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
-import static org.team340.robot.RobotContainer.*;
 
-import com.choreo.lib.ChoreoTrajectory;
+import choreo.Choreo;
+import choreo.trajectory.SwerveSample;
+import choreo.trajectory.Trajectory;
+import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.wpilibj2.command.Command;
-import java.util.List;
-import org.team340.robot.Constants.PivotConstants;
+import java.util.Optional;
+import org.team340.lib.dashboard.GRRDashboard;
+import org.team340.lib.util.Alliance;
+import org.team340.robot.RobotContainer;
+import org.team340.robot.subsystems.Feeder;
+import org.team340.robot.subsystems.Feeder.FeederSpeed;
+import org.team340.robot.subsystems.Intake;
+import org.team340.robot.subsystems.Intake.IntakeState;
+import org.team340.robot.subsystems.Pivot;
+import org.team340.robot.subsystems.Pivot.PivotPosition;
+import org.team340.robot.subsystems.Shooter;
+import org.team340.robot.subsystems.Swerve;
 
-/**
- * This class is used to declare autonomous routines.
- */
+@Logged(strategy = Strategy.OPT_IN)
 public class Autos {
 
-    private Autos() {
-        throw new UnsupportedOperationException("This is a utility class!");
+    private final Feeder feeder;
+    private final Intake intake;
+    private final Pivot pivot;
+    private final Shooter shooter;
+    private final Swerve swerve;
+
+    public Autos(RobotContainer robotContainer) {
+        feeder = robotContainer.feeder;
+        intake = robotContainer.intake;
+        pivot = robotContainer.pivot;
+        shooter = robotContainer.shooter;
+        swerve = robotContainer.swerve;
+
+        preloadDumpC1C2();
     }
 
-    public static Command fivePieceAmp(List<ChoreoTrajectory> traj) {
+    /**
+     * Intakes a note.
+     * @param delay The delay to deploy the intake in seconds.
+     * @param seat If the note should be seated.
+     */
+    private Command intake(double delay, boolean seat) {
+        return sequence(
+            intake.apply(IntakeState.kRetract).withTimeout(delay),
+            parallel(intake.apply(IntakeState.kIntake), feeder.apply(FeederSpeed.kReceive)).until(feeder::hasNote),
+            parallel(seat ? feeder.seat() : none(), intake.apply(IntakeState.kRetract))
+        )
+            .onlyIf(feeder::noNote)
+            .withName("Autos.intake(" + delay + ", " + seat + ")");
+    }
+
+    /**
+     * Aims the drive at the speaker and shoots a note.
+     * The pivot and shooter wheels are expected to be
+     * already running and targeting the speaker.
+     * @param timeout The timeout in seconds to shoot.
+     */
+    private Command shoot(double timeout) {
         return parallel(
-            sequence(
-                pivot.goTo(PivotConstants.BARF_FORWARD_POSITION),
-                pivot.maintainPosition().withTimeout(2.5),
-                pivot.targetDistance(swerve::getSpeakerDistance)
-            ),
-            sequence(
+            intake.apply(IntakeState.kRetract),
+            feeder.apply(FeederSpeed.kShoot),
+            swerve.driveSpeaker(() -> 0.0, () -> 0.0)
+        )
+            .withTimeout(timeout)
+            .withName("Autos.shoot(" + timeout + ")");
+    }
+
+    public void preloadDumpC1C2() {
+        String name = "preloadDumpC1C2";
+        Optional<Trajectory<SwerveSample>> traj = Choreo.loadTrajectory(name);
+
+        if (traj.isPresent()) {
+            Command command = sequence(
                 deadline(
-                    swerve.followTrajectory(traj.get(0), true),
-                    sequence(waitSeconds(1.7).deadlineWith(Routines.prepPoop()), Routines.poop(false), Routines.intake())
-                ),
-                deadline(
-                    swerve.followTrajectory(traj.get(1), 0.5, 1.7),
-                    sequence(waitSeconds(1.3).deadlineWith(Routines.intake()), feeder.shoot().withTimeout(0.6), Routines.intake())
-                ),
-                deadline(
-                    swerve.followTrajectory(traj.get(2), 1.8, -1.0),
-                    sequence(waitSeconds(2.3).deadlineWith(Routines.intake()), feeder.shoot().withTimeout(0.6), Routines.intake())
-                ),
-                deadline(
-                    swerve.followTrajectory(traj.get(3), 0.1, 1.1),
                     sequence(
-                        waitSeconds(0.4).deadlineWith(Routines.intake()),
-                        waitSeconds(0.6).deadlineWith(feeder.shoot()),
-                        waitSeconds(0.5).deadlineWith(Routines.intake()),
-                        feeder.shoot().withTimeout(0.6),
-                        Routines.intake()
-                    )
+                        swerve.resetPose(() -> traj.get().getInitialPose(Alliance.isRed())),
+                        deadline(swerve.autoFactory().trajectoryCommand(name, 0), intake(0.5, false)),
+                        deadline(
+                            swerve.autoFactory().trajectoryCommand(name, 1),
+                            sequence(waitSeconds(1.0), swerve.trajAimSpeaker()),
+                            intake(0.0, true)
+                        ),
+                        shoot(0.3),
+                        deadline(swerve.autoFactory().trajectoryCommand(name, 2), intake(0.5, false)),
+                        deadline(
+                            swerve.autoFactory().trajectoryCommand(name, 3),
+                            sequence(waitSeconds(1.2), swerve.trajAimSpeaker()),
+                            intake(0.0, true)
+                        ),
+                        shoot(0.3),
+                        deadline(swerve.autoFactory().trajectoryCommand(name, 4), intake(0.0, false)),
+                        deadline(
+                            swerve.autoFactory().trajectoryCommand(name, 5),
+                            sequence(waitSeconds(0.5), swerve.trajAimSpeaker()),
+                            intake(0.0, true)
+                        ),
+                        shoot(0.3)
+                    ),
+                    shooter.targetSpeaker(swerve::getSpeakerDistance),
+                    pivot.targetSpeaker(swerve::getSpeakerDistance)
                 ),
-                parallel(swerve.driveSpeaker(), sequence(waitSeconds(0.5).deadlineWith(Routines.intake()), feeder.shoot()))
-            )
-        );
-    }
-
-    public static Command fourPieceFar(List<ChoreoTrajectory> traj) {
-        return parallel(
-            sequence(
-                pivot.goTo(PivotConstants.BARF_FORWARD_POSITION),
-                pivot.maintainPosition().withTimeout(2.25),
-                pivot.targetDistance(swerve::getSpeakerDistance)
-            ),
-            sequence(
-                deadline(
-                    swerve.followTrajectory(traj.get(0), -1.0, -1.0, true),
-                    sequence(waitSeconds(1.7).deadlineWith(Routines.prepPoop()), Routines.poop(false), Routines.intake())
-                ),
-                deadline(
-                    swerve.followTrajectory(traj.get(1), 1.85, 2.5),
-                    sequence(waitSeconds(2.1).deadlineWith(Routines.intake()), feeder.shoot().withTimeout(0.6), Routines.intake())
-                ),
-                deadline(
-                    swerve.followTrajectory(traj.get(2), 0.7, 1.7),
-                    sequence(waitSeconds(1.2).deadlineWith(Routines.intake()), feeder.shoot().withTimeout(0.6), Routines.intake())
-                ),
-                swerve.followTrajectory(traj.get(3), 1.1, -1.0).deadlineWith(Routines.intake()),
-                swerve.driveSpeaker().withTimeout(0.2),
-                feeder.shoot().withTimeout(0.6),
-                swerve.followTrajectory(traj.get(4)).deadlineWith(Routines.intake()),
-                parallel(swerve.driveSpeaker(), sequence(waitSeconds(0.6).deadlineWith(Routines.intake()), feeder.shoot()))
-            )
-        );
-    }
-
-    public static Command fourPieceClose(List<ChoreoTrajectory> traj) {
-        return parallel(
-            pivot.targetDistance(swerve::getSpeakerDistance),
-            sequence(
-                deadline(swerve.followTrajectory(traj.get(0), -1.0, -1.0, true), intake.downPosition()),
-                deadline(sequence(waitSeconds(1.1), feeder.shoot().withTimeout(0.75)), swerve.driveSpeaker()),
-                deadline(swerve.followTrajectory(traj.get(1)), Routines.intake()),
-                Routines.intake().withTimeout(0.3),
-                deadline(sequence(waitSeconds(0.7), feeder.shoot().withTimeout(0.75)), swerve.driveSpeaker()),
-                deadline(swerve.followTrajectory(traj.get(2)), Routines.intake()),
-                Routines.intake().withTimeout(0.3),
-                deadline(sequence(waitSeconds(0.7), feeder.shoot().withTimeout(0.75)), swerve.driveSpeaker()),
-                deadline(swerve.followTrajectory(traj.get(3)), Routines.intake()),
-                Routines.intake().withTimeout(0.3),
-                deadline(sequence(waitSeconds(0.7), feeder.shoot().withTimeout(0.75)), swerve.driveSpeaker())
-            )
-        );
-    }
-
-    public static Command fourPieceSource(List<ChoreoTrajectory> traj) {
-        return parallel(
-            pivot.targetDistance(swerve::getSpeakerDistance),
-            sequence(
-                swerve.followTrajectory(traj.get(0), -1.0, -1.0, true).deadlineWith(intake.downPosition()),
-                deadline(sequence(waitSeconds(1.0), feeder.shoot().withTimeout(0.6)), swerve.driveSpeaker()),
-                swerve.followTrajectory(traj.get(1)).deadlineWith(Routines.intake()),
-                swerve.followTrajectory(traj.get(2)).deadlineWith(Routines.intake().withTimeout(1.5)),
-                deadline(sequence(waitSeconds(0.65), feeder.shoot().withTimeout(0.6)), swerve.driveSpeaker()),
-                swerve.followTrajectory(traj.get(3)).deadlineWith(Routines.intake()),
-                swerve.followTrajectory(traj.get(4)).deadlineWith(Routines.intake().withTimeout(1.5)),
-                deadline(sequence(waitSeconds(0.5), feeder.shoot().withTimeout(0.6)), swerve.driveSpeaker()),
-                swerve.followTrajectory(traj.get(5)).deadlineWith(Routines.intake()),
-                swerve.followTrajectory(traj.get(6)).deadlineWith(Routines.intake().withTimeout(1.5)),
-                deadline(sequence(waitSeconds(0.5), feeder.shoot().withTimeout(0.6)), swerve.driveSpeaker())
-            )
-        );
+                parallel(
+                    sequence(swerve.autoFactory().trajectoryCommand(name, 6), swerve.lockWheels()),
+                    intake.apply(IntakeState.kRetract),
+                    pivot.apply(PivotPosition.kDown)
+                )
+            );
+            GRRDashboard.addAuto("Pre-load Dump 1 + 2", command, traj.get());
+        }
     }
 }

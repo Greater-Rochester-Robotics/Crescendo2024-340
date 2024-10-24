@@ -8,43 +8,76 @@ import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkPIDController;
-import edu.wpi.first.util.sendable.SendableBuilder;
+import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj2.command.Command;
-import org.team340.lib.GRRSubsystem;
+import org.team340.lib.dashboard.Tunable;
+import org.team340.lib.util.GRRSubsystem;
 import org.team340.lib.util.Math2;
-import org.team340.robot.Constants.FeederConstants;
+import org.team340.lib.util.rev.RelativeEncoderConfig;
+import org.team340.lib.util.rev.SparkMaxConfig;
+import org.team340.lib.util.rev.SparkPIDControllerConfig;
 import org.team340.robot.Constants.RobotMap;
 
 /**
  * This subsystem controls the feeder wheels, which accepts a note from the
  * intake and pushes it to be shot or back into the intake for amp scoring.
  */
+@Logged
 public class Feeder extends GRRSubsystem {
 
-    private final CANSparkMax feedMotor;
-    private final RelativeEncoder feedEncoder;
+    public static enum FeederSpeed {
+        /** Speed for receiving from the intake. */
+        kReceive(6.0),
+        /** Speed for shooting. */
+        kShoot(12.0),
+        /** Speed for detecting the rising edge of the note. */
+        kRisingEdge(1.0),
+        /** Speed for detecting the falling edge of the note. */
+        kFallingEdge(-1.0),
+        /** Speed for barfing forwards (towards the intake). */
+        kBarfForward(-8.0),
+        /** Speed for barfing backwards (towards the shooter). */
+        kBarfBackward(8.0);
+
+        private final Tunable<Double> voltage;
+
+        private FeederSpeed(double voltage) {
+            this.voltage = Tunable.doubleValue("Feeder/Speeds/" + this.name(), voltage);
+        }
+
+        private double voltage() {
+            return voltage.get();
+        }
+    }
+
+    private static final Tunable<Double> kSeatPosition = Tunable.doubleValue("Feeder/kSeatPosition", 2.357);
+    private static final Tunable<Double> kClosedLoopErr = Tunable.doubleValue("Feeder/kClosedLoopErr", 0.125);
+
+    private final CANSparkMax motor;
+    private final RelativeEncoder encoder;
+    private final SparkPIDController pid;
     private final DigitalInput noteDetector;
-    private final SparkPIDController feedPID;
 
     /**
      * Create the feeder subsystem.
      */
     public Feeder() {
-        super("Feeder");
-        feedMotor = createSparkMax("Motor", RobotMap.SHOOTER_FEEDER_MOTOR, MotorType.kBrushless);
-        feedEncoder = feedMotor.getEncoder();
-        noteDetector = createDigitalInput("Note Detector", RobotMap.SHOOTER_NOTE_DETECTOR);
-        feedPID = feedMotor.getPIDController();
+        motor = new CANSparkMax(RobotMap.kFeederMotor, MotorType.kBrushless);
+        encoder = motor.getEncoder();
+        pid = motor.getPIDController();
+        noteDetector = new DigitalInput(RobotMap.kNoteDetector);
 
-        FeederConstants.Configs.MOTOR.apply(feedMotor);
-        FeederConstants.Configs.PID.apply(feedMotor, feedPID);
-    }
+        SparkMaxConfig.defaults().setSmartCurrentLimit(30).setInverted(true).setIdleMode(IdleMode.kBrake).apply(motor);
 
-    @Override
-    public void initSendable(SendableBuilder builder) {
-        super.initSendable(builder);
-        builder.addBooleanProperty("hasNote", this::hasNote, null);
+        new RelativeEncoderConfig()
+            .setPositionConversionFactor(1.0)
+            .setVelocityConversionFactor(1.0 / 60)
+            .apply(motor, encoder);
+
+        new SparkPIDControllerConfig().setPID(0.15, 0.0, 0.0).apply(motor, pid);
+
+        Tunable.pidController("Feeder/PID", pid);
     }
 
     /**
@@ -55,94 +88,39 @@ public class Feeder extends GRRSubsystem {
     }
 
     /**
-     * Receives a note from the intake.
+     * Returns {@code true} when the beam break does not detect a note.
      */
-    public Command receive() {
-        return commandBuilder()
-            .onInitialize(() -> feedMotor.set(FeederConstants.RECEIVE_SPEED))
-            .isFinished(() -> hasNote())
-            .onEnd(() -> feedMotor.stopMotor())
-            .onlyIf(() -> !hasNote())
-            .withName("feeder.receive()");
+    public boolean noNote() {
+        return !hasNote();
     }
 
     /**
-     * Sets the feeder to receive a note through the shooter from the human player.
+     * Applies a speed to the feeder rollers. Does not end.
+     * @param speed The speed to apply.
      */
-    public Command intakeHuman() {
-        return commandBuilder("feeder.intakeHuman()")
-            .onInitialize(() -> feedMotor.set(FeederConstants.INTAKE_HUMAN_SPEED))
-            .onEnd(() -> feedMotor.stopMotor());
+    public Command apply(FeederSpeed speed) {
+        return commandBuilder("Feeder.apply(" + speed.name() + ")")
+            .onExecute(() -> motor.setVoltage(speed.voltage()))
+            .onEnd(() -> motor.stopMotor());
     }
 
     /**
-     * Seats the note in the shooter to a set position.
+     * Seats a note. If the feeder does not initially see a note, it will
+     * run at the {@link FeederSpeed#kReceive} speed until a note is detected.
      */
     public Command seat() {
         return sequence(
+            apply(FeederSpeed.kReceive).until(this::hasNote).onlyIf(this::noNote),
+            apply(FeederSpeed.kFallingEdge).until(this::noNote),
+            apply(FeederSpeed.kRisingEdge).until(this::hasNote),
             commandBuilder()
-                .onInitialize(() -> feedMotor.set(FeederConstants.SEAT_SPEED))
-                .isFinished(this::hasNote)
-                .onEnd(() -> feedEncoder.setPosition(0.0)),
-            commandBuilder()
-                .onInitialize(() -> feedPID.setReference(FeederConstants.SEAT_POSITION, ControlType.kPosition))
-                .isFinished(() ->
-                    Math2.epsilonEquals(feedEncoder.getPosition(), FeederConstants.SEAT_POSITION, FeederConstants.CLOSED_LOOP_ERR)
-                )
-                .onEnd(() -> feedMotor.stopMotor())
+                .onInitialize(() -> encoder.setPosition(0.0))
+                .onExecute(() -> pid.setReference(kSeatPosition.get(), ControlType.kPosition))
+                .isFinished(() -> Math2.epsilonEquals(encoder.getPosition(), kSeatPosition.get(), kClosedLoopErr.get()))
+                .onEnd(() -> motor.stopMotor())
         )
-            .onlyIf(() -> !hasNote())
-            .withTimeout(2.0)
-            .withName("feeder.seat()");
-    }
-
-    /**
-     * Backs the note out of the shooter until the note detector is clear.
-     */
-    public Command reverseSeat() {
-        return commandBuilder("feeder.reverseSeat()")
-            .onInitialize(() -> feedMotor.set(FeederConstants.REVERSE_SEAT_SPEED))
-            .isFinished(() -> !hasNote())
-            .onEnd(() -> feedMotor.stopMotor());
-    }
-
-    /**
-     * Feeds the note into the shooter wheels. Ends after the note has left the shooter.
-     */
-    public Command shoot() {
-        return commandBuilder()
-            .onInitialize(() -> feedMotor.set(FeederConstants.SHOOT_SPEED))
-            .isFinished(() -> !hasNote())
-            .andThen(waitSeconds(FeederConstants.SHOOT_DELAY))
-            .finallyDo(() -> feedMotor.stopMotor())
-            .withName("feeder.shoot()");
-    }
-
-    /**
-     * Spits the note out of the feeder towards the intake.
-     */
-    public Command poop() {
-        return commandBuilder("feeder.poop()")
-            .onInitialize(() -> feedMotor.set(FeederConstants.POOP_SPEED))
-            .onEnd(() -> feedMotor.stopMotor());
-    }
-
-    /**
-     * Spits the note out of the feeder towards the intake.
-     */
-    public Command barfForward() {
-        return commandBuilder("feeder.barfForward()")
-            .onInitialize(() -> feedMotor.set(FeederConstants.BARF_FORWARD_SPEED))
-            .onEnd(() -> feedMotor.stopMotor());
-    }
-
-    /**
-     * Spits the note out of the feeder towards the shooter.
-     */
-    public Command barfBackward() {
-        return commandBuilder("feeder.barfBackward()")
-            .onInitialize(() -> feedMotor.set(FeederConstants.BARF_BACKWARD_SPEED))
-            .onEnd(() -> feedMotor.stopMotor());
+            .withTimeout(2.5)
+            .withName("Feeder.seat()");
     }
 
     /**
@@ -151,11 +129,11 @@ public class Feeder extends GRRSubsystem {
     public Command onDisable() {
         return commandBuilder()
             .onInitialize(() -> {
-                feedMotor.setIdleMode(IdleMode.kCoast);
-                feedMotor.stopMotor();
+                motor.stopMotor();
+                motor.setIdleMode(IdleMode.kCoast);
             })
-            .onEnd(() -> feedMotor.setIdleMode(IdleMode.kBrake))
+            .onEnd(() -> motor.setIdleMode(IdleMode.kBrake))
             .ignoringDisable(true)
-            .withName("feeder.onDisable()");
+            .withName("Feeder.onDisable()");
     }
 }

@@ -1,194 +1,139 @@
 package org.team340.robot.commands;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
-import static org.team340.robot.RobotContainer.*;
 
+import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.ScheduleCommand;
 import java.util.function.Supplier;
-import org.team340.robot.Constants;
-import org.team340.robot.Constants.PivotConstants;
+import org.team340.robot.RobotContainer;
+import org.team340.robot.subsystems.Feeder;
+import org.team340.robot.subsystems.Feeder.FeederSpeed;
+import org.team340.robot.subsystems.Intake;
+import org.team340.robot.subsystems.Intake.IntakeState;
+import org.team340.robot.subsystems.Pivot;
+import org.team340.robot.subsystems.Pivot.PivotPosition;
+import org.team340.robot.subsystems.Shooter;
+import org.team340.robot.subsystems.Shooter.ShooterSpeed;
+import org.team340.robot.subsystems.Swerve;
 
 /**
  * This class is used to declare commands that require multiple subsystems.
  */
+@Logged(strategy = Strategy.OPT_IN)
 public class Routines {
 
-    private Routines() {
-        throw new UnsupportedOperationException("This is a utility class!");
+    private final Feeder feeder;
+    private final Intake intake;
+    private final Pivot pivot;
+    private final Shooter shooter;
+    private final Swerve swerve;
+
+    public Routines(RobotContainer robotContainer) {
+        feeder = robotContainer.feeder;
+        intake = robotContainer.intake;
+        pivot = robotContainer.pivot;
+        shooter = robotContainer.shooter;
+        swerve = robotContainer.swerve;
     }
 
     /**
-     * Deploys and runs the intake. After a note is collected, it is seated by the feeder.
+     * Intakes from the ground. Ends when the note is detected.
      */
-    public static Command intake() {
-        return sequence(waitUntil(pivot::isSafeForIntake), intake.downPosition(), race(feeder.receive(), intake.intake()), feeder.seat())
+    public Command intake() {
+        return sequence(
+            parallel(intake.apply(IntakeState.kIntake), feeder.apply(FeederSpeed.kReceive).until(feeder::hasNote)),
+            new ScheduleCommand(feeder.seat())
+        )
+            .onlyIf(feeder::noNote)
             .withName("Routines.intake()");
     }
 
     /**
-     * Finishes the intake sequence.
+     * Intakes via the feeder station. Ends when the note is seated.
      */
-    public static Command finishIntake() {
-        return parallel(feeder.seat(), intake.safePosition()).withName("Routines.finishIntake()");
-    }
-
-    /**
-     * Intakes from the human player.
-     * @param x The desired {@code x} driving speed from {@code -1.0} to {@code 1.0}.
-     * @param y The desired {@code y} driving speed from {@code -1.0} to {@code 1.0}.
-     */
-    public static Command intakeHuman(Supplier<Double> x, Supplier<Double> y) {
-        return parallel(
-            deadline(waitUntil(feeder::hasNote).andThen(waitSeconds(0.1)), shooter.intakeHuman(), feeder.intakeHuman()),
-            sequence(
-                pivot.goTo(PivotConstants.INTAKE_SAFE_POSITION).unless(pivot::isSafeForIntake),
-                intake.uprightPosition(),
-                pivot.goTo(PivotConstants.MAX_POS)
-            ),
-            swerve.driveIntakeHuman(x, y)
+    public Command humanLoad() {
+        return sequence(
+            parallel(
+                feeder.apply(FeederSpeed.kBarfForward),
+                pivot.apply(PivotPosition.kHumanLoad),
+                shooter.apply(ShooterSpeed.kHumanLoad)
+            ).until(feeder::hasNote),
+            parallel(feeder.apply(FeederSpeed.kBarfForward), pivot.apply(PivotPosition.kDown)).until(feeder::noNote),
+            new ScheduleCommand(feeder.seat())
         )
-            .withName("Routines.intakeHuman()");
+            .onlyIf(feeder::noNote)
+            .withName("Routines.humanLoad()");
     }
 
     /**
-     * Finishes the human player intake sequence.
+     * Prepares to score in speaker. Does not end.
+     * @param x The X value from the driver's joystick.
+     * @param y The Y value from the driver's joystick.
      */
-    public static Command finishIntakeHuman() {
+    public Command prepSpeaker(Supplier<Double> x, Supplier<Double> y) {
         return parallel(
-            shooter.setSpeed(0).withTimeout(2.0),
-            pivot.goTo(PivotConstants.DOWN_POSITION),
-            sequence(waitUntil(pivot::isSafeForIntake), parallel(intake.safePosition(), sequence(feeder.reverseSeat(), feeder.seat())))
-        )
-            .withName("Routines.finishIntakeHuman()");
+            swerve.driveSpeaker(x, y),
+            pivot.targetSpeaker(swerve::getSpeakerDistance),
+            shooter.targetSpeaker(swerve::getSpeakerDistance)
+        ).withName("Routines.prepSpeaker()");
     }
 
     /**
-     * Intakes while ignoring note detectors.
+     * Prepares to score in amp. Does not end.
+     * @param x The X value from the driver's joystick.
+     * @param y The Y value from the driver's joystick.
      */
-    public static Command intakeOverride() {
-        return parallel(intake.intakeOverride(), feeder.shoot()).withName("Routines.intakeOverride()");
-    }
-
-    /**
-     * Prepares to score in speaker by facing the speaker and moving the pivot.
-     * @param x The desired {@code x} driving speed from {@code -1.0} to {@code 1.0}.
-     * @param y The desired {@code y} driving speed from {@code -1.0} to {@code 1.0}.
-     */
-    public static Command prepSpeaker(Supplier<Double> x, Supplier<Double> y) {
-        return parallel(swerve.driveSpeaker(x, y), pivot.targetDistance(swerve::getSpeakerDistance)).withName("Routines.prepSpeaker()");
-    }
-
-    /**
-     * Prepares to score in the amp.
-     * @param x The desired {@code x} driving speed from {@code -1.0} to {@code 1.0}.
-     * @param y The desired {@code y} driving speed from {@code -1.0} to {@code 1.0}.
-     */
-    public static Command prepAmp(Supplier<Double> x, Supplier<Double> y) {
+    public Command prepAmp(Supplier<Double> x, Supplier<Double> y) {
         return parallel(
-            swerve.driveAmpManual(x, y),
-            sequence(
-                sequence(
-                    parallel(
-                        pivot.goTo(Constants.PivotConstants.AMP_HANDOFF_POSITION),
-                        sequence(waitUntil(pivot::isSafeForIntake), intake.handoffPosition())
-                    ),
-                    handoff()
-                )
-                    .unless(intake::hasNote),
-                intake.ampPosition()
-            )
-        )
-            .withName("Routines.prepAmp()");
+            swerve.driveAmp(x, y),
+            pivot.apply(PivotPosition.kAmp),
+            shooter.apply(ShooterSpeed.kAmp)
+        ).withName("Routines.prepSpeaker()");
     }
 
     /**
-     * Prepares for a climb by raising the arms and facing the stage.
-     * @param x The desired {@code x} driving speed from {@code -1.0} to {@code 1.0}.
-     * @param y The desired {@code y} driving speed from {@code -1.0} to {@code 1.0}.
+     * Prepares to feed a note to our alliance. Does not end.
+     * @param x The X value from the driver's joystick.
+     * @param y The Y value from the driver's joystick.
      */
-    public static Command prepClimb(Supplier<Double> x, Supplier<Double> y) {
-        return parallel(swerve.driveClimb(x, y), intake.uprightPosition(), pivot.goTo(PivotConstants.DOWN_POSITION))
-            .withName("Routines.prepClimb()");
-    }
-
-    /**
-     * Prepares to feed a note to our alliance.
-     * @param x The desired {@code x} driving speed from {@code -1.0} to {@code 1.0}.
-     * @param y The desired {@code y} driving speed from {@code -1.0} to {@code 1.0}.
-     */
-    public static Command prepFeed(Supplier<Double> x, Supplier<Double> y) {
-        return parallel(swerve.driveFeed(x, y), shooter.feed(() -> true), pivot.feed(() -> true));
+    public Command prepFeed(Supplier<Double> x, Supplier<Double> y) {
+        return parallel(swerve.driveFeed(x, y), pivot.apply(PivotPosition.kFeed), shooter.apply(ShooterSpeed.kFeed));
     }
 
     /**
      * Fixes the position of the note if it is in a deadzone.
      */
-    public static Command fixDeadzone() {
+    public Command fixDeadzone() {
         return sequence(
-            deadline(feeder.reverseSeat(), shooter.fixDeadzone(), pivot.goTo(PivotConstants.FIX_DEADZONE_POSITION)),
-            parallel(feeder.seat(), pivot.goTo(PivotConstants.DOWN_POSITION))
-        )
-            .withName("Routines.fixDeadzone()");
+            parallel(
+                feeder.apply(FeederSpeed.kBarfForward),
+                pivot.apply(PivotPosition.kFixDeadzone),
+                shooter.apply(ShooterSpeed.kFixDeadzone)
+            ).until(feeder::noNote),
+            new ScheduleCommand(feeder.seat())
+        ).withName("Routines.fixDeadzone()");
     }
 
     /**
-     * Barfs the note forwards out of the intake.
+     * Barfs backwards (towards the shooter). Does not end.
      */
-    public static Command barfForward() {
-        return sequence(
-            parallel(pivot.goTo(PivotConstants.BARF_FORWARD_POSITION), intake.barfPosition()).withTimeout(0.5),
-            parallel(pivot.goTo(PivotConstants.BARF_FORWARD_POSITION), feeder.barfForward(), intake.barf())
-        )
-            .withName("Routines.barfForward()");
-    }
-
-    /**
-     * Barfs the note backwards out of the shooter.
-     */
-    public static Command barfBackward() {
-        return parallel(shooter.barfBackward(), sequence(waitSeconds(0.35), parallel(feeder.barfBackward(), intake.intake())))
-            .withName("Routines.barfBackward()");
-    }
-
-    /**
-     * Prepares to poop the note forwards out of the intake.
-     */
-    public static Command prepPoop() {
-        return sequence(handoff(), intake.poopPosition()).withName("Routines.prepPoop()");
-    }
-
-    /**
-     * Poops the note out of the intake.
-     * @param includePrep If {@link Routines#prepPoop()} should be called first.
-     */
-    public static Command poop(boolean includePrep) {
-        return sequence(
-            includePrep ? Routines.prepPoop() : none(),
-            deadline(sequence(waitUntil(() -> !intake.hasNote()), waitSeconds(0.15)), intake.poop())
-        )
-            .withName("Routines.poop(" + includePrep + ")");
-    }
-
-    /**
-     * Returns the note from the feeder back to the intake.
-     */
-    public static Command handoff() {
-        return sequence(
-            intake.handoffPosition(),
-            deadline(
-                sequence(waitUntil(() -> intake.hasNote() && !feeder.hasNote()), waitSeconds(0.1)),
-                feeder.barfForward(),
-                intake.handoff()
-            )
-        );
+    public Command barf() {
+        return parallel(
+            feeder.apply(FeederSpeed.kBarfBackward),
+            intake.apply(IntakeState.kBarf),
+            shooter.apply(ShooterSpeed.kBarfBackward)
+        ).withName("Routines.barfBackward()");
     }
 
     /**
      * Should be called when disabled, and cancelled when enabled.
      * Calls {@code onDisable()} for all subsystems.
      */
-    public static Command onDisable() {
-        return sequence(waitSeconds(6.0), parallel(climber.onDisable(), feeder.onDisable(), intake.onDisable(), pivot.onDisable()))
-            .withName("Routines.onDisable()");
+    public Command onDisable() {
+        return sequence(waitSeconds(6.0), parallel(feeder.onDisable(), intake.onDisable(), pivot.onDisable())).withName(
+            "Routines.onDisable()"
+        );
     }
 }

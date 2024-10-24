@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onDestroy } from "svelte";
-    import { derived } from "svelte/store";
+    import { get, derived } from "svelte/store";
     import field24 from "../assets/field24.png";
     import { FIELD_HEIGHT, FIELD_WIDTH, ROBOT_SIZE } from "../constants";
     import { AutosActive, AutosOptions, AutosSelected, RobotBlueAlliance } from "../ntStores";
@@ -13,7 +13,7 @@
     type Option = {
         id: string;
         label: string;
-        points: Array<[number, number, number, number]>; // x, y, heading, timestamp
+        samples: Array<[number, number, number, number]>; // x, y, heading, timestamp
         time: number;
     };
 
@@ -23,7 +23,7 @@
             $value.map((option) => {
                 try {
                     const parsed = { ...JSON.parse(option) };
-                    if (![`id`, `label`, `points`].every((v) => Object.keys(parsed).includes(v)))
+                    if (![`id`, `label`, `samples`, `time`].every((v) => Object.keys(parsed).includes(v)))
                         throw new Error(`Invalid auto option: ${option}`);
                     return parsed;
                 } catch (error) {
@@ -32,6 +32,8 @@
             }) ?? []
         ).filter((v) => v !== null) as Option[];
     });
+
+    $: console.log(get(options));
 
     // Replay positions.
     const createEmptyReplay = (): typeof replay =>
@@ -42,8 +44,8 @@
         const lerp = (s: number, e: number, a: number): number => s + a * (e - s);
         $options.forEach((option, i) => {
             const t = (Date.now() / 1000) % option.time;
-            let start = option.points.findLast((point) => point[3] <= t);
-            let end = option.points.find((point) => point[3] > t) ?? start;
+            let start = option.samples.findLast((sample) => sample[3] <= t);
+            let end = option.samples.find((sample) => sample[3] > t) ?? start;
             if (!start) start = end;
             if (start && end) {
                 const a = (t - start![3]) / (end![3] - start![3]);
@@ -65,7 +67,7 @@
 <main>
     <div class="autos-container">
         {#if $options.length}
-            {#each $options as { id, label, points }, i}
+            {#each $options as { id, label, samples }, i}
                 <!-- An auto selection. -->
                 <button
                     class="auto-selection"
@@ -90,13 +92,13 @@
                             stroke-linecap="round"
                             stroke-linejoin="round"
                         >
-                            {#each points as [x, y, _], i}
-                                {#if i < points.length - 1}
+                            {#each samples as [x, y], i}
+                                {#if i < samples.length - 1}
                                     <line
                                         x1="{$RobotBlueAlliance ? x : FIELD_WIDTH - x}"
                                         y1="{FIELD_HEIGHT - y}"
-                                        x2="{$RobotBlueAlliance ? points[i + 1][0] : FIELD_WIDTH - points[i + 1][0]}"
-                                        y2="{FIELD_HEIGHT - points[i + 1][1]}"
+                                        x2="{$RobotBlueAlliance ? samples[i + 1][0] : FIELD_WIDTH - samples[i + 1][0]}"
+                                        y2="{FIELD_HEIGHT - samples[i + 1][1]}"
                                     ></line>
                                 {/if}
                             {/each}
