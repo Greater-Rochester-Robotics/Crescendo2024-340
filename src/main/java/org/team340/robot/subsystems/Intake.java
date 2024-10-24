@@ -55,7 +55,7 @@ public class Intake extends GRRSubsystem {
         }
     }
 
-    private static final Constraints kConstraints = new Constraints(30.0, 12.0);
+    private static final Constraints kConstraints = new Constraints(62.0, 29.0);
 
     private static final Tunable<Double> kMinPos = Tunable.doubleValue("Intake/kMinPos", Math.toRadians(1.0));
     private static final Tunable<Double> kMaxPos = Tunable.doubleValue("Intake/kMaxPos", Math.toRadians(115.0));
@@ -109,10 +109,10 @@ public class Intake extends GRRSubsystem {
             .setPositionConversionFactor(Math.PI)
             .setVelocityConversionFactor(Math.PI)
             .setInverted(true)
-            .setZeroOffset(2.936)
+            .setZeroOffset(2.876)
             .apply(pivotMotor, pivotEncoder);
 
-        new SparkPIDControllerConfig().setPID(1.5, 0.001, 0.0).setIZone(0.1).apply(pivotMotor, pivotPID);
+        new SparkPIDControllerConfig().setPID(1.5, 0.0027, 0.0).setIZone(0.1).apply(pivotMotor, pivotPID);
 
         Tunable.pidController("Intake/PID", pivotPID);
         Tunable.doubleValue("Intake/Constraints/maxVelocity", constraints.maxVelocity, v -> {

@@ -22,4 +22,13 @@ public abstract class GRRSubsystem implements Subsystem {
     protected CommandBuilder commandBuilder(String name) {
         return new CommandBuilder(name, this);
     }
+
+    /**
+     * Returns {@code true} if there are no commands
+     * running that require the subsystem.
+     * @return
+     */
+    public boolean isIdle() {
+        return getCurrentCommand() == null;
+    }
 }

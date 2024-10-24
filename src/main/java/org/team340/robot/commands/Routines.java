@@ -5,6 +5,7 @@ import static edu.wpi.first.wpilibj2.command.Commands.*;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.ScheduleCommand;
 import java.util.function.Supplier;
 import org.team340.robot.RobotContainer;
 import org.team340.robot.subsystems.Feeder;
@@ -38,12 +39,12 @@ public class Routines {
     }
 
     /**
-     * Intakes from the ground. Ends when the note is seated.
+     * Intakes from the ground. Ends when the note is detected.
      */
     public Command intake() {
         return sequence(
-            parallel(intake.apply(IntakeState.kIntake), feeder.apply(FeederSpeed.kReceive)).until(feeder::hasNote),
-            deadline(feeder.seat(), intake.apply(IntakeState.kRetract))
+            parallel(intake.apply(IntakeState.kIntake), feeder.apply(FeederSpeed.kReceive).until(feeder::hasNote)),
+            new ScheduleCommand(feeder.seat())
         )
             .onlyIf(feeder::noNote)
             .withName("Routines.intake()");
@@ -59,11 +60,11 @@ public class Routines {
                 pivot.apply(PivotPosition.kHumanLoad),
                 shooter.apply(ShooterSpeed.kHumanLoad)
             ).until(feeder::hasNote),
-            parallel(
-                sequence(feeder.apply(FeederSpeed.kBarfForward).until(feeder::noNote), feeder.seat()),
-                pivot.apply(PivotPosition.kDown)
-            )
-        ).withName("Routines.humanLoad()");
+            parallel(feeder.apply(FeederSpeed.kBarfForward), pivot.apply(PivotPosition.kDown)).until(feeder::noNote),
+            new ScheduleCommand(feeder.seat())
+        )
+            .onlyIf(feeder::noNote)
+            .withName("Routines.humanLoad()");
     }
 
     /**
@@ -111,7 +112,7 @@ public class Routines {
                 pivot.apply(PivotPosition.kFixDeadzone),
                 shooter.apply(ShooterSpeed.kFixDeadzone)
             ).until(feeder::noNote),
-            deadline(feeder.seat(), pivot.apply(PivotPosition.kDown))
+            new ScheduleCommand(feeder.seat())
         ).withName("Routines.fixDeadzone()");
     }
 
