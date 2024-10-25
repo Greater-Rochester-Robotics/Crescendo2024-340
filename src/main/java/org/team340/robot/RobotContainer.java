@@ -28,18 +28,19 @@ import org.team340.robot.subsystems.Swerve;
 @Logged
 public final class RobotContainer {
 
-    private Controller driver;
-    private Controller coDriver;
+    private final Controller driver;
+    private final Controller coDriver;
 
-    public Amplifier amplifier;
-    public Feeder feeder;
-    public Intake intake;
-    public Pivot pivot;
-    public Shooter shooter;
-    public Swerve swerve;
+    public final Amplifier amplifier;
+    public final Feeder feeder;
+    public final Intake intake;
+    // public Lights lights;
+    public final Pivot pivot;
+    public final Shooter shooter;
+    public final Swerve swerve;
 
-    public Routines routines;
-    public Autos autos;
+    public final Routines routines;
+    public final Autos autos;
 
     /**
      * Entry to initializing subsystems and command execution.
@@ -53,6 +54,7 @@ public final class RobotContainer {
         amplifier = new Amplifier();
         feeder = new Feeder();
         intake = new Intake();
+        // lights = new Lights();
         pivot = new Pivot();
         shooter = new Shooter();
         swerve = new Swerve();
@@ -75,6 +77,7 @@ public final class RobotContainer {
         // Set default commands.
         amplifier.setDefaultCommand(amplifier.apply(AmplifierPosition.kRetract));
         intake.setDefaultCommand(intake.apply(IntakeState.kRetract));
+        // lights.setDefaultCommand(lights.run(feeder::hasNote));
         pivot.setDefaultCommand(pivot.apply(PivotPosition.kDown));
         shooter.setDefaultCommand(shooter.idle(swerve::getSpeakerDistance));
         swerve.setDefaultCommand(swerve.drive(driver::getLeftX, driver::getLeftY, driver::getTriggerDifference));

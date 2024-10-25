@@ -46,6 +46,8 @@ public final class Constants {
 
         public static final int kPivotLimit = 8;
         public static final int kNoteDetector = 9;
+
+        public static final int kLights = 9;
     }
 
     public static final class FieldConstants {

@@ -109,7 +109,7 @@ public class Intake extends GRRSubsystem {
             .setPositionConversionFactor(Math.PI)
             .setVelocityConversionFactor(Math.PI)
             .setInverted(true)
-            .setZeroOffset(2.876)
+            .setZeroOffset(0.236)
             .apply(pivotMotor, pivotEncoder);
 
         new SparkPIDControllerConfig().setPID(1.5, 0.0027, 0.0).setIZone(0.1).apply(pivotMotor, pivotPID);
