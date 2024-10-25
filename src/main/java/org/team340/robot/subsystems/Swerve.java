@@ -14,9 +14,9 @@ import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.geometry.Twist3d;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.util.WPIUtilJNI;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.CalibrationTime;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.SPI.Port;
 import edu.wpi.first.wpilibj2.command.Command;
 import java.util.ArrayList;
@@ -107,6 +107,7 @@ public class Swerve extends GRRSubsystem {
     private final List<Pose2d> measurements = new ArrayList<>();
     private final List<Pose3d> targets = new ArrayList<>();
     private Pose2d gtsamPose = new Pose2d();
+    private double firstLoop = -1.0;
 
     public Swerve() {
         api = new SwerveAPI(CONFIG);
@@ -126,13 +127,17 @@ public class Swerve extends GRRSubsystem {
 
     @Override
     public void periodic() {
-        long loopStart = WPIUtilJNI.now();
-        long tagDetTime = loopStart - 10000; // YIPPEE
+        long loopStart = RobotController.getFPGATime();
+        long tagDetTime = loopStart + 10000; // YIPPEE
+        if (firstLoop == -1.0) firstLoop = loopStart;
 
         api.refresh();
 
         measurements.clear();
         targets.clear();
+
+        Twist2d twist = api.state.twist;
+        gtsamInterface.sendOdomUpdate(loopStart, new Twist3d(twist.dx, twist.dy, 0, 0, 0, twist.dtheta), null);
 
         Pose3d guess = null;
         int mostTargets = 0;
@@ -150,7 +155,7 @@ public class Swerve extends GRRSubsystem {
                 }
 
                 gtsamInterface.setCamIntrinsics(camera.getName(), camera.getCameraMatrix(), camera.getDistCoeffs());
-                gtsamInterface.sendVisionUpdate(
+                if (tagDetTime > firstLoop) gtsamInterface.sendVisionUpdate(
                     camera.getName(),
                     tagDetTime,
                     dets,
@@ -189,9 +194,6 @@ public class Swerve extends GRRSubsystem {
                 }
             }
         }
-
-        Twist2d twist = api.state.twist;
-        gtsamInterface.sendOdomUpdate(loopStart, new Twist3d(twist.dx, twist.dy, 0, 0, 0, twist.dtheta), guess);
 
         gtsamPose = gtsamInterface.getLatencyCompensatedPoseEstimate().toPose2d();
     }
