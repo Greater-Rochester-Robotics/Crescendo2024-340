@@ -42,6 +42,8 @@ public final class Constants {
         public static final int kShooterLeftMotor = 33;
         public static final int kShooterRightMotor = 32;
 
+        public static final int kAmplifier = 34;
+
         public static final int kPivotLimit = 8;
         public static final int kNoteDetector = 9;
     }
@@ -51,13 +53,13 @@ public final class Constants {
         public static final double kLength = 16.541;
         public static final double kWidth = 8.211;
 
-        public static final Translation2d kBlueSpeaker = new Translation2d(-0.04, 5.5479);
+        public static final Translation2d kBlueSpeaker = new Translation2d(0.03, 5.547869);
         public static final Translation2d kRedSpeaker = new Translation2d(
             kLength - kBlueSpeaker.getX(),
             kBlueSpeaker.getY()
         );
 
-        public static final Translation2d kBlueFeed = new Translation2d(0.0, 7.4);
+        public static final Translation2d kBlueFeed = new Translation2d(0.0, kWidth);
         public static final Translation2d kRedFeed = new Translation2d(kLength - kBlueFeed.getX(), kBlueFeed.getY());
 
         public static final double kFenderShotDistance = 1.4;

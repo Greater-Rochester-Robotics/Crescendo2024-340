@@ -11,6 +11,8 @@ import org.team340.lib.util.rev.RevConfigRegistry;
 import org.team340.robot.Constants.FieldConstants;
 import org.team340.robot.commands.Autos;
 import org.team340.robot.commands.Routines;
+import org.team340.robot.subsystems.Amplifier;
+import org.team340.robot.subsystems.Amplifier.AmplifierPosition;
 import org.team340.robot.subsystems.Feeder;
 import org.team340.robot.subsystems.Feeder.FeederSpeed;
 import org.team340.robot.subsystems.Intake;
@@ -29,6 +31,7 @@ public final class RobotContainer {
     private Controller driver;
     private Controller coDriver;
 
+    public Amplifier amplifier;
     public Feeder feeder;
     public Intake intake;
     public Pivot pivot;
@@ -47,6 +50,7 @@ public final class RobotContainer {
         coDriver = new Controller(Constants.kCoDriver);
 
         // Initialize subsystems.
+        amplifier = new Amplifier();
         feeder = new Feeder();
         intake = new Intake();
         pivot = new Pivot();
@@ -69,8 +73,10 @@ public final class RobotContainer {
      */
     private void configBindings() {
         // Set default commands.
+        amplifier.setDefaultCommand(amplifier.apply(AmplifierPosition.kRetract));
         intake.setDefaultCommand(intake.apply(IntakeState.kRetract));
         pivot.setDefaultCommand(pivot.apply(PivotPosition.kDown));
+        shooter.setDefaultCommand(shooter.idle(swerve::getSpeakerDistance));
         swerve.setDefaultCommand(swerve.drive(driver::getLeftX, driver::getLeftY, driver::getTriggerDifference));
 
         routines.onDisable().schedule();
@@ -107,7 +113,10 @@ public final class RobotContainer {
         // POV Down => Pivot home (Tap)
         driver.povDown().onTrue(pivot.home(true));
 
-        // POV Left => Zero swerve
+        // POV Up => Tare amplifier (Hold)
+        driver.povUp().whileTrue(amplifier.tare());
+
+        // POV Left => Zero swerve (Tap)
         driver.povLeft().onTrue(swerve.tareRotation());
 
         /**

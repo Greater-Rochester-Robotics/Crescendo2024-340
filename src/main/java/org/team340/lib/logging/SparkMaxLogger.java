@@ -1,5 +1,6 @@
 package org.team340.lib.logging;
 
+import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
 import edu.wpi.first.epilogue.CustomLoggerFor;
 import edu.wpi.first.epilogue.logging.ClassSpecificLogger;
@@ -18,7 +19,10 @@ public class SparkMaxLogger extends ClassSpecificLogger<CANSparkMax> {
         logger.log("busVoltage", sparkMax.getBusVoltage());
         logger.log("motorTemperature", sparkMax.getMotorTemperature());
         logger.log("outputCurrent", sparkMax.getOutputCurrent());
-        logger.log("position", sparkMax.getEncoder().getPosition());
-        logger.log("velocity", sparkMax.getEncoder().getVelocity());
+
+        if (sparkMax.getMotorType().equals(MotorType.kBrushless)) {
+            logger.log("position", sparkMax.getEncoder().getPosition());
+            logger.log("velocity", sparkMax.getEncoder().getVelocity());
+        }
     }
 }

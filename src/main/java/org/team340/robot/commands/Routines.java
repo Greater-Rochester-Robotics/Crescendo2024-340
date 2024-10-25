@@ -8,6 +8,8 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.ScheduleCommand;
 import java.util.function.Supplier;
 import org.team340.robot.RobotContainer;
+import org.team340.robot.subsystems.Amplifier;
+import org.team340.robot.subsystems.Amplifier.AmplifierPosition;
 import org.team340.robot.subsystems.Feeder;
 import org.team340.robot.subsystems.Feeder.FeederSpeed;
 import org.team340.robot.subsystems.Intake;
@@ -24,6 +26,7 @@ import org.team340.robot.subsystems.Swerve;
 @Logged(strategy = Strategy.OPT_IN)
 public class Routines {
 
+    private final Amplifier amplifier;
     private final Feeder feeder;
     private final Intake intake;
     private final Pivot pivot;
@@ -31,6 +34,7 @@ public class Routines {
     private final Swerve swerve;
 
     public Routines(RobotContainer robotContainer) {
+        amplifier = robotContainer.amplifier;
         feeder = robotContainer.feeder;
         intake = robotContainer.intake;
         pivot = robotContainer.pivot;
@@ -43,7 +47,7 @@ public class Routines {
      */
     public Command intake() {
         return sequence(
-            parallel(intake.apply(IntakeState.kIntake), feeder.apply(FeederSpeed.kReceive).until(feeder::hasNote)),
+            parallel(intake.apply(IntakeState.kIntake), feeder.apply(FeederSpeed.kReceive)).until(feeder::hasNote),
             new ScheduleCommand(feeder.seat())
         )
             .onlyIf(feeder::noNote)
@@ -87,9 +91,10 @@ public class Routines {
      */
     public Command prepAmp(Supplier<Double> x, Supplier<Double> y) {
         return parallel(
-            swerve.driveAmp(x, y),
+            amplifier.apply(AmplifierPosition.kExtend),
             pivot.apply(PivotPosition.kAmp),
-            shooter.apply(ShooterSpeed.kAmp)
+            shooter.apply(ShooterSpeed.kAmp),
+            swerve.driveAmp(x, y)
         ).withName("Routines.prepSpeaker()");
     }
 

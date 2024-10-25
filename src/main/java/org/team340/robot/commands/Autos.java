@@ -38,6 +38,7 @@ public class Autos {
         swerve = robotContainer.swerve;
 
         preloadDumpC1C2();
+        preloadDumpC2C1();
     }
 
     /**
@@ -48,23 +49,23 @@ public class Autos {
     private Command intake(double delay, boolean seat) {
         return sequence(
             intake.apply(IntakeState.kRetract).withTimeout(delay),
-            parallel(intake.apply(IntakeState.kIntake), feeder.apply(FeederSpeed.kReceive)).until(feeder::hasNote),
+            parallel(intake.apply(IntakeState.kIntake), feeder.apply(FeederSpeed.kReceive))
+                .onlyIf(feeder::noNote)
+                .until(feeder::hasNote),
             parallel(seat ? feeder.seat() : none(), intake.apply(IntakeState.kRetract))
-        )
-            .onlyIf(feeder::noNote)
-            .withName("Autos.intake(" + delay + ", " + seat + ")");
+        ).withName("Autos.intake(" + delay + ", " + seat + ")");
     }
 
     /**
      * Aims the drive at the speaker and shoots a note.
-     * The pivot and shooter wheels are expected to be
+     * The pivot and shooter wheels are expected to be\[]
      * already running and targeting the speaker.
      * @param timeout The timeout in seconds to shoot.
      */
-    private Command shoot(double timeout) {
+    private Command shoot(double delay, double timeout) {
         return parallel(
             intake.apply(IntakeState.kRetract),
-            feeder.apply(FeederSpeed.kShoot),
+            sequence(waitSeconds(delay), feeder.apply(FeederSpeed.kShoot)),
             swerve.driveSpeaker(() -> 0.0, () -> 0.0)
         )
             .withTimeout(timeout)
@@ -86,21 +87,21 @@ public class Autos {
                             sequence(waitSeconds(1.0), swerve.trajAimSpeaker()),
                             intake(0.0, true)
                         ),
-                        shoot(0.3),
+                        shoot(0.35, 0.6),
                         deadline(swerve.autoFactory().trajectoryCommand(name, 2), intake(0.5, false)),
                         deadline(
                             swerve.autoFactory().trajectoryCommand(name, 3),
                             sequence(waitSeconds(1.2), swerve.trajAimSpeaker()),
                             intake(0.0, true)
                         ),
-                        shoot(0.3),
+                        shoot(0.35, 0.6),
                         deadline(swerve.autoFactory().trajectoryCommand(name, 4), intake(0.0, false)),
                         deadline(
                             swerve.autoFactory().trajectoryCommand(name, 5),
                             sequence(waitSeconds(0.5), swerve.trajAimSpeaker()),
                             intake(0.0, true)
                         ),
-                        shoot(0.3)
+                        shoot(0.35, 0.6)
                     ),
                     shooter.targetSpeaker(swerve::getSpeakerDistance),
                     pivot.targetSpeaker(swerve::getSpeakerDistance)
@@ -112,6 +113,50 @@ public class Autos {
                 )
             );
             GRRDashboard.addAuto("Pre-load Dump 1 + 2", command, traj.get());
+        }
+    }
+
+    public void preloadDumpC2C1() {
+        String name = "preloadDumpC2C1";
+        Optional<Trajectory<SwerveSample>> traj = Choreo.loadTrajectory(name);
+
+        if (traj.isPresent()) {
+            Command command = sequence(
+                deadline(
+                    sequence(
+                        swerve.resetPose(() -> traj.get().getInitialPose(Alliance.isRed())),
+                        deadline(swerve.autoFactory().trajectoryCommand(name, 0), intake(0.5, false)),
+                        deadline(
+                            swerve.autoFactory().trajectoryCommand(name, 1),
+                            sequence(waitSeconds(1.0), swerve.trajAimSpeaker()),
+                            intake(0.0, true)
+                        ),
+                        shoot(0.35, 0.6),
+                        deadline(swerve.autoFactory().trajectoryCommand(name, 2), intake(0.5, false)),
+                        deadline(
+                            swerve.autoFactory().trajectoryCommand(name, 3),
+                            sequence(waitSeconds(1.2), swerve.trajAimSpeaker()),
+                            intake(0.0, true)
+                        ),
+                        shoot(0.35, 0.6),
+                        deadline(swerve.autoFactory().trajectoryCommand(name, 4), intake(0.0, false)),
+                        deadline(
+                            swerve.autoFactory().trajectoryCommand(name, 5),
+                            sequence(waitSeconds(0.5), swerve.trajAimSpeaker()),
+                            intake(0.0, true)
+                        ),
+                        shoot(0.35, 0.6)
+                    ),
+                    shooter.targetSpeaker(swerve::getSpeakerDistance),
+                    pivot.targetSpeaker(swerve::getSpeakerDistance)
+                ),
+                parallel(
+                    sequence(swerve.autoFactory().trajectoryCommand(name, 6), swerve.lockWheels()),
+                    intake.apply(IntakeState.kRetract),
+                    pivot.apply(PivotPosition.kDown)
+                )
+            );
+            GRRDashboard.addAuto("Pre-load Dump 2 + 1", command, traj.get());
         }
     }
 }

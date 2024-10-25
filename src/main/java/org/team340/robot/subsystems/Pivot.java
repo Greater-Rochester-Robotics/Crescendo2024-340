@@ -33,7 +33,7 @@ public class Pivot extends GRRSubsystem {
         /** Down position. */
         kDown(Math.toRadians(20.0)),
         /** Position for scoring in the amp. */
-        kAmp(Math.toRadians(42.0)),
+        kAmp(Math.toRadians(39.0)),
         /** Position for feeding. */
         kFeed(Math.toRadians(45.0)),
         /** Position for human loading. */

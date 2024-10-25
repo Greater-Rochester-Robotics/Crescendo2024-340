@@ -26,18 +26,20 @@ import org.team340.robot.Constants.RobotMap;
 public class Shooter extends GRRSubsystem {
 
     public static enum ShooterSpeed {
+        /** Idle speed. */
+        kIdle(true, 2500.0),
         /** Speed for scoring in the amp. */
         kAmp(true, 2000.0),
         /** Speed for feeding. */
-        kFeed(true, 4500.0),
+        kFeed(true, 4000.0),
         /** Speed for human loading. */
         kHumanLoad(false, -4.0),
         /** Speed for fixing deadzone. */
         kFixDeadzone(false, -8.0),
         /** Speed for barfing forwards (towards the intake). */
-        kBarfForward(false, -6.0),
+        kBarfForward(false, -3.5),
         /** Speed for barfing backwards (towards the shooter). */
-        kBarfBackward(false, 6.0);
+        kBarfBackward(false, 3.5);
 
         private final boolean rpm;
         private final Tunable<Double> value;
@@ -59,13 +61,14 @@ public class Shooter extends GRRSubsystem {
     private static final Tunable<Double> kRightKs = Tunable.doubleValue("Shooter/RightFF/kS", 0.290);
     private static final Tunable<Double> kRightKv = Tunable.doubleValue("Shooter/RightFF/kV", 0.0035);
     private static final Tunable<Double> kPIDRange = Tunable.doubleValue("Shooter/kPIDRange", 250.0);
+    private static final Tunable<Double> kIdleDistance = Tunable.doubleValue("Shooter/kIdleDistance", 6.0);
 
     private static final InterpolatingDoubleTreeMap kRegression = new InterpolatingDoubleTreeMap();
 
     static {
-        kRegression.put(0.0, 2500.0);
-        kRegression.put(6.0, 5300.0);
-        kRegression.put(6.5, 5300.0);
+        kRegression.put(0.0, 3250.0);
+        kRegression.put(6.0, 5400.0);
+        kRegression.put(6.5, 5400.0);
     }
 
     private final CANSparkFlex leftMotor;
@@ -128,6 +131,15 @@ public class Shooter extends GRRSubsystem {
     }
 
     /**
+     * Runs the shooter at its idle speed when it is in range with the speaker.
+     * @param distance A supplier that returns the distance to the speaker in meters.
+     */
+    public Command idle(Supplier<Double> distance) {
+        return applySpeed(true, () -> (distance.get() <= kIdleDistance.get()) ? ShooterSpeed.kIdle.value() : 0.0
+        ).withName("Shooter.idle()");
+    }
+
+    /**
      * Uses the {@link #kRegression} to automatically target the
      * speaker using the supplied distance. Does not end.
      * @param distance A supplier that returns the distance to the speaker in meters.
@@ -187,7 +199,7 @@ public class Shooter extends GRRSubsystem {
                     );
                 } else {
                     leftMotor.setVoltage(
-                        (Math.copySign(leftDelta, leftTarget) > 0.0 ? 12.0 : 0.0) * Math.signum(leftTarget)
+                        leftDelta * Math.signum(leftTarget) > 0.0 ? Math.copySign(12.0, leftTarget) : 0.0
                     );
                 }
 
@@ -201,7 +213,7 @@ public class Shooter extends GRRSubsystem {
                     );
                 } else {
                     rightMotor.setVoltage(
-                        (Math.copySign(rightDelta, rightTarget) > 0.0 ? 12.0 : 0.0) * Math.signum(rightTarget)
+                        rightDelta * Math.signum(rightTarget) > 0.0 ? Math.copySign(12.0, rightTarget) : 0.0
                     );
                 }
             })

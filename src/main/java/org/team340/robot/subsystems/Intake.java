@@ -32,7 +32,7 @@ public class Intake extends GRRSubsystem {
 
     public static enum IntakeState {
         /** The intake is deployed and intaking. */
-        kIntake(12.0, Math.toRadians(1.0)),
+        kIntake(12.0, Math.toRadians(5.0)),
         /** The intake is retracted and the rollers are stationary. */
         kRetract(0.0, Math.toRadians(110.0)),
         /** The intake is barfing. */
@@ -55,7 +55,7 @@ public class Intake extends GRRSubsystem {
         }
     }
 
-    private static final Constraints kConstraints = new Constraints(62.0, 29.0);
+    private static final Constraints kConstraints = new Constraints(54.0, 26.0);
 
     private static final Tunable<Double> kMinPos = Tunable.doubleValue("Intake/kMinPos", Math.toRadians(1.0));
     private static final Tunable<Double> kMaxPos = Tunable.doubleValue("Intake/kMaxPos", Math.toRadians(115.0));
