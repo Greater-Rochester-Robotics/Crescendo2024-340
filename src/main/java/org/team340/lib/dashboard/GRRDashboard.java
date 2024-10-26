@@ -4,12 +4,16 @@ import choreo.trajectory.SwerveSample;
 import choreo.trajectory.Trajectory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wpi.first.math.Pair;
+import edu.wpi.first.networktables.BooleanPublisher;
 import edu.wpi.first.networktables.BooleanSubscriber;
+import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StringArrayPublisher;
 import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.networktables.StringSubscriber;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.event.EventLoop;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -34,6 +38,11 @@ public final class GRRDashboard {
 
     private static final NetworkTable nt = NetworkTableInstance.getDefault().getTable("GRRDashboard");
     private static final EventLoop periodic = new EventLoop();
+
+    private static final BooleanPublisher robotBlueAlliance = nt.getBooleanTopic("Robot/blueAlliance").publish();
+    private static final BooleanPublisher robotEnabled = nt.getBooleanTopic("Robot/enabled").publish();
+    private static final DoublePublisher robotMatchTime = nt.getDoubleTopic("Robot/matchTime").publish();
+    private static final DoublePublisher robotVoltage = nt.getDoubleTopic("Robot/voltage").publish();
 
     private static final BooleanSubscriber allianceOverrideActiveSub = nt
         .getBooleanTopic("AllianceOverride/active")
@@ -141,6 +150,11 @@ public final class GRRDashboard {
      * periodically in order for this class to function.
      */
     public static void update() {
+        robotBlueAlliance.set(Alliance.isBlue());
+        robotEnabled.set(DriverStation.isEnabled());
+        robotMatchTime.set(DriverStation.getMatchTime());
+        robotVoltage.set(RobotController.getBatteryVoltage());
+
         if (allianceOverrideActiveSub.get()) {
             Alliance.enableOverride(allianceOverrideIsBlueSub.get());
         } else {
