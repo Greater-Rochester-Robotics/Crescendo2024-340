@@ -7,12 +7,10 @@ import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkPIDController;
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.Supplier;
 import org.team340.lib.dashboard.Tunable;
 import org.team340.lib.util.GRRSubsystem;
-import org.team340.lib.util.Mutable;
 import org.team340.lib.util.rev.RelativeEncoderConfig;
 import org.team340.lib.util.rev.SparkFlexConfig;
 import org.team340.lib.util.rev.SparkPIDControllerConfig;
@@ -26,12 +24,6 @@ import org.team340.robot.Constants.RobotMap;
 public class Shooter extends GRRSubsystem {
 
     public static enum ShooterSpeed {
-        /** Idle speed. */
-        kIdle(true, 2500.0),
-        /** Speed for scoring in the amp. */
-        kAmp(true, 2000.0),
-        /** Speed for feeding. */
-        kFeed(true, 4000.0),
         /** Speed for human loading. */
         kHumanLoad(false, -4.0),
         /** Speed for fixing deadzone. */
@@ -61,15 +53,6 @@ public class Shooter extends GRRSubsystem {
     private static final Tunable<Double> kRightKs = Tunable.doubleValue("Shooter/RightFF/kS", 0.290);
     private static final Tunable<Double> kRightKv = Tunable.doubleValue("Shooter/RightFF/kV", 0.0035);
     private static final Tunable<Double> kPIDRange = Tunable.doubleValue("Shooter/kPIDRange", 250.0);
-    private static final Tunable<Double> kIdleDistance = Tunable.doubleValue("Shooter/kIdleDistance", 6.0);
-
-    private static final InterpolatingDoubleTreeMap kRegression = new InterpolatingDoubleTreeMap();
-
-    static {
-        kRegression.put(0.0, 3250.0);
-        kRegression.put(6.0, 5400.0);
-        kRegression.put(6.5, 5400.0);
-    }
 
     private final CANSparkFlex leftMotor;
     private final CANSparkFlex rightMotor;
@@ -80,6 +63,7 @@ public class Shooter extends GRRSubsystem {
 
     private double leftTarget = 0.0;
     private double rightTarget = 0.0;
+    private double lastSpeed = 0.0;
 
     public Shooter() {
         leftMotor = new CANSparkFlex(RobotMap.kShooterLeftMotor, MotorType.kBrushless);
@@ -131,35 +115,14 @@ public class Shooter extends GRRSubsystem {
     }
 
     /**
-     * Runs the shooter at its idle speed when it is in range with the speaker.
-     * @param distance A supplier that returns the distance to the speaker in meters.
-     */
-    public Command idle(Supplier<Double> distance) {
-        return applySpeed(true, () -> (distance.get() <= kIdleDistance.get()) ? ShooterSpeed.kIdle.value() : 0.0
-        ).withName("Shooter.idle()");
-    }
-
-    /**
-     * Uses the {@link #kRegression} to automatically target the
-     * speaker using the supplied distance. Does not end.
-     * @param distance A supplier that returns the distance to the speaker in meters.
-     */
-    public Command targetSpeaker(Supplier<Double> distance) {
-        return applySpeed(true, () -> kRegression.get(distance.get())).withName("Shooter.targetSpeaker()");
-    }
-
-    /**
      * Drives shooter by modifying a moving target RPM. Does not end.
      * @param rampSpeed The speed to ramp the shooter by in RPM/second.
      */
     public Command manual(Supplier<Double> rampSpeed) {
-        Mutable<Double> last = new Mutable<>(0.0);
         return applySpeed(true, () -> {
-            last.accept(last.value + (rampSpeed.get() * Constants.kPeriod));
-            return last.value;
-        })
-            .beforeStarting(() -> last.accept(leftEncoder.getVelocity()))
-            .withName("Shooter.manual()");
+            lastSpeed = lastSpeed + (rampSpeed.get() * Constants.kPeriod);
+            return lastSpeed;
+        }).withName("Shooter.manual()");
     }
 
     /**

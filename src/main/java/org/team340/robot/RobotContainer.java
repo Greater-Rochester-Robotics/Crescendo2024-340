@@ -8,11 +8,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import org.team340.lib.controller.Controller;
 import org.team340.lib.util.rev.RevConfigRegistry;
-import org.team340.robot.Constants.FieldConstants;
-import org.team340.robot.commands.Autos;
 import org.team340.robot.commands.Routines;
-import org.team340.robot.subsystems.Amplifier;
-import org.team340.robot.subsystems.Amplifier.AmplifierPosition;
 import org.team340.robot.subsystems.Feeder;
 import org.team340.robot.subsystems.Feeder.FeederSpeed;
 import org.team340.robot.subsystems.Intake;
@@ -31,7 +27,6 @@ public final class RobotContainer {
     private final Controller driver;
     private final Controller coDriver;
 
-    public final Amplifier amplifier;
     public final Feeder feeder;
     public final Intake intake;
     // public Lights lights;
@@ -40,7 +35,6 @@ public final class RobotContainer {
     public final Swerve swerve;
 
     public final Routines routines;
-    public final Autos autos;
 
     /**
      * Entry to initializing subsystems and command execution.
@@ -51,7 +45,6 @@ public final class RobotContainer {
         coDriver = new Controller(Constants.kCoDriver);
 
         // Initialize subsystems.
-        amplifier = new Amplifier();
         feeder = new Feeder();
         intake = new Intake();
         // lights = new Lights();
@@ -60,7 +53,6 @@ public final class RobotContainer {
         swerve = new Swerve();
 
         routines = new Routines(this);
-        autos = new Autos(this);
 
         // Complete REV hardware initialization.
         RevConfigRegistry.burnFlashAll();
@@ -75,11 +67,9 @@ public final class RobotContainer {
      */
     private void configBindings() {
         // Set default commands.
-        amplifier.setDefaultCommand(amplifier.apply(AmplifierPosition.kRetract));
         intake.setDefaultCommand(intake.apply(IntakeState.kRetract));
         // lights.setDefaultCommand(lights.run(feeder::hasNote));
         pivot.setDefaultCommand(pivot.apply(PivotPosition.kDown));
-        shooter.setDefaultCommand(shooter.idle(swerve::getSpeakerDistance));
         swerve.setDefaultCommand(swerve.drive(driver::getLeftX, driver::getLeftY, driver::getTriggerDifference));
 
         routines.onDisable().schedule();
@@ -95,29 +85,24 @@ public final class RobotContainer {
         // B => Intake from Human Player (Hold)
         driver.b().whileTrue(routines.humanLoad());
 
-        // X => Prep Amp (Hold)
-        driver.x().whileTrue(routines.prepAmp(driver::getLeftX, driver::getLeftY));
-
         // Y => Shoot (Hold)
         driver.y().whileTrue(feeder.apply(FeederSpeed.kShoot));
 
-        // Right Bumper => Prep Speaker (Hold)
-        driver.rightBumper().whileTrue(routines.prepSpeaker(driver::getLeftX, driver::getLeftY));
+        driver.leftBumper().whileTrue(pivot.manual(() -> -driver.getRightY()));
 
-        // Left Bumper => Prep Feed (Hold)
-        driver.leftBumper().whileTrue(routines.prepFeed(driver::getLeftX, driver::getLeftY));
+        driver
+            .rightBumper()
+            .whileTrue(parallel(shooter.manual(() -> -driver.getRightY() * 1000.0), pivot.manual(() -> 0.0)));
 
         // Right Stick Up => Barf (Hold)
-        driver.rightJoystickUp().whileTrue(routines.barf());
-
-        // Right Stick Down => Barf (Hold)
-        driver.rightJoystickDown().whileTrue(routines.barf());
+        driver
+            .rightJoystickUp()
+            .or(driver.rightJoystickDown())
+            .and(driver.leftBumper().or(driver.rightBumper()).negate())
+            .whileTrue(routines.barf());
 
         // POV Down => Pivot home (Tap)
         driver.povDown().onTrue(pivot.home(true));
-
-        // POV Up => Tare amplifier (Hold)
-        driver.povUp().whileTrue(amplifier.tare());
 
         // POV Left => Zero swerve (Tap)
         driver.povLeft().onTrue(swerve.tareRotation());
@@ -139,9 +124,6 @@ public final class RobotContainer {
 
         // A => Reserved for climb
         coDriver.a().whileTrue(none());
-
-        // X => Fender Shot (Hold)
-        coDriver.x().whileTrue(pivot.targetSpeaker(() -> FieldConstants.kFenderShotDistance));
 
         // POV Up => Fix Deadzone (Hold)
         coDriver.povUp().whileTrue(routines.fixDeadzone());

@@ -32,11 +32,11 @@ public class Intake extends GRRSubsystem {
 
     public static enum IntakeState {
         /** The intake is deployed and intaking. */
-        kIntake(12.0, Math.toRadians(5.0)),
+        kIntake(12.0, Math.toRadians(8.0)),
         /** The intake is retracted and the rollers are stationary. */
-        kRetract(0.0, Math.toRadians(110.0)),
+        kRetract(0.0, Math.toRadians(112.0)),
         /** The intake is barfing. */
-        kBarf(-10.0, Math.toRadians(90.0));
+        kBarf(-10.0, Math.toRadians(85.0));
 
         private final Tunable<Double> voltage;
         private final Tunable<Double> radians;
@@ -109,7 +109,7 @@ public class Intake extends GRRSubsystem {
             .setPositionConversionFactor(Math.PI)
             .setVelocityConversionFactor(Math.PI)
             .setInverted(true)
-            .setZeroOffset(0.236)
+            .setZeroOffset(1.576)
             .apply(pivotMotor, pivotEncoder);
 
         new SparkPIDControllerConfig().setPID(1.5, 0.0027, 0.0).setIZone(0.1).apply(pivotMotor, pivotPID);

@@ -10,13 +10,11 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkPIDController;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.Supplier;
 import org.team340.lib.dashboard.Tunable;
 import org.team340.lib.util.GRRSubsystem;
-import org.team340.lib.util.Mutable;
 import org.team340.lib.util.rev.RelativeEncoderConfig;
 import org.team340.lib.util.rev.SparkFlexConfig;
 import org.team340.lib.util.rev.SparkPIDControllerConfig;
@@ -32,10 +30,6 @@ public class Pivot extends GRRSubsystem {
     public static enum PivotPosition {
         /** Down position. */
         kDown(Math.toRadians(20.0)),
-        /** Position for scoring in the amp. */
-        kAmp(Math.toRadians(39.0)),
-        /** Position for feeding. */
-        kFeed(Math.toRadians(45.0)),
         /** Position for human loading. */
         kHumanLoad(Math.toRadians(85.0)),
         /** Position for fixing deadzone. */
@@ -58,36 +52,6 @@ public class Pivot extends GRRSubsystem {
     private static final Tunable<Double> kMaxPos = Tunable.doubleValue("Pivot/kMaxPos", Math.toRadians(89.0));
     private static final Tunable<Double> kHomingSpeed = Tunable.doubleValue("Pivot/kHomingSpeed", -1.5);
 
-    private static final InterpolatingDoubleTreeMap kRegression = new InterpolatingDoubleTreeMap();
-
-    static {
-        kRegression.put(1.31, Math.toRadians(59.01));
-        kRegression.put(1.53, Math.toRadians(52.90));
-        kRegression.put(1.81, Math.toRadians(46.82));
-        kRegression.put(2.09, Math.toRadians(42.10));
-        kRegression.put(2.09, Math.toRadians(42.10));
-        kRegression.put(2.71, Math.toRadians(37.76));
-        kRegression.put(2.83, Math.toRadians(35.65));
-        kRegression.put(3.05, Math.toRadians(33.54));
-        kRegression.put(3.16, Math.toRadians(33.38));
-        kRegression.put(3.45, Math.toRadians(31.25));
-        kRegression.put(4.09, Math.toRadians(27.74));
-        kRegression.put(4.40, Math.toRadians(26.46));
-        kRegression.put(4.44, Math.toRadians(26.39));
-        kRegression.put(4.60, Math.toRadians(25.72));
-        kRegression.put(4.84, Math.toRadians(23.27));
-        kRegression.put(5.07, Math.toRadians(23.15));
-        kRegression.put(5.38, Math.toRadians(21.75));
-        kRegression.put(5.63, Math.toRadians(21.12));
-        kRegression.put(5.94, Math.toRadians(20.39));
-        kRegression.put(6.38, Math.toRadians(19.61));
-        kRegression.put(6.55, Math.toRadians(20.7));
-        kRegression.put(6.87, Math.toRadians(19.76));
-        kRegression.put(7.55, Math.toRadians(18.0));
-        kRegression.put(8.88, Math.toRadians(16.9));
-        kRegression.put(9.71, Math.toRadians(16.88));
-    }
-
     private final CANSparkFlex motor;
     private final RelativeEncoder encoder;
     private final SparkPIDController pid;
@@ -95,6 +59,7 @@ public class Pivot extends GRRSubsystem {
 
     private boolean isHomed = false;
     private double target = 0.0;
+    private double lastPosition = PivotPosition.kDown.radians();
 
     public Pivot() {
         motor = new CANSparkFlex(RobotMap.kPivotMotor, MotorType.kBrushless);
@@ -157,20 +122,10 @@ public class Pivot extends GRRSubsystem {
     }
 
     /**
-     * Uses the {@link #kRegression} to automatically target the
-     * speaker using the supplied distance. Does not end.
-     * @param distance A supplier that returns the distance to the speaker in meters.
-     */
-    public Command targetSpeaker(Supplier<Double> distance) {
-        return applyPosition(() -> kRegression.get(distance.get())).withName("Pivot.targetSpeaker()");
-    }
-
-    /**
      * Drives the pivot manually. Does not end.
      * @param speed The speed of the pivot in radians/second.
      */
     public Command manual(Supplier<Double> speed) {
-        Mutable<Double> last = new Mutable<>(0.0);
         return applyPosition(() -> {
             double diff = speed.get() * Constants.kPeriod;
             if (atLimit() || encoder.getPosition() < kMinPos.get()) {
@@ -179,11 +134,9 @@ public class Pivot extends GRRSubsystem {
                 diff = Math.min(diff, 0.0);
             }
 
-            last.accept(last.value + diff);
-            return last.value;
-        })
-            .beforeStarting(() -> last.accept(encoder.getPosition()))
-            .withName("Pivot.manual()");
+            lastPosition += diff;
+            return lastPosition;
+        }).withName("Pivot.manual()");
     }
 
     /**

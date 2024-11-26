@@ -6,10 +6,7 @@ import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.ScheduleCommand;
-import java.util.function.Supplier;
 import org.team340.robot.RobotContainer;
-import org.team340.robot.subsystems.Amplifier;
-import org.team340.robot.subsystems.Amplifier.AmplifierPosition;
 import org.team340.robot.subsystems.Feeder;
 import org.team340.robot.subsystems.Feeder.FeederSpeed;
 import org.team340.robot.subsystems.Intake;
@@ -26,7 +23,6 @@ import org.team340.robot.subsystems.Swerve;
 @Logged(strategy = Strategy.OPT_IN)
 public class Routines {
 
-    private final Amplifier amplifier;
     private final Feeder feeder;
     private final Intake intake;
     private final Pivot pivot;
@@ -34,7 +30,6 @@ public class Routines {
     private final Swerve swerve;
 
     public Routines(RobotContainer robotContainer) {
-        amplifier = robotContainer.amplifier;
         feeder = robotContainer.feeder;
         intake = robotContainer.intake;
         pivot = robotContainer.pivot;
@@ -69,42 +64,6 @@ public class Routines {
         )
             .onlyIf(feeder::noNote)
             .withName("Routines.humanLoad()");
-    }
-
-    /**
-     * Prepares to score in speaker. Does not end.
-     * @param x The X value from the driver's joystick.
-     * @param y The Y value from the driver's joystick.
-     */
-    public Command prepSpeaker(Supplier<Double> x, Supplier<Double> y) {
-        return parallel(
-            swerve.driveSpeaker(x, y),
-            pivot.targetSpeaker(swerve::getSpeakerDistance),
-            shooter.targetSpeaker(swerve::getSpeakerDistance)
-        ).withName("Routines.prepSpeaker()");
-    }
-
-    /**
-     * Prepares to score in amp. Does not end.
-     * @param x The X value from the driver's joystick.
-     * @param y The Y value from the driver's joystick.
-     */
-    public Command prepAmp(Supplier<Double> x, Supplier<Double> y) {
-        return parallel(
-            amplifier.apply(AmplifierPosition.kExtend),
-            pivot.apply(PivotPosition.kAmp),
-            shooter.apply(ShooterSpeed.kAmp),
-            swerve.driveAmp(x, y)
-        ).withName("Routines.prepSpeaker()");
-    }
-
-    /**
-     * Prepares to feed a note to our alliance. Does not end.
-     * @param x The X value from the driver's joystick.
-     * @param y The Y value from the driver's joystick.
-     */
-    public Command prepFeed(Supplier<Double> x, Supplier<Double> y) {
-        return parallel(swerve.driveFeed(x, y), pivot.apply(PivotPosition.kFeed), shooter.apply(ShooterSpeed.kFeed));
     }
 
     /**
