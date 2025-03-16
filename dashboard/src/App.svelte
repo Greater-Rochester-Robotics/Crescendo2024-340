@@ -18,7 +18,7 @@
     const tabs = {
         "Driver View": DriverView,
         "Auto Selection": AutoSelection,
-        "Tunables": Tunables
+        Tunables: Tunables,
     };
 
     // Helpers for tab selection.

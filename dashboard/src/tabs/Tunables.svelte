@@ -1,8 +1,5 @@
 <script lang="ts">
-    import {
-        TunableDistanceFudge,
-        TunableSpinCompensation
-    } from "../ntStores";
+    import { TunableDistanceFudge, TunableSpinCompensation } from "../ntStores";
 
     const onDistanceFudgeBlur = (e: FocusEvent) => {
         $TunableDistanceFudge = Number(decodeURIComponent((e.target as any)?.innerText).trim());
