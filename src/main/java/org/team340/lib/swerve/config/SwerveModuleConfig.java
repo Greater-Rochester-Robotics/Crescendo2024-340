@@ -3,13 +3,14 @@ package org.team340.lib.swerve.config;
 import edu.wpi.first.math.geometry.Translation2d;
 import java.util.ArrayList;
 import java.util.List;
+import org.team340.lib.swerve.SwerveAPI;
 import org.team340.lib.swerve.hardware.SwerveEncoders;
 import org.team340.lib.swerve.hardware.SwerveEncoders.SwerveEncoder;
 import org.team340.lib.swerve.hardware.SwerveMotors;
 import org.team340.lib.swerve.hardware.SwerveMotors.SwerveMotor;
 
 /**
- * Config builder for {@link SwerveBase} modules.
+ * Config builder for {@link SwerveAPI} modules.
  */
 public class SwerveModuleConfig {
 
@@ -74,15 +75,23 @@ public class SwerveModuleConfig {
      * Verifies the config.
      */
     public void verify() {
+        var missing = missing();
+        if (!missing.isEmpty()) {
+            throw new IllegalStateException("SwerveModuleConfig missing values: " + String.join(", ", missing));
+        }
+    }
+
+    /**
+     * Collects a list of missing elements.
+     */
+    List<String> missing() {
         List<String> missing = new ArrayList<>();
         if (name == null) missing.add("Name");
-        if (location == null) missing.add("Position");
+        if (location == null) missing.add("Location");
         if (moveMotor == null) missing.add("Move Motor");
         if (turnMotor == null) missing.add("Turn Motor");
         if (encoder == null) missing.add("Encoder");
 
-        if (!missing.isEmpty()) {
-            throw new IllegalArgumentException("SwerveModuleConfig missing values: " + String.join(", ", missing));
-        }
+        return missing;
     }
 }

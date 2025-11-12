@@ -1,30 +1,14 @@
 package org.team340.lib.swerve.hardware;
 
 import com.ctre.phoenix6.BaseStatusSignal;
-import edu.wpi.first.epilogue.logging.DataLogger;
-import edu.wpi.first.epilogue.logging.errors.ErrorHandler;
 import java.util.List;
 import org.team340.lib.swerve.SwerveAPI;
 
 interface SwerveBaseHardware extends AutoCloseable {
     /**
-     * The CAN frame period in seconds to use for frames containing data
-     * utilized for telemetry that is not necessarily required for swerve
-     * to function.
-     */
-    public static final double TELEMETRY_CAN_PERIOD = 0.2;
-
-    /**
      * Returns the device's underlying API.
      */
     public abstract Object getAPI();
-
-    /**
-     * Logs the device via Epilogue.
-     * @param logger The logger to log data to.
-     * @param errorHandler The handler to use if logging raised an exception.
-     */
-    public abstract void log(DataLogger logger, ErrorHandler errorHandler);
 
     /**
      * Returns all Phoenix status signals in use by the hardware. Phoenix

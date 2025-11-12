@@ -2,8 +2,7 @@ package org.team340.lib.util;
 
 import static edu.wpi.first.units.Units.Milliseconds;
 
-import edu.wpi.first.units.Measure;
-import edu.wpi.first.units.Time;
+import edu.wpi.first.units.measure.Time;
 import edu.wpi.first.wpilibj.RobotBase;
 
 /**
@@ -13,7 +12,7 @@ import edu.wpi.first.wpilibj.RobotBase;
 public final class Sleep {
 
     private Sleep() {
-        throw new AssertionError("This is a utility class!");
+        throw new UnsupportedOperationException("This is a utility class!");
     }
 
     /**
@@ -21,7 +20,7 @@ public final class Sleep {
      * Will always run, even if in simulation.
      * @param time The time to sleep for.
      */
-    public static void of(Measure<Time> time) {
+    public static void of(Time time) {
         of(time, false);
     }
 
@@ -30,7 +29,7 @@ public final class Sleep {
      * @param time The time to sleep for.
      * @param skipSim If the thread should skip sleeping if in simulation.
      */
-    public static void of(Measure<Time> time, boolean skipSim) {
+    public static void of(Time time, boolean skipSim) {
         ms(time.in(Milliseconds), skipSim);
     }
 
@@ -67,9 +66,9 @@ public final class Sleep {
      * @param skipSim If the thread should skip sleeping if in simulation.
      */
     public static void ms(double ms, boolean skipSim) {
-        if (!(skipSim && RobotBase.isSimulation())) {
+        if (!skipSim || !RobotBase.isSimulation()) {
             try {
-                Thread.sleep((long) ms);
+                Thread.sleep((long) ms, (int) Math.min(Math.round((ms % 1.0) * 1e6), 1e6 - 1.0));
             } catch (Exception e) {}
         }
     }

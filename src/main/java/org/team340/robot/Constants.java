@@ -1,8 +1,5 @@
 package org.team340.robot;
 
-import edu.wpi.first.math.geometry.Translation2d;
-import org.team340.lib.controller.ControllerConfig;
-
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide numerical or boolean
  * constants. This class should not be used for any other purpose. All constants should be declared
@@ -10,60 +7,34 @@ import org.team340.lib.controller.ControllerConfig;
  */
 public final class Constants {
 
-    public static final double kPeriod = 0.020;
-    public static final double kVoltage = 12.0;
+    public static final double VOLTAGE = 12.0;
 
-    public static final ControllerConfig kDriver = new ControllerConfig()
-        .setPort(0)
-        .setDeadbands(0.15, 0.05)
-        .setThresholds(0.5, 0.05);
+    // Controller ports
+    public static final int DRIVER = 0;
+    public static final int CO_DRIVER = 1;
 
-    public static final ControllerConfig kCoDriver = new ControllerConfig()
-        .setPort(1)
-        .setDeadbands(0.15, 0.05)
-        .setThresholds(0.5, 0.05);
-
+    /**
+     * The RobotMap class defines CAN IDs, CAN bus names, DIO/PWM/PH/PCM channel
+     * IDs, and other relevant identifiers for addressing robot hardware.
+     */
     public static final class RobotMap {
 
-        public static final int kMoveFL = 2;
-        public static final int kTurnFL = 3;
-        public static final int kMoveBL = 4;
-        public static final int kTurnBL = 5;
-        public static final int kMoveBR = 6;
-        public static final int kTurnBR = 7;
-        public static final int kMoveFR = 8;
-        public static final int kTurnFR = 9;
+        public static final String LOWER_CAN = "LowerCAN";
 
-        public static final int kIntakePivotMotor = 20;
-        public static final int kIntakeRollerMotor = 21;
+        public static final int FL_MOVE = 2;
+        public static final int FL_TURN = 3;
+        public static final int FR_MOVE = 4;
+        public static final int FR_TURN = 5;
+        public static final int BL_MOVE = 6;
+        public static final int BL_TURN = 7;
+        public static final int BR_MOVE = 8;
+        public static final int BR_TURN = 9;
 
-        public static final int kPivotMotor = 30;
-        public static final int kFeederMotor = 31;
-        public static final int kShooterLeftMotor = 33;
-        public static final int kShooterRightMotor = 32;
+        public static final int FL_ENCODER = 10;
+        public static final int FR_ENCODER = 11;
+        public static final int BL_ENCODER = 12;
+        public static final int BR_ENCODER = 13;
 
-        public static final int kAmplifier = 34;
-
-        public static final int kPivotLimit = 8;
-        public static final int kNoteDetector = 9;
-
-        public static final int kLights = 9;
-    }
-
-    public static final class FieldConstants {
-
-        public static final double kLength = 16.541;
-        public static final double kWidth = 8.211;
-
-        public static final Translation2d kBlueSpeaker = new Translation2d(0.03, 5.547869);
-        public static final Translation2d kRedSpeaker = new Translation2d(
-            kLength - kBlueSpeaker.getX(),
-            kBlueSpeaker.getY()
-        );
-
-        public static final Translation2d kBlueFeed = new Translation2d(0.0, kWidth);
-        public static final Translation2d kRedFeed = new Translation2d(kLength - kBlueFeed.getX(), kBlueFeed.getY());
-
-        public static final double kFenderShotDistance = 1.4;
+        public static final int CANANDGYRO = 14;
     }
 }

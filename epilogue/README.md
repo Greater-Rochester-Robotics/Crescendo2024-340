@@ -1,1 +1,0 @@
-Run `./gradlew publishToMavenLocal`

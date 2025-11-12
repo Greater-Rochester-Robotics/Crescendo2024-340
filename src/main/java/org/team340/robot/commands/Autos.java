@@ -2,161 +2,53 @@ package org.team340.robot.commands;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
-import choreo.Choreo;
-import choreo.trajectory.SwerveSample;
-import choreo.trajectory.Trajectory;
-import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.epilogue.Logged.Strategy;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.Command;
-import java.util.Optional;
-import org.team340.lib.dashboard.GRRDashboard;
-import org.team340.lib.util.Alliance;
-import org.team340.robot.RobotContainer;
-import org.team340.robot.subsystems.Feeder;
-import org.team340.robot.subsystems.Feeder.FeederSpeed;
-import org.team340.robot.subsystems.Intake;
-import org.team340.robot.subsystems.Intake.IntakeState;
-import org.team340.robot.subsystems.Pivot;
-import org.team340.robot.subsystems.Pivot.PivotPosition;
-import org.team340.robot.subsystems.Shooter;
+import org.team340.lib.math.geometry.ExtPose;
+import org.team340.lib.tunable.TunableTable;
+import org.team340.lib.tunable.Tunables;
+import org.team340.lib.tunable.Tunables.TunableDouble;
+import org.team340.lib.util.command.AutoChooser;
+import org.team340.robot.Robot;
 import org.team340.robot.subsystems.Swerve;
 
-@Logged(strategy = Strategy.OPT_IN)
-public class Autos {
+/**
+ * The Autos class declares autonomous modes, and adds them
+ * to the dashboard to be selected by the drive team.
+ */
+@SuppressWarnings("unused")
+public final class Autos {
 
-    private final Feeder feeder;
-    private final Intake intake;
-    private final Pivot pivot;
-    private final Shooter shooter;
+    private static final TunableTable tunables = Tunables.getNested("autos");
+    private static final TunableDouble deceleration = tunables.value("deceleration", 6.0);
+    private static final TunableDouble tolerance = tunables.value("tolerance", 0.05);
+
     private final Swerve swerve;
+    private final Routines routines;
 
-    public Autos(RobotContainer robotContainer) {
-        feeder = robotContainer.feeder;
-        intake = robotContainer.intake;
-        pivot = robotContainer.pivot;
-        shooter = robotContainer.shooter;
-        swerve = robotContainer.swerve;
+    private final AutoChooser chooser;
 
-        preloadDumpC1C2();
-        preloadDumpC2C1();
+    public Autos(Robot robot) {
+        swerve = robot.swerve;
+        routines = robot.routines;
+
+        // Create the auto chooser
+        chooser = new AutoChooser();
+
+        // Add autonomous modes to the dashboard
+        chooser.add("Example", example());
     }
 
-    /**
-     * Intakes a note.
-     * @param delay The delay to deploy the intake in seconds.
-     * @param seat If the note should be seated.
-     */
-    private Command intake(double delay, boolean seat) {
+    private Command example() {
+        var start = new ExtPose(1.0, 1.0, Rotation2d.kZero);
+        var middle = new ExtPose(2.0, 5.0, Rotation2d.k180deg);
+        var end = new ExtPose(6.0, 2.5, Rotation2d.kCW_90deg);
+
         return sequence(
-            intake.apply(IntakeState.kRetract).withTimeout(delay),
-            parallel(intake.apply(IntakeState.kIntake), feeder.apply(FeederSpeed.kReceive))
-                .onlyIf(feeder::noNote)
-                .until(feeder::hasNote),
-            parallel(seat ? feeder.seat() : none(), intake.apply(IntakeState.kRetract))
-        ).withName("Autos.intake(" + delay + ", " + seat + ")");
-    }
-
-    /**
-     * Aims the drive at the speaker and shoots a note.
-     * The pivot and shooter wheels are expected to be\[]
-     * already running and targeting the speaker.
-     * @param timeout The timeout in seconds to shoot.
-     */
-    private Command shoot(double delay, double timeout) {
-        return parallel(
-            intake.apply(IntakeState.kRetract),
-            sequence(waitSeconds(delay), feeder.apply(FeederSpeed.kShoot)),
-            swerve.driveSpeaker(() -> 0.0, () -> 0.0)
-        )
-            .withTimeout(timeout)
-            .withName("Autos.shoot(" + timeout + ")");
-    }
-
-    public void preloadDumpC1C2() {
-        String name = "preloadDumpC1C2";
-        Optional<Trajectory<SwerveSample>> traj = Choreo.loadTrajectory(name);
-
-        if (traj.isPresent()) {
-            Command command = sequence(
-                deadline(
-                    sequence(
-                        swerve.resetPose(() -> traj.get().getInitialPose(Alliance.isRed())),
-                        deadline(swerve.autoFactory().trajectoryCommand(name, 0), intake(0.5, false)),
-                        deadline(
-                            swerve.autoFactory().trajectoryCommand(name, 1),
-                            sequence(waitSeconds(1.0), swerve.trajAimSpeaker()),
-                            intake(0.0, true)
-                        ),
-                        shoot(0.35, 0.6),
-                        deadline(swerve.autoFactory().trajectoryCommand(name, 2), intake(0.5, false)),
-                        deadline(
-                            swerve.autoFactory().trajectoryCommand(name, 3),
-                            sequence(waitSeconds(1.2), swerve.trajAimSpeaker()),
-                            intake(0.0, true)
-                        ),
-                        shoot(0.35, 0.6),
-                        deadline(swerve.autoFactory().trajectoryCommand(name, 4), intake(0.0, false)),
-                        deadline(
-                            swerve.autoFactory().trajectoryCommand(name, 5),
-                            sequence(waitSeconds(0.5), swerve.trajAimSpeaker()),
-                            intake(0.0, true)
-                        ),
-                        shoot(0.35, 0.6)
-                    ),
-                    shooter.targetSpeaker(swerve::getSpeakerDistance),
-                    pivot.targetSpeaker(swerve::getSpeakerDistance)
-                ),
-                parallel(
-                    sequence(swerve.autoFactory().trajectoryCommand(name, 6), swerve.lockWheels()),
-                    intake.apply(IntakeState.kRetract),
-                    pivot.apply(PivotPosition.kDown)
-                )
-            );
-            GRRDashboard.addAuto("Pre-load Dump 1 + 2", command, traj.get());
-        }
-    }
-
-    public void preloadDumpC2C1() {
-        String name = "preloadDumpC2C1";
-        Optional<Trajectory<SwerveSample>> traj = Choreo.loadTrajectory(name);
-
-        if (traj.isPresent()) {
-            Command command = sequence(
-                deadline(
-                    sequence(
-                        swerve.resetPose(() -> traj.get().getInitialPose(Alliance.isRed())),
-                        deadline(swerve.autoFactory().trajectoryCommand(name, 0), intake(0.5, false)),
-                        deadline(
-                            swerve.autoFactory().trajectoryCommand(name, 1),
-                            sequence(waitSeconds(1.0), swerve.trajAimSpeaker()),
-                            intake(0.0, true)
-                        ),
-                        shoot(0.35, 0.6),
-                        deadline(swerve.autoFactory().trajectoryCommand(name, 2), intake(0.5, false)),
-                        deadline(
-                            swerve.autoFactory().trajectoryCommand(name, 3),
-                            sequence(waitSeconds(1.2), swerve.trajAimSpeaker()),
-                            intake(0.0, true)
-                        ),
-                        shoot(0.35, 0.6),
-                        deadline(swerve.autoFactory().trajectoryCommand(name, 4), intake(0.0, false)),
-                        deadline(
-                            swerve.autoFactory().trajectoryCommand(name, 5),
-                            sequence(waitSeconds(0.5), swerve.trajAimSpeaker()),
-                            intake(0.0, true)
-                        ),
-                        shoot(0.35, 0.6)
-                    ),
-                    shooter.targetSpeaker(swerve::getSpeakerDistance),
-                    pivot.targetSpeaker(swerve::getSpeakerDistance)
-                ),
-                parallel(
-                    sequence(swerve.autoFactory().trajectoryCommand(name, 6), swerve.lockWheels()),
-                    intake.apply(IntakeState.kRetract),
-                    pivot.apply(PivotPosition.kDown)
-                )
-            );
-            GRRDashboard.addAuto("Pre-load Dump 2 + 1", command, traj.get());
-        }
+            swerve.resetPose(start::get),
+            swerve.apfDrive(middle::get, deceleration::get, tolerance::get),
+            swerve.apfDrive(end::get, deceleration::get, tolerance::get),
+            swerve.stop(false)
+        );
     }
 }

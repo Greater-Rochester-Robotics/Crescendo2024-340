@@ -3,10 +3,13 @@ package org.team340.lib.swerve.hardware;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.hardware.Pigeon2;
-import edu.wpi.first.epilogue.logging.DataLogger;
-import edu.wpi.first.epilogue.logging.errors.ErrorHandler;
+import com.reduxrobotics.canand.CanandEventLoop;
+import com.reduxrobotics.sensors.canandgyro.Canandgyro;
+import com.reduxrobotics.sensors.canandgyro.CanandgyroSettings;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.ADIS16470_IMU;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.CalibrationTime;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
@@ -15,13 +18,12 @@ import edu.wpi.first.wpilibj.SPI;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import org.team340.lib.logging.ADIS16470Logger;
-import org.team340.lib.logging.Pigeon2Logger;
 import org.team340.lib.swerve.SwerveAPI;
 import org.team340.lib.swerve.config.SwerveConfig;
 import org.team340.lib.swerve.hardware.SwerveIMUs.SwerveIMU.IMUSimHook;
-import org.team340.lib.util.Math2;
 import org.team340.lib.util.Mutable;
+import org.team340.lib.util.vendors.PhoenixUtil;
+import org.team340.lib.util.vendors.ReduxUtil;
 
 /**
  * Contains implementations for IMUs to be used with the {@link SwerveAPI}.
@@ -29,7 +31,7 @@ import org.team340.lib.util.Mutable;
 public final class SwerveIMUs {
 
     private SwerveIMUs() {
-        throw new AssertionError("This is a utility class!");
+        throw new UnsupportedOperationException("This is a utility class!");
     }
 
     /**
@@ -94,7 +96,6 @@ public final class SwerveIMUs {
         CalibrationTime calibrationTime
     ) {
         return config -> {
-            var deviceLogger = new ADIS16470Logger();
             ADIS16470_IMU adis16470 = new ADIS16470_IMU(yawAxis, pitchAxis, rollAxis, port, calibrationTime);
 
             return new SwerveIMU() {
@@ -119,13 +120,71 @@ public final class SwerveIMUs {
                 }
 
                 @Override
-                public void log(DataLogger logger, ErrorHandler errorHandler) {
-                    deviceLogger.tryUpdate(logger, adis16470, errorHandler);
+                public void close() {
+                    adis16470.close();
+                }
+            };
+        };
+    }
+
+    /**
+     * Configures a {@link Canandgyro}.
+     * @param id CAN ID of the device, as configured in Alchemist.
+     */
+    public static SwerveIMU.Ctor canandgyro(int id) {
+        return config -> {
+            Canandgyro canandgyro = new Canandgyro(id);
+
+            var settings = new CanandgyroSettings()
+                .setAccelerationFramePeriod(config.defaultFramePeriod)
+                .setAngularPositionFramePeriod(config.odometryPeriod)
+                .setAngularVelocityFramePeriod(config.odometryPeriod)
+                .setStatusFramePeriod(config.defaultFramePeriod)
+                .setYawFramePeriod(config.odometryPeriod);
+
+            canandgyro.clearStickyFaults();
+            ReduxUtil.applySettings(canandgyro, settings);
+
+            if (RobotBase.isSimulation()) {
+                CanandEventLoop.getInstance().setDevicePresenceWarnings(canandgyro, false);
+            }
+
+            return new SwerveIMU() {
+                @Override
+                public Rotation2d getYaw() {
+                    return Rotation2d.fromRotations(
+                        ReduxUtil.latencyCompensate(canandgyro.getYawFrame(), canandgyro.getAngularVelocityYaw())
+                    );
+                }
+
+                @Override
+                public Rotation2d getPitch() {
+                    return Rotation2d.fromRotations(
+                        ReduxUtil.latencyCompensateQuaternionPitch(
+                            canandgyro.getAngularPositionFrame(),
+                            canandgyro.getAngularVelocityPitch()
+                        )
+                    );
+                }
+
+                @Override
+                public Rotation2d getRoll() {
+                    return Rotation2d.fromRotations(
+                        ReduxUtil.latencyCompensateQuaternionRoll(
+                            canandgyro.getAngularPositionFrame(),
+                            canandgyro.getAngularVelocityRoll()
+                        )
+                    );
+                }
+
+                @Override
+                public Object getAPI() {
+                    return canandgyro;
                 }
 
                 @Override
                 public void close() {
-                    adis16470.close();
+                    canandgyro.close();
                 }
             };
         };
@@ -137,48 +196,54 @@ public final class SwerveIMUs {
      */
     public static SwerveIMU.Ctor pigeon2(int id) {
         return config -> {
-            var deviceLogger = new Pigeon2Logger();
             Pigeon2 pigeon2 = new Pigeon2(id, config.phoenixCanBus);
 
-            StatusSignal<Double> yaw = pigeon2.getYaw().clone();
-            StatusSignal<Double> pitch = pigeon2.getPitch();
-            StatusSignal<Double> roll = pigeon2.getRoll();
-            StatusSignal<Double> yawVelocity = pigeon2.getAngularVelocityZWorld().clone();
-            StatusSignal<Double> pitchVelocity = pigeon2.getAngularVelocityXWorld();
-            StatusSignal<Double> rollVelocity = pigeon2.getAngularVelocityYWorld();
+            StatusSignal<Angle> yaw = pigeon2.getYaw(false).clone();
+            StatusSignal<Angle> pitch = pigeon2.getPitch(false);
+            StatusSignal<Angle> roll = pigeon2.getRoll(false);
+            StatusSignal<AngularVelocity> yawVelocity = pigeon2.getAngularVelocityZWorld().clone();
+            StatusSignal<AngularVelocity> pitchVelocity = pigeon2.getAngularVelocityXWorld();
+            StatusSignal<AngularVelocity> rollVelocity = pigeon2.getAngularVelocityYWorld();
 
-            BaseStatusSignal.setUpdateFrequencyForAll(1.0 / config.odometryPeriod, yaw, yawVelocity);
-            BaseStatusSignal.setUpdateFrequencyForAll(1.0 / config.period, pitch, roll, pitchVelocity, rollVelocity);
-            pigeon2.optimizeBusUtilization(1.0 / SwerveBaseHardware.TELEMETRY_CAN_PERIOD, 0.05);
+            PhoenixUtil.run(() -> pigeon2.clearStickyFaults());
+            PhoenixUtil.run(() ->
+                BaseStatusSignal.setUpdateFrequencyForAll(
+                    1.0 / config.odometryPeriod,
+                    yaw,
+                    pitch,
+                    roll,
+                    yawVelocity,
+                    pitchVelocity,
+                    rollVelocity
+                )
+            );
+            PhoenixUtil.run(() -> pigeon2.optimizeBusUtilization(1.0 / config.defaultFramePeriod, 0.05));
 
             return new SwerveIMU() {
                 @Override
                 public Rotation2d getYaw() {
-                    return Rotation2d.fromDegrees(BaseStatusSignal.getLatencyCompensatedValue(yaw, yawVelocity));
+                    return Rotation2d.fromDegrees(
+                        BaseStatusSignal.getLatencyCompensatedValueAsDouble(yaw, yawVelocity)
+                    );
                 }
 
                 @Override
                 public Rotation2d getPitch() {
                     return Rotation2d.fromDegrees(
-                        BaseStatusSignal.getLatencyCompensatedValue(pitch.refresh(), pitchVelocity.refresh())
+                        BaseStatusSignal.getLatencyCompensatedValueAsDouble(pitch.refresh(), pitchVelocity.refresh())
                     );
                 }
 
                 @Override
                 public Rotation2d getRoll() {
                     return Rotation2d.fromDegrees(
-                        BaseStatusSignal.getLatencyCompensatedValue(roll.refresh(), rollVelocity.refresh())
+                        BaseStatusSignal.getLatencyCompensatedValueAsDouble(roll.refresh(), rollVelocity.refresh())
                     );
                 }
 
                 @Override
                 public Object getAPI() {
                     return pigeon2;
-                }
-
-                @Override
-                public void log(DataLogger logger, ErrorHandler errorHandler) {
-                    deviceLogger.tryUpdate(logger, pigeon2, errorHandler);
                 }
 
                 @Override
@@ -198,42 +263,33 @@ public final class SwerveIMUs {
      * Rudimentary IMU simulation wrapper. Calculates yaw based on the robot's angular velocity.
      * @param imu The IMU to wrap.
      * @param config The general swerve API configuration.
-     * @param Hook to update the IMU if simulation is active.
+     * @param simHook Hook to update the IMU if simulation is active.
      */
     private static SwerveIMU simulate(SwerveIMU imu, SwerveConfig config, IMUSimHook simHook) {
-        Mutable<Rotation2d> yaw = new Mutable<>(Math2.kZeroRotation2d);
-        simHook.accept(speeds ->
-            yaw.accept(yaw.get().plus(Rotation2d.fromRadians(speeds.omegaRadiansPerSecond * config.period)))
-        );
+        Mutable<Double> yaw = new Mutable<>(0.0);
+        simHook.accept(speeds -> {
+            yaw.value += speeds.omegaRadiansPerSecond * config.period;
+        });
 
         return new SwerveIMU() {
             @Override
             public Rotation2d getYaw() {
-                return yaw.get();
+                return Rotation2d.fromRadians(yaw.value);
             }
 
             @Override
             public Rotation2d getPitch() {
-                return Math2.kZeroRotation2d;
+                return Rotation2d.kZero;
             }
 
             @Override
             public Rotation2d getRoll() {
-                return Math2.kZeroRotation2d;
+                return Rotation2d.kZero;
             }
 
             @Override
             public Object getAPI() {
                 return imu.getAPI();
-            }
-
-            @Override
-            public void log(DataLogger logger, ErrorHandler errorHandler) {
-                imu.log(logger, errorHandler);
-                var simLogger = logger.getSubLogger(".sim");
-                simLogger.log("yaw", getYaw(), Rotation2d.struct);
-                simLogger.log("pitch", getPitch(), Rotation2d.struct);
-                simLogger.log("roll", getRoll(), Rotation2d.struct);
             }
 
             @Override

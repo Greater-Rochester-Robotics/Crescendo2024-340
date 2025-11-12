@@ -1,6 +1,7 @@
 package org.team340.lib.swerve;
 
 import com.ctre.phoenix6.BaseStatusSignal;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
@@ -9,11 +10,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.team340.lib.math.Math2;
 import org.team340.lib.swerve.config.SwerveConfig;
 import org.team340.lib.swerve.config.SwerveModuleConfig;
 import org.team340.lib.swerve.hardware.SwerveEncoders.SwerveEncoder;
+import org.team340.lib.swerve.hardware.SwerveEncoders.SwerveEncoder.HookStatus;
 import org.team340.lib.swerve.hardware.SwerveMotors.SwerveMotor;
-import org.team340.lib.util.Math2;
 
 /**
  * An encapsulation of all hardware for a swerve module.
@@ -26,20 +28,19 @@ class SwerveModule implements AutoCloseable {
 
     private final SwerveConfig config;
     private final SwerveModuleConfig moduleConfig;
-    private final double moveRotationsPerMeter;
-    private final boolean hookStatus;
+    private final HookStatus hookStatus;
 
     private final SwerveModulePosition position = new SwerveModulePosition();
     private final SwerveModuleState state = new SwerveModuleState();
-    private final SwerveModuleState nextTarget = new SwerveModuleState();
     private final SwerveModuleState lastTarget = new SwerveModuleState();
+    private final SwerveModuleState nextTarget = new SwerveModuleState();
 
     private Lock cacheMutex = new ReentrantLock();
-    private Rotation2d cachedAngle = Math2.kZeroRotation2d;
+    private Rotation2d cachedAngle = Rotation2d.kZero;
     private double cachedTurnPosition = 0.0;
 
     /**
-     * Create the swerve module.
+     * Creates the swerve module.
      * @param config The general swerve API configuration.
      * @param moduleConfig The module's configuration.
      */
@@ -51,7 +52,6 @@ class SwerveModule implements AutoCloseable {
         turnMotor = SwerveMotor.construct(moduleConfig.turnMotor, config, false);
         encoder = SwerveEncoder.construct(moduleConfig.encoder, config, turnMotor);
 
-        moveRotationsPerMeter = config.moveGearRatio / (config.wheelDiameter * Math.PI);
         hookStatus = encoder.hookStatus();
     }
 
@@ -75,14 +75,14 @@ class SwerveModule implements AutoCloseable {
 
     /**
      * Refreshes the cached position and state of the module.
-     * @return {@code true} on success, {@code false} if a read error ocurred.
+     * @return {@code true} on success, {@code false} if a read error occurred.
      */
     public boolean refresh() {
         double turnPosition = turnMotor.getPosition();
-        double movePosition = moveMotor.getPosition() - (turnPosition * config.couplingRatio);
-        Rotation2d angle = Rotation2d.fromRotations(hookStatus ? turnPosition : encoder.getPosition());
+        Rotation2d angle = Rotation2d.fromRotations(hookStatus.readMotor() ? turnPosition : encoder.getPosition());
+        double moveRotationsPerMeter = config.moveGearRatio / (config.wheelDiameter * Math.PI);
 
-        position.distanceMeters = movePosition / moveRotationsPerMeter;
+        position.distanceMeters = moveMotor.getPosition() / moveRotationsPerMeter;
         position.angle = angle;
 
         state.speedMetersPerSecond = moveMotor.getVelocity() / moveRotationsPerMeter;
@@ -118,14 +118,6 @@ class SwerveModule implements AutoCloseable {
     }
 
     /**
-     * Gets the module's next target state. The returned {@link SwerveModuleState}
-     * object is final and can be cached, and is <i>not</i> volatile.
-     */
-    public SwerveModuleState getNextTarget() {
-        return nextTarget;
-    }
-
-    /**
      * Gets the module's last target state. The returned {@link SwerveModuleState}
      * object is final and can be cached, and is <i>not</i> volatile.
      */
@@ -134,10 +126,23 @@ class SwerveModule implements AutoCloseable {
     }
 
     /**
+     * Gets the module's next target state. The returned {@link SwerveModuleState}
+     * object is final and can be cached, and is <i>not</i> volatile.
+     */
+    public SwerveModuleState getNextTarget() {
+        return nextTarget;
+    }
+
+    /**
      * Sets the target state of the swerve module.
      * @param state The state to apply to the module.
      */
     public void applyState(SwerveModuleState state) {
+        if (Math.abs(state.speedMetersPerSecond) < config.velDeadband) {
+            state.speedMetersPerSecond = 0.0;
+            state.angle = nextTarget.angle;
+        }
+
         Rotation2d angleDelta;
         double turnPosition;
         cacheMutex.lock();
@@ -151,13 +156,13 @@ class SwerveModule implements AutoCloseable {
         boolean flipped = false;
         if (Math.abs(angleDelta.getRadians()) > Math2.HALF_PI) {
             state.speedMetersPerSecond *= -1.0;
-            state.angle = state.angle.rotateBy(Math2.kPiRotation2d);
+            state.angle = state.angle.rotateBy(Rotation2d.kPi);
             flipped = true;
         }
 
-        moveMotor.setVelocity(state.speedMetersPerSecond * moveRotationsPerMeter);
+        moveMotor.setVelocity(state.speedMetersPerSecond * (config.moveGearRatio / (config.wheelDiameter * Math.PI)));
 
-        if (hookStatus) {
+        if (hookStatus.applyAbsolute()) {
             turnMotor.setPosition(state.angle.getRotations());
         } else {
             double optimizedDelta =
@@ -178,8 +183,8 @@ class SwerveModule implements AutoCloseable {
         double target;
         cacheMutex.lock();
         try {
-            if (hookStatus) {
-                target = angle.getRotations();
+            if (hookStatus.applyAbsolute()) {
+                target = MathUtil.inputModulus(angle.getRotations(), -0.5, 0.5);
             } else {
                 target = cachedTurnPosition + (angle.minus(cachedAngle).getRotations() * config.turnGearRatio);
             }

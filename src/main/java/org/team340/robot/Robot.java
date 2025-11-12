@@ -1,93 +1,79 @@
 package org.team340.robot;
 
-import edu.wpi.first.epilogue.Epilogue;
+import static edu.wpi.first.wpilibj2.command.Commands.*;
+
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.wpilibj.DataLogManager;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.epilogue.NotLogged;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import org.team340.lib.dashboard.GRRDashboard;
-import org.team340.lib.util.Profiler;
+import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import org.team340.lib.logging.LoggedRobot;
+import org.team340.lib.logging.Profiler;
+import org.team340.lib.util.DisableWatchdog;
+import org.team340.robot.commands.Autos;
+import org.team340.robot.commands.Routines;
+import org.team340.robot.subsystems.Swerve;
 
-/**
- * The VM is configured to automatically run this class, and to call the functions corresponding to
- * each mode, as described in the TimedRobot documentation. If you change the name of this class or
- * the package after creating this project, you must also update the build.gradle file in the
- * project.
- */
 @Logged
-public final class Robot extends TimedRobot {
+public final class Robot extends LoggedRobot {
 
-    private final RobotContainer robotContainer;
-    private Command autoCommand;
+    private final CommandScheduler scheduler = CommandScheduler.getInstance();
+
+    public final Swerve swerve;
+
+    public final Routines routines;
+    public final Autos autos;
+
+    private final CommandXboxController driver;
+    private final CommandXboxController coDriver;
 
     public Robot() {
-        super(Constants.kPeriod);
-        DriverStation.silenceJoystickConnectionWarning(true);
+        // Initialize subsystems
+        swerve = new Swerve();
 
-        // Start logging
-        DataLogManager.start();
-        DriverStation.startDataLog(DataLogManager.getLog());
-        Epilogue.configure(config -> {
-            config.root = "Telemetry";
-        });
+        // Initialize compositions
+        routines = new Routines(this);
+        autos = new Autos(this);
 
-        robotContainer = new RobotContainer();
+        // Initialize controllers
+        driver = new CommandXboxController(Constants.DRIVER);
+        coDriver = new CommandXboxController(Constants.CO_DRIVER);
+
+        // Set default commands
+        swerve.setDefaultCommand(swerve.drive(this::driverX, this::driverY, this::driverAngular));
+
+        // Driver bindings
+        driver.a().onTrue(none());
+        driver.povLeft().onTrue(swerve.tareRotation());
+
+        // Co-driver bindings
+        coDriver.a().onTrue(none());
+
+        // Disable loop overrun warnings from the command
+        // scheduler, since we already log loop timings
+        DisableWatchdog.in(scheduler, "m_watchdog");
+
+        // Configure the brownout threshold to match RIO 1
+        RobotController.setBrownoutVoltage(6.3);
+    }
+
+    @NotLogged
+    public double driverX() {
+        return driver.getLeftX();
+    }
+
+    @NotLogged
+    public double driverY() {
+        return driver.getLeftY();
+    }
+
+    @NotLogged
+    public double driverAngular() {
+        return driver.getLeftTriggerAxis() - driver.getRightTriggerAxis();
     }
 
     @Override
     public void robotPeriodic() {
-        Profiler.start("RobotPeriodic");
-        Profiler.run("CommandScheduler", () -> CommandScheduler.getInstance().run());
-        Profiler.run("Epilogue", () -> Epilogue.update(this));
-        Profiler.run("GRRDashboard", GRRDashboard::update);
-        Profiler.end();
+        Profiler.run("scheduler", scheduler::run);
     }
-
-    @Override
-    public void simulationPeriodic() {}
-
-    @Override
-    public void disabledInit() {}
-
-    @Override
-    public void disabledPeriodic() {}
-
-    @Override
-    public void disabledExit() {}
-
-    @Override
-    public void autonomousInit() {
-        autoCommand = GRRDashboard.getSelectedAuto();
-        CommandScheduler.getInstance().schedule(autoCommand);
-    }
-
-    @Override
-    public void autonomousPeriodic() {}
-
-    @Override
-    public void autonomousExit() {
-        if (autoCommand != null) autoCommand.cancel();
-    }
-
-    @Override
-    public void teleopInit() {}
-
-    @Override
-    public void teleopPeriodic() {}
-
-    @Override
-    public void teleopExit() {}
-
-    @Override
-    public void testInit() {
-        CommandScheduler.getInstance().cancelAll();
-    }
-
-    @Override
-    public void testPeriodic() {}
-
-    @Override
-    public void testExit() {}
 }
