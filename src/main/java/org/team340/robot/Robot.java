@@ -12,6 +12,8 @@ import org.team340.lib.logging.Profiler;
 import org.team340.lib.util.DisableWatchdog;
 import org.team340.robot.commands.Autos;
 import org.team340.robot.commands.Routines;
+import org.team340.robot.subsystems.Feeder;
+import org.team340.robot.subsystems.Intake;
 import org.team340.robot.subsystems.Swerve;
 
 @Logged
@@ -20,6 +22,8 @@ public final class Robot extends LoggedRobot {
     private final CommandScheduler scheduler = CommandScheduler.getInstance();
 
     public final Swerve swerve;
+    public final Feeder feeder;
+    public final Intake intake;
 
     public final Routines routines;
     public final Autos autos;
@@ -30,6 +34,8 @@ public final class Robot extends LoggedRobot {
     public Robot() {
         // Initialize subsystems
         swerve = new Swerve();
+        feeder = new Feeder();
+        intake = new Intake();
 
         // Initialize compositions
         routines = new Routines(this);
@@ -43,8 +49,9 @@ public final class Robot extends LoggedRobot {
         swerve.setDefaultCommand(swerve.drive(this::driverX, this::driverY, this::driverAngular));
 
         // Driver bindings
-        driver.a().onTrue(none());
+        driver.a().whileTrue(routines.intake());
         driver.povLeft().onTrue(swerve.tareRotation());
+        driver.x().whileTrue(feeder.barf());
 
         // Co-driver bindings
         coDriver.a().onTrue(none());

@@ -4,6 +4,8 @@ import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import org.team340.robot.Robot;
+import org.team340.robot.subsystems.Feeder;
+import org.team340.robot.subsystems.Intake;
 import org.team340.robot.subsystems.Swerve;
 
 /**
@@ -12,10 +14,18 @@ import org.team340.robot.subsystems.Swerve;
  */
 public final class Routines {
 
+    private final Feeder feeder;
+    private final Intake intake;
     private final Swerve swerve;
 
     public Routines(Robot robot) {
+        feeder = robot.feeder;
+        intake = robot.intake;
         swerve = robot.swerve;
+    }
+
+    public Command intake() {
+        return parallel(feeder.pickup(), intake.intake());
     }
 
     /**

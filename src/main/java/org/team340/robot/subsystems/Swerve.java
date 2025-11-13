@@ -1,12 +1,14 @@
 package org.team340.robot.subsystems;
 
-import com.ctre.phoenix6.CANBus;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.ADIS16470_IMU.CalibrationTime;
+import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
+import edu.wpi.first.wpilibj.SPI.Port;
 import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
@@ -34,51 +36,50 @@ import org.team340.robot.Constants.RobotMap;
 @Logged
 public final class Swerve extends GRRSubsystem {
 
-    private static final double OFFSET = Units.inchesToMeters(12.5);
+    private static final double OFFSET = Units.inchesToMeters(11.375);
 
     private static final TunableTable tunables = Tunables.getNested("swerve");
 
     private final SwerveModuleConfig frontLeft = new SwerveModuleConfig()
         .setName("frontLeft")
         .setLocation(OFFSET, OFFSET)
-        .setMoveMotor(SwerveMotors.talonFX(RobotMap.FL_MOVE, true))
-        .setTurnMotor(SwerveMotors.talonFX(RobotMap.FL_TURN, true))
-        .setEncoder(SwerveEncoders.cancoder(RobotMap.FL_ENCODER, 0.0, false));
+        .setMoveMotor(SwerveMotors.sparkFlex(RobotMap.FL_MOVE, true))
+        .setTurnMotor(SwerveMotors.sparkFlex(RobotMap.FL_TURN, true))
+        .setEncoder(SwerveEncoders.sparkFlexEncoder(0.380, false));
 
     private final SwerveModuleConfig frontRight = new SwerveModuleConfig()
         .setName("frontRight")
         .setLocation(OFFSET, -OFFSET)
-        .setMoveMotor(SwerveMotors.talonFX(RobotMap.FR_MOVE, true))
-        .setTurnMotor(SwerveMotors.talonFX(RobotMap.FR_TURN, true))
-        .setEncoder(SwerveEncoders.cancoder(RobotMap.FR_ENCODER, 0.0, false));
+        .setMoveMotor(SwerveMotors.sparkFlex(RobotMap.FR_MOVE, true))
+        .setTurnMotor(SwerveMotors.sparkFlex(RobotMap.FR_TURN, true))
+        .setEncoder(SwerveEncoders.sparkFlexEncoder(0.886, false));
 
     private final SwerveModuleConfig backLeft = new SwerveModuleConfig()
         .setName("backLeft")
         .setLocation(-OFFSET, OFFSET)
-        .setMoveMotor(SwerveMotors.talonFX(RobotMap.BL_MOVE, true))
-        .setTurnMotor(SwerveMotors.talonFX(RobotMap.BL_TURN, true))
-        .setEncoder(SwerveEncoders.cancoder(RobotMap.BL_ENCODER, 0.0, false));
+        .setMoveMotor(SwerveMotors.sparkFlex(RobotMap.BL_MOVE, true))
+        .setTurnMotor(SwerveMotors.sparkFlex(RobotMap.BL_TURN, true))
+        .setEncoder(SwerveEncoders.sparkFlexEncoder(0.318, false));
 
     private final SwerveModuleConfig backRight = new SwerveModuleConfig()
         .setName("backRight")
         .setLocation(-OFFSET, -OFFSET)
-        .setMoveMotor(SwerveMotors.talonFX(RobotMap.BR_MOVE, true))
-        .setTurnMotor(SwerveMotors.talonFX(RobotMap.BR_TURN, true))
-        .setEncoder(SwerveEncoders.cancoder(RobotMap.BR_ENCODER, 0.0, false));
+        .setMoveMotor(SwerveMotors.sparkFlex(RobotMap.BR_MOVE, true))
+        .setTurnMotor(SwerveMotors.sparkFlex(RobotMap.BR_TURN, true))
+        .setEncoder(SwerveEncoders.sparkFlexEncoder(0.668, false));
 
     private final SwerveConfig config = new SwerveConfig()
-        .setTimings(LoggedRobot.DEFAULT_PERIOD, 0.004, 0.02, 0.02)
-        .setMovePID(0.25, 0.0, 0.0)
-        .setMoveFF(0.0, 0.125)
-        .setTurnPID(100.0, 0.0, 0.2)
+        .setTimings(LoggedRobot.DEFAULT_PERIOD)
+        .setMovePID(0.03, 0.0, 0.0)
+        .setMoveFF(0.2, 0.11)
+        .setTurnPID(12.0, 0.0, 0.0)
         .setBrakeMode(true, true)
-        .setLimits(5.0, 0.01, 18.0, 15.0, 45.0)
-        .setDriverProfile(5.0, 1.5, 0.1, 5.4, 2.0, 0.05)
+        .setLimits(4.9, 0.01, 18.0, 15.0, 45.0)
+        .setDriverProfile(4.9, 1.5, 0.1, 5.4, 2.0, 0.05)
         .setPowerProperties(Constants.VOLTAGE, 80.0, 70.0, 60.0, 60.0)
-        .setMechanicalProperties(675.0 / 112.0, 287.0 / 11.0, Units.inchesToMeters(4.0))
+        .setMechanicalProperties(6.75, 150.0 / 7.0, Units.inchesToMeters(4.0))
         .setOdometryStd(0.1, 0.1, 0.05)
-        .setIMU(SwerveIMUs.canandgyro(RobotMap.CANANDGYRO))
-        .setPhoenixFeatures(new CANBus(RobotMap.LOWER_CAN), true, true, true)
+        .setIMU(SwerveIMUs.adis16470(IMUAxis.kZ, IMUAxis.kX, IMUAxis.kY, Port.kOnboardCS0, CalibrationTime._4s))
         .setModules(frontLeft, frontRight, backLeft, backRight);
 
     @NotLogged
